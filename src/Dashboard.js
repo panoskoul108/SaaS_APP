@@ -65,9 +65,7 @@ export default function Dashboard() {
       const interval = setInterval(fetchData, 5000);
       return () => clearInterval(interval);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, storeId]);
-
   useEffect(() => {
     const pendingCount = orders.filter((o) => {
       if (o.status === "completed") return false;

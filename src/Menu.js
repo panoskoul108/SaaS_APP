@@ -149,7 +149,6 @@ export default function Menu() {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [storeId]);
 
   const hasRecommended = products.some((p) => p.is_recommended);

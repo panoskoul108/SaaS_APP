@@ -67,7 +67,6 @@ export default function OrderStatus({ orderId, onBack }) {
       clearInterval(interval);
     };
     // Εδώ βγάλαμε τα περιττά dependencies για να μην κολλάει ο timer
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId]);
 
   if (!order) {
