@@ -46,7 +46,7 @@ const DICT = {
     qty: "ΠΟΣΟΤΗΤΑ",
     noResults: "Δεν βρέθηκαν προϊόντα.",
     pausedBanner: "ΠΑΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ",
-    pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.",
+    pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή."
   },
   en: {
     requiredTable: "TABLE REQUIRED",
@@ -80,7 +80,7 @@ const DICT = {
     qty: "QUANTITY",
     noResults: "No products found.",
     pausedBanner: "ORDERS TEMPORARILY PAUSED DUE TO HIGH VOLUME",
-    pausedCartMsg: "New orders cannot be sent at this time.",
+    pausedCartMsg: "New orders cannot be sent at this time."
   },
 };
 
@@ -103,7 +103,7 @@ export default function Menu() {
   const [cartBounce, setCartBounce] = useState(false);
 
   const [backupMode, setBackupMode] = useState(false);
-  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true); // ΝΕΟ RUSH MODE
+  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
 
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
@@ -131,7 +131,7 @@ export default function Menu() {
     if (s) {
       setStore(s);
       setBackupMode(s.backup_mode);
-      setIsAcceptingOrders(s.is_accepting_orders !== false); // Διαβάζουμε αν είναι ανοιχτό
+      setIsAcceptingOrders(s.is_accepting_orders !== false);
     }
     const { data: p } = await supabase
       .from("products")
@@ -296,8 +296,7 @@ export default function Menu() {
     );
 
   const sendOrder = async () => {
-    if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders)
-      return;
+    if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders) return;
     const { data, error } = await supabase
       .from("orders")
       .insert([
@@ -371,12 +370,17 @@ export default function Menu() {
   const placeholderImg =
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 
+  // Συνάρτηση που "εξαφανίζει" τους τόνους στο παρασκήνιο για την αναζήτηση
+  const removeAccents = (str) => {
+    return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
+  };
+
   const filteredProducts = searchQuery
     ? products.filter((p) => {
-        const searchLow = searchQuery.toLowerCase();
-        const matchGr = p.name.toLowerCase().includes(searchLow);
+        const searchLow = removeAccents(searchQuery.toLowerCase());
+        const matchGr = removeAccents(p.name.toLowerCase()).includes(searchLow);
         const matchEn = p.name_en
-          ? p.name_en.toLowerCase().includes(searchLow)
+          ? removeAccents(p.name_en.toLowerCase()).includes(searchLow)
           : false;
         return matchGr || matchEn;
       })
@@ -421,14 +425,12 @@ export default function Menu() {
         </button>
       </header>
 
-      {/* ΝΕΟ: Banner ειδοποίησης όταν είναι κλειστά */}
       {!isAcceptingOrders && (
         <div className="fixed top-[72px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">
           ⚠️ {t.pausedBanner}
         </div>
       )}
 
-      {/* Προσαρμογή κενού για να μην κρύβεται τίποτα */}
       <div className={!isAcceptingOrders ? "h-[110px]" : "h-[88px]"}></div>
 
       {(!tableNum || tableNum === "") && backupMode === true && (
@@ -480,11 +482,7 @@ export default function Menu() {
         </div>
       )}
 
-      <div
-        className={`px-4 py-2 sticky z-20 bg-gray-50/90 backdrop-blur-md ${
-          !isAcceptingOrders ? "top-[110px]" : "top-[88px]"
-        }`}
-      >
+      <div className={`px-4 py-2 sticky z-20 bg-gray-50/90 backdrop-blur-md ${!isAcceptingOrders ? 'top-[110px]' : 'top-[88px]'}`}>
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
             🔍
@@ -503,9 +501,7 @@ export default function Menu() {
       {!searchQuery && (
         <div
           ref={categoryNavRef}
-          className={`flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky z-20 no-scrollbar border-b border-gray-200/50 ${
-            !isAcceptingOrders ? "top-[170px]" : "top-[148px]"
-          }`}
+          className={`flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky z-20 no-scrollbar border-b border-gray-200/50 ${!isAcceptingOrders ? 'top-[170px]' : 'top-[148px]'}`}
         >
           {baseCategories.map((cat) => (
             <button
@@ -560,7 +556,8 @@ export default function Menu() {
                     ></div>
                     <div className="flex-1 flex flex-col justify-between py-1">
                       <div>
-                        <h3 className="font-black text-gray-900 text-sm leading-tight">
+                        {/* ΠΡΟΣΘΕΘΗΚΕ Η ΚΛΑΣΗ uppercase ΕΔΩ ΓΙΑ ΤΗΝ ΑΝΑΖΗΤΗΣΗ */}
+                        <h3 className="font-black text-gray-900 text-sm leading-tight uppercase">
                           {dispName}
                         </h3>
                         {p.addons && p.addons.length > 0 && (
@@ -697,7 +694,8 @@ export default function Menu() {
                           ></div>
                           <div className="flex-1 flex flex-col justify-between py-1">
                             <div>
-                              <h3 className="font-black text-gray-900 text-sm leading-tight">
+                              {/* ΠΡΟΣΘΕΘΗΚΕ Η ΚΛΑΣΗ uppercase ΕΔΩ ΓΙΑ ΤΗΝ ΚΑΝΟΝΙΚΗ ΛΙΣΤΑ */}
+                              <h3 className="font-black text-gray-900 text-sm leading-tight uppercase">
                                 {dispName}
                               </h3>
                               {p.addons && p.addons.length > 0 && (
@@ -1002,8 +1000,7 @@ export default function Menu() {
                 <span className="text-2xl">💳</span> {t.card}
               </button>
             </div>
-
-            {/* ΝΕΟ: ΕΛΕΓΧΟΣ ΑΝ ΕΙΝΑΙ ΑΝΟΙΧΤΑ! */}
+            
             {!isAcceptingOrders ? (
               <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-black text-center text-xs uppercase border-2 border-red-200">
                 ⚠️ {t.pausedCartMsg}
@@ -1018,9 +1015,7 @@ export default function Menu() {
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
                 style={
-                  paymentMethod && tableNum
-                    ? { backgroundColor: themeColor }
-                    : {}
+                  paymentMethod && tableNum ? { backgroundColor: themeColor } : {}
                 }
               >
                 <span className="uppercase text-sm tracking-widest">
@@ -1033,6 +1028,7 @@ export default function Menu() {
                 <span className="text-xl">{totalPrice}€</span>
               </button>
             )}
+
           </div>
         </div>
       )}
