@@ -45,6 +45,8 @@ const DICT = {
     search: "Αναζήτηση προϊόντος...",
     qty: "ΠΟΣΟΤΗΤΑ",
     noResults: "Δεν βρέθηκαν προϊόντα.",
+    pausedBanner: "ΠΑΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ",
+    pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.",
   },
   en: {
     requiredTable: "TABLE REQUIRED",
@@ -77,6 +79,8 @@ const DICT = {
     search: "Search products...",
     qty: "QUANTITY",
     noResults: "No products found.",
+    pausedBanner: "ORDERS TEMPORARILY PAUSED DUE TO HIGH VOLUME",
+    pausedCartMsg: "New orders cannot be sent at this time.",
   },
 };
 
@@ -99,6 +103,8 @@ export default function Menu() {
   const [cartBounce, setCartBounce] = useState(false);
 
   const [backupMode, setBackupMode] = useState(false);
+  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true); // ΝΕΟ RUSH MODE
+
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [lastOrderId, setLastOrderId] = useState(
@@ -125,6 +131,7 @@ export default function Menu() {
     if (s) {
       setStore(s);
       setBackupMode(s.backup_mode);
+      setIsAcceptingOrders(s.is_accepting_orders !== false); // Διαβάζουμε αν είναι ανοιχτό
     }
     const { data: p } = await supabase
       .from("products")
@@ -289,7 +296,8 @@ export default function Menu() {
     );
 
   const sendOrder = async () => {
-    if (!paymentMethod || cart.length === 0 || !tableNum) return;
+    if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders)
+      return;
     const { data, error } = await supabase
       .from("orders")
       .insert([
@@ -413,9 +421,16 @@ export default function Menu() {
         </button>
       </header>
 
-      <div className="h-[88px]"></div>
+      {/* ΝΕΟ: Banner ειδοποίησης όταν είναι κλειστά */}
+      {!isAcceptingOrders && (
+        <div className="fixed top-[72px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">
+          ⚠️ {t.pausedBanner}
+        </div>
+      )}
 
-      {/* ΔΙΟΡΘΩΣΗ ΕΔΩ: relative z-10 για να πατιέται το κουμπί */}
+      {/* Προσαρμογή κενού για να μην κρύβεται τίποτα */}
+      <div className={!isAcceptingOrders ? "h-[110px]" : "h-[88px]"}></div>
+
       {(!tableNum || tableNum === "") && backupMode === true && (
         <div
           className="mx-4 mt-4 mb-2 p-6 bg-white border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10"
@@ -437,7 +452,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* ΔΙΟΡΘΩΣΗ ΕΔΩ: flex-col items-center justify-start pt-20 για να φαίνονται όλα τα τραπέζια */}
       {showTablePicker && (
         <div className="fixed inset-0 bg-black/90 z-[200] p-6 overflow-y-auto flex flex-col items-center justify-start pt-20">
           <div className="flex justify-between items-center mb-8 text-white font-black italic uppercase text-lg w-full max-w-md">
@@ -466,7 +480,11 @@ export default function Menu() {
         </div>
       )}
 
-      <div className="px-4 py-2 sticky top-[88px] z-20 bg-gray-50/90 backdrop-blur-md">
+      <div
+        className={`px-4 py-2 sticky z-20 bg-gray-50/90 backdrop-blur-md ${
+          !isAcceptingOrders ? "top-[110px]" : "top-[88px]"
+        }`}
+      >
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
             🔍
@@ -485,7 +503,9 @@ export default function Menu() {
       {!searchQuery && (
         <div
           ref={categoryNavRef}
-          className="flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky top-[148px] z-20 no-scrollbar border-b border-gray-200/50"
+          className={`flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky z-20 no-scrollbar border-b border-gray-200/50 ${
+            !isAcceptingOrders ? "top-[170px]" : "top-[148px]"
+          }`}
         >
           {baseCategories.map((cat) => (
             <button
@@ -982,27 +1002,37 @@ export default function Menu() {
                 <span className="text-2xl">💳</span> {t.card}
               </button>
             </div>
-            <button
-              onClick={sendOrder}
-              disabled={!paymentMethod || !tableNum}
-              className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 ${
-                paymentMethod && tableNum
-                  ? "text-white shadow-xl"
-                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
-              }`}
-              style={
-                paymentMethod && tableNum ? { backgroundColor: themeColor } : {}
-              }
-            >
-              <span className="uppercase text-sm tracking-widest">
-                {!tableNum
-                  ? t.requiredTable
-                  : paymentMethod
-                  ? t.send
-                  : t.selPay}
-              </span>
-              <span className="text-xl">{totalPrice}€</span>
-            </button>
+
+            {/* ΝΕΟ: ΕΛΕΓΧΟΣ ΑΝ ΕΙΝΑΙ ΑΝΟΙΧΤΑ! */}
+            {!isAcceptingOrders ? (
+              <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-black text-center text-xs uppercase border-2 border-red-200">
+                ⚠️ {t.pausedCartMsg}
+              </div>
+            ) : (
+              <button
+                onClick={sendOrder}
+                disabled={!paymentMethod || !tableNum}
+                className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 ${
+                  paymentMethod && tableNum
+                    ? "text-white shadow-xl"
+                    : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                }`}
+                style={
+                  paymentMethod && tableNum
+                    ? { backgroundColor: themeColor }
+                    : {}
+                }
+              >
+                <span className="uppercase text-sm tracking-widest">
+                  {!tableNum
+                    ? t.requiredTable
+                    : paymentMethod
+                    ? t.send
+                    : t.selPay}
+                </span>
+                <span className="text-xl">{totalPrice}€</span>
+              </button>
+            )}
           </div>
         </div>
       )}

@@ -28,6 +28,9 @@ export default function Dashboard() {
   const [tab, setTab] = useState("orders");
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
+  // --- ΝΕΟ STATE ΓΙΑ ΤΟ RUSH MODE ---
+  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
+
   const [historySearch, setHistorySearch] = useState("");
   const [dateRange, setDateRange] = useState("today");
   const [specificDate, setSpecificDate] = useState("");
@@ -48,14 +51,19 @@ export default function Dashboard() {
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
+
+    // Προσθέσαμε το is_accepting_orders στο select!
     const { data: storeData } = await supabase
       .from("stores")
-      .select("name, backup_mode")
+      .select("name, backup_mode, is_accepting_orders")
       .eq("id", storeId)
       .single();
+
     if (storeData) {
       setBackupMode(storeData.backup_mode);
       setStoreName(storeData.name);
+      // Αν δεν υπάρχει η στήλη (null), θεωρούμε ότι είναι true
+      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
     }
   };
 
@@ -66,6 +74,7 @@ export default function Dashboard() {
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, storeId]);
+
   useEffect(() => {
     const pendingCount = orders.filter((o) => {
       if (o.status === "completed") return false;
@@ -100,6 +109,7 @@ export default function Dashboard() {
       fetchData();
     }
   };
+
   const toggleBackupMode = async () => {
     const newStatus = !backupMode;
     await supabase
@@ -107,6 +117,16 @@ export default function Dashboard() {
       .update({ backup_mode: newStatus })
       .eq("id", storeId);
     setBackupMode(newStatus);
+  };
+
+  // --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ---
+  const toggleAcceptingOrders = async () => {
+    const newStatus = !isAcceptingOrders;
+    await supabase
+      .from("stores")
+      .update({ is_accepting_orders: newStatus })
+      .eq("id", storeId);
+    setIsAcceptingOrders(newStatus);
   };
 
   const downloadQR = async (tableNumber) => {
@@ -185,10 +205,8 @@ export default function Dashboard() {
     return matchesSearch && matchesTime;
   });
 
-  // --- ΑΠΟΛΥΤΟ ΦΙΛΤΡΟ ΓΙΑ ΤΑ ΣΤΑΤΙΣΤΙΚΑ ΤΗΣ ΚΟΥΖΙΝΑΣ ---
   const totalRevenue = historyOrders.reduce((sum, o) => {
     if (isKitchen) {
-      // Η κουζίνα μετράει ΜΟΝΟ τον τζίρο των δικών της πιάτων
       const kitchenSum =
         o.items
           ?.filter((it) => it.station === "kitchen")
@@ -210,7 +228,6 @@ export default function Dashboard() {
   const productCounts = {};
   historyOrders.forEach((o) => {
     o.items?.forEach((item) => {
-      // Η κουζίνα "Αγνοεί" τα προϊόντα που δεν είναι δικά της
       if (isKitchen && item.station !== "kitchen") return;
       productCounts[item.name] = (productCounts[item.name] || 0) + 1;
     });
@@ -426,6 +443,22 @@ export default function Dashboard() {
             </span>
           </h1>
           <div className="flex gap-3 items-center">
+            {/* ΚΟΥΜΠΙ ΠΡΟΣΩΡΙΝΗΣ ΠΑΥΣΗΣ ΠΑΡΑΓΓΕΛΙΩΝ (Μόνο Admin/Staff) */}
+            {!isKitchen && (
+              <button
+                onClick={toggleAcceptingOrders}
+                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${
+                  isAcceptingOrders
+                    ? "bg-green-500 text-white hover:bg-green-600"
+                    : "bg-red-600 text-white hover:bg-red-700 animate-pulse"
+                }`}
+              >
+                {isAcceptingOrders
+                  ? "🟢 ΠΑΡΑΓΓΕΛΙΕΣ: ON"
+                  : "🔴 ΠΑΡΑΓΓΕΛΙΕΣ: OFF"}
+              </button>
+            )}
+
             {userRole === "admin" && (
               <button
                 onClick={toggleBackupMode}
@@ -787,7 +820,6 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {historyOrders.map((o) => {
-                    // ΕΔΩ Η ΚΟΥΖΙΝΑ ΒΛΕΠΕΙ ΜΟΝΟ ΤΟ ΚΟΣΤΟΣ ΤΟΥ ΦΑΓΗΤΟΥ!
                     const orderTotal = isKitchen
                       ? o.items
                           ?.filter((it) => it.station === "kitchen")
