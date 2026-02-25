@@ -28,9 +28,8 @@ export default function Dashboard() {
   const [tab, setTab] = useState("orders");
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
-  // --- ΝΕΟ STATE ΓΙΑ ΤΟ RUSH MODE ---
-  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
-
+  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true); 
+  
   const [historySearch, setHistorySearch] = useState("");
   const [dateRange, setDateRange] = useState("today");
   const [specificDate, setSpecificDate] = useState("");
@@ -51,19 +50,17 @@ export default function Dashboard() {
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
-
-    // Προσθέσαμε το is_accepting_orders στο select!
+    
     const { data: storeData } = await supabase
       .from("stores")
       .select("name, backup_mode, is_accepting_orders")
       .eq("id", storeId)
       .single();
-
+      
     if (storeData) {
       setBackupMode(storeData.backup_mode);
       setStoreName(storeData.name);
-      // Αν δεν υπάρχει η στήλη (null), θεωρούμε ότι είναι true
-      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
+      setIsAcceptingOrders(storeData.is_accepting_orders !== false); 
     }
   };
 
@@ -109,7 +106,7 @@ export default function Dashboard() {
       fetchData();
     }
   };
-
+  
   const toggleBackupMode = async () => {
     const newStatus = !backupMode;
     await supabase
@@ -119,7 +116,6 @@ export default function Dashboard() {
     setBackupMode(newStatus);
   };
 
-  // --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ---
   const toggleAcceptingOrders = async () => {
     const newStatus = !isAcceptingOrders;
     await supabase
@@ -258,6 +254,10 @@ export default function Dashboard() {
       ? order.kitchen_status || "pending"
       : order.status || "pending";
 
+    // --- ΕΛΕΓΧΟΣ ΓΙΑ SMART LOCK ---
+    const hasKitchenItem = order.items?.some((it) => it.station === "kitchen");
+    const kitchenIsReady = (order.kitchen_status || "pending") === "ready";
+
     return (
       <div
         onClick={() => setViewingOrder(order)}
@@ -307,7 +307,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {!isKitchen && order.items?.some((it) => it.station === "kitchen") && (
+        {!isKitchen && hasKitchenItem && (
           <div
             className={`mb-3 p-2 rounded-xl flex items-center justify-between border ${
               (order.kitchen_status || "pending") === "ready"
@@ -399,14 +399,26 @@ export default function Dashboard() {
               ΕΤΟΙΜΗ
             </button>
           )}
+          
+          {/* SMART LOCK ΓΙΑ ΤΗΝ ΟΛΟΚΛΗΡΩΣΗ ΣΤΟ BAR */}
           {currentStatus === "ready" && !isKitchen && (
-            <button
-              onClick={() => updateStatus(order.id, "completed", false)}
-              className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-[10px] uppercase"
-            >
-              ΟΛΟΚΛΗΡΩΣΗ
-            </button>
+            hasKitchenItem && !kitchenIsReady ? (
+              <button
+                disabled
+                className="w-full bg-orange-50 text-orange-600 py-4 rounded-xl font-black text-[10px] uppercase border-2 border-orange-200 cursor-not-allowed opacity-80"
+              >
+                ⏳ ΑΝΑΜΟΝΗ ΚΟΥΖΙΝΑΣ
+              </button>
+            ) : (
+              <button
+                onClick={() => updateStatus(order.id, "completed", false)}
+                className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-green-700 transition-colors"
+              >
+                ΟΛΟΚΛΗΡΩΣΗ
+              </button>
+            )
           )}
+
           {userRole === "admin" && (
             <button
               onClick={() => deleteOrders([order.id])}
@@ -443,7 +455,7 @@ export default function Dashboard() {
             </span>
           </h1>
           <div className="flex gap-3 items-center">
-            {/* ΚΟΥΜΠΙ ΠΡΟΣΩΡΙΝΗΣ ΠΑΥΣΗΣ ΠΑΡΑΓΓΕΛΙΩΝ (Μόνο Admin/Staff) */}
+            
             {!isKitchen && (
               <button
                 onClick={toggleAcceptingOrders}
@@ -453,9 +465,7 @@ export default function Dashboard() {
                     : "bg-red-600 text-white hover:bg-red-700 animate-pulse"
                 }`}
               >
-                {isAcceptingOrders
-                  ? "🟢 ΠΑΡΑΓΓΕΛΙΕΣ: ON"
-                  : "🔴 ΠΑΡΑΓΓΕΛΙΕΣ: OFF"}
+                {isAcceptingOrders ? "🟢 ΠΑΡΑΓΓΕΛΙΕΣ: ON" : "🔴 ΠΑΡΑΓΓΕΛΙΕΣ: OFF"}
               </button>
             )}
 
@@ -984,7 +994,6 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* ΕΠΑΝΑΦΟΡΑ ΣΥΝΟΛΟΥ */}
             <div
               className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
                 isKitchen ? "border-gray-700" : "border-gray-100"
