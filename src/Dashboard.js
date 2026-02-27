@@ -41,18 +41,19 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // --- STATES ΓΙΑ ΤΟ QUICK POS ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
-  const [posPayment, setPosPayment] = useState("ΜΕΤΡΗΤΑ");
+
+  // ΑΛΛΑΓΗ: Το POS Payment ξεκινάει ΑΔΕΙΟ
+  const [posPayment, setPosPayment] = useState("");
   const [posGeneralNote, setPosGeneralNote] = useState("");
 
-  // --- ΝΕΑ STATES ΓΙΑ ΤΙΣ ΕΠΙΛΟΓΕΣ (ADDONS) ΣΤΟ POS ---
   const [posActiveProduct, setPosActiveProduct] = useState(null);
   const [posAddonSelections, setPosAddonSelections] = useState({});
   const [posQuantity, setPosQuantity] = useState(1);
+  const [posCurrentNote, setPosCurrentNote] = useState("");
 
   const isKitchen = userRole === "kitchen";
 
@@ -178,14 +179,13 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  // --- ΣΥΝΑΡΤΗΣΕΙΣ QUICK POS & ADDONS ---
+  // --- QUICK POS FUNCTIONS ---
   const posCategories = [...new Set(products.map((p) => p.category))];
   const posFilteredProducts =
     posCategory === "ΟΛΑ"
       ? products
       : products.filter((p) => p.category === posCategory);
 
-  // Όταν πατάει ένα προϊόν στο POS, ανοίγουμε το παραθυράκι των επιλογών
   const handlePosProductClick = (product) => {
     const initialSels = {};
     if (product.addons) {
@@ -193,10 +193,10 @@ export default function Dashboard() {
     }
     setPosAddonSelections(initialSels);
     setPosQuantity(1);
+    setPosCurrentNote("");
     setPosActiveProduct(product);
   };
 
-  // Εναλλαγή επιλογών (addons) στο POS
   const togglePosAddon = (groupId, optionIndex, maxSelections) => {
     let current = posAddonSelections[groupId] || [];
     if (current.includes(optionIndex)) {
@@ -212,7 +212,6 @@ export default function Dashboard() {
     setPosAddonSelections({ ...posAddonSelections, [groupId]: current });
   };
 
-  // Επιβεβαίωση προϊόντος και προσθήκη στο καλάθι του POS
   const confirmPosAddons = () => {
     let extraPrice = 0;
     let addonTexts = [];
@@ -240,24 +239,29 @@ export default function Dashboard() {
 
     const finalPrice = posActiveProduct.price + extraPrice;
 
-    const newItems = [];
-    for (let i = 0; i < posQuantity; i++) {
-      newItems.push({
-        ...posActiveProduct,
-        cartId: Date.now() + Math.random() + i,
-        name: finalName,
-        price: finalPrice,
-        note: "",
-      });
-    }
+    const newItem = {
+      ...posActiveProduct,
+      cartId: Date.now() + Math.random(),
+      name: finalName,
+      price: finalPrice,
+      note: posCurrentNote,
+      quantity: posQuantity,
+    };
 
-    setPosCart([...posCart, ...newItems]);
-    setPosActiveProduct(null); // Κλείνει το modal του προϊόντος
+    setPosCart([...posCart, newItem]);
+    setPosActiveProduct(null);
   };
 
-  const updatePosNote = (cartId, note) => {
+  // Ενημέρωση ποσότητας μέσα στο καλάθι του POS
+  const updatePosCartQuantity = (cartId, delta) => {
     setPosCart(
-      posCart.map((item) => (item.cartId === cartId ? { ...item, note } : item))
+      posCart.map((item) => {
+        if (item.cartId === cartId) {
+          const newQ = Math.max(1, (item.quantity || 1) + delta);
+          return { ...item, quantity: newQ };
+        }
+        return item;
+      })
     );
   };
 
@@ -266,12 +270,18 @@ export default function Dashboard() {
   };
 
   const submitPosOrder = async () => {
-    if (posCart.length === 0 || !posTable) return;
+    if (posCart.length === 0 || !posTable || !posPayment) return;
+
+    const calculatedTotal = posCart.reduce(
+      (s, i) => s + i.price * (i.quantity || 1),
+      0
+    );
+
     const newOrder = {
       store_id: storeId,
       table_number: posTable,
       items: posCart,
-      total_price: posCart.reduce((s, i) => s + i.price, 0),
+      total_price: calculatedTotal,
       payment_method: posPayment,
       status: "pending",
       general_note: posGeneralNote,
@@ -282,7 +292,7 @@ export default function Dashboard() {
     setPosCart([]);
     setPosTable("ΠΑΚΕΤΟ");
     setPosGeneralNote("");
-    setPosPayment("ΜΕΤΡΗΤΑ");
+    setPosPayment(""); // Επαναφορά για να μην γίνει λάθος στο επόμενο
     setIsPosOpen(false);
     fetchData();
   };
@@ -340,7 +350,7 @@ export default function Dashboard() {
       const kitchenSum =
         o.items
           ?.filter((it) => it.station === "kitchen")
-          .reduce((s, it) => s + it.price, 0) || 0;
+          .reduce((s, it) => s + it.price * (it.quantity || 1), 0) || 0;
       return sum + kitchenSum;
     }
     return sum + (o.total_price || 0);
@@ -359,7 +369,8 @@ export default function Dashboard() {
   historyOrders.forEach((o) => {
     o.items?.forEach((item) => {
       if (isKitchen && item.station !== "kitchen") return;
-      productCounts[item.name] = (productCounts[item.name] || 0) + 1;
+      productCounts[item.name] =
+        (productCounts[item.name] || 0) + (item.quantity || 1);
     });
   });
   const topProducts = Object.entries(productCounts)
@@ -471,7 +482,18 @@ export default function Dashboard() {
                   isKitchen ? "text-white text-base" : ""
                 }`}
               >
-                • {it.name}
+                {it.quantity > 1 ? (
+                  <span
+                    className={
+                      isKitchen ? "text-orange-400 mr-1" : "text-blue-500 mr-1"
+                    }
+                  >
+                    {it.quantity}x
+                  </span>
+                ) : (
+                  "• "
+                )}
+                {it.name}
               </span>
               {it.note && (
                 <span
@@ -973,7 +995,10 @@ export default function Dashboard() {
                     const orderTotal = isKitchen
                       ? o.items
                           ?.filter((it) => it.station === "kitchen")
-                          .reduce((s, it) => s + it.price, 0)
+                          .reduce(
+                            (s, it) => s + it.price * (it.quantity || 1),
+                            0
+                          )
                       : o.total_price;
                     return (
                       <div
@@ -1154,32 +1179,53 @@ export default function Dashboard() {
                   posCart.map((item, index) => (
                     <div
                       key={item.cartId}
-                      className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm animate-fade-in relative overflow-hidden"
+                      className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden"
                     >
                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                       <div className="flex justify-between items-start mb-2 pl-2">
-                        <span className="font-black text-xs uppercase text-gray-800 pr-2">
-                          {index + 1}. {item.name}
+                        <span className="font-black text-xs uppercase text-gray-800 pr-2 flex-1 leading-tight">
+                          {item.name}
                         </span>
                         <span className="font-black text-blue-600 text-sm">
-                          {item.price.toFixed(2)}€
+                          {(item.price * (item.quantity || 1)).toFixed(2)}€
                         </span>
                       </div>
-                      <div className="pl-2 flex gap-2">
-                        <input
-                          type="text"
-                          placeholder="Π.χ. Χωρίς ζάχαρη..."
-                          value={item.note}
-                          onChange={(e) =>
-                            updatePosNote(item.cartId, e.target.value)
-                          }
-                          className="flex-1 text-xs p-2 bg-gray-50 rounded-xl border border-gray-200 focus:outline-none focus:border-blue-400 font-bold italic"
-                        />
+
+                      {item.note && (
+                        <div className="pl-2 mb-2">
+                          <span className="text-[10px] text-gray-500 font-bold italic bg-gray-50 p-1.5 rounded-lg border border-gray-100 block">
+                            📝 {item.note}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center pl-2 pt-2 border-t border-gray-100 mt-1">
+                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                          <button
+                            onClick={() =>
+                              updatePosCartQuantity(item.cartId, -1)
+                            }
+                            className="w-6 h-6 flex items-center justify-center font-black text-gray-600 active:scale-90 transition-transform"
+                          >
+                            −
+                          </button>
+                          <span className="font-black text-xs w-6 text-center">
+                            {item.quantity || 1}
+                          </span>
+                          <button
+                            onClick={() =>
+                              updatePosCartQuantity(item.cartId, 1)
+                            }
+                            className="w-6 h-6 flex items-center justify-center font-black text-blue-600 active:scale-90 transition-transform"
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
                           onClick={() => removeFromPosCart(item.cartId)}
-                          className="bg-red-50 text-red-500 px-3 rounded-xl text-xs font-black hover:bg-red-100 transition-colors"
+                          className="bg-red-50 text-red-500 px-3 py-2 rounded-xl text-xs font-black hover:bg-red-100 transition-colors"
                         >
-                          ✕
+                          🗑️
                         </button>
                       </div>
                     </div>
@@ -1204,41 +1250,50 @@ export default function Dashboard() {
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
 
-                <div className="flex gap-2 pt-2">
-                  <button
-                    onClick={() => setPosPayment("ΜΕΤΡΗΤΑ")}
-                    className={`flex-1 p-3 rounded-xl font-black text-xs uppercase transition-colors border-2 ${
-                      posPayment === "ΜΕΤΡΗΤΑ"
-                        ? "bg-blue-50 border-blue-500 text-blue-600"
-                        : "bg-white border-gray-100 text-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
-                    ΜΕΤΡΗΤΑ
-                  </button>
-                  <button
-                    onClick={() => setPosPayment("ΚΑΡΤΑ")}
-                    className={`flex-1 p-3 rounded-xl font-black text-xs uppercase transition-colors border-2 ${
-                      posPayment === "ΚΑΡΤΑ"
-                        ? "bg-blue-50 border-blue-500 text-blue-600"
-                        : "bg-white border-gray-100 text-gray-400 hover:bg-gray-50"
-                    }`}
-                  >
-                    ΚΑΡΤΑ
-                  </button>
+                {/* COMPACT TOGGLE ΓΙΑ ΤΗΝ ΠΛΗΡΩΜΗ ΜΕ ΚΕΝΗ ΑΡΧΙΚΗ ΕΠΙΛΟΓΗ */}
+                <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
+                  <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
+                    ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
+                  </span>
+                  <div className="flex gap-1 bg-gray-200/50 p-1 rounded-lg">
+                    <button
+                      onClick={() => setPosPayment("ΜΕΤΡΗΤΑ")}
+                      className={`flex-1 py-2 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                        posPayment === "ΜΕΤΡΗΤΑ"
+                          ? "bg-white shadow-sm text-blue-600 scale-105"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      💵 ΜΕΤΡΗΤΑ
+                    </button>
+                    <button
+                      onClick={() => setPosPayment("ΚΑΡΤΑ")}
+                      className={`flex-1 py-2 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                        posPayment === "ΚΑΡΤΑ"
+                          ? "bg-white shadow-sm text-blue-600 scale-105"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      💳 ΚΑΡΤΑ
+                    </button>
+                  </div>
                 </div>
 
                 <button
                   onClick={submitPosOrder}
-                  disabled={posCart.length === 0 || !posTable}
+                  disabled={posCart.length === 0 || !posTable || !posPayment}
                   className={`w-full p-4 rounded-xl font-black uppercase text-sm shadow-xl transition-all active:scale-95 flex justify-between items-center ${
-                    posCart.length === 0 || !posTable
+                    posCart.length === 0 || !posTable || !posPayment
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-green-600 text-white hover:bg-green-700"
                   }`}
                 >
-                  <span>ΑΠΟΣΤΟΛΗ ΠΑΡΑΓΓΕΛΙΑΣ</span>
+                  <span>{!posPayment ? "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ" : "ΑΠΟΣΤΟΛΗ"}</span>
                   <span className="text-lg">
-                    {posCart.reduce((s, i) => s + i.price, 0).toFixed(2)}€
+                    {posCart
+                      .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
+                      .toFixed(2)}
+                    €
                   </span>
                 </button>
               </div>
@@ -1247,7 +1302,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* --- ΝΕΟ: ΑΝΑΔΥΟΜΕΝΟ ΠΑΡΑΘΥΡΟ ΓΙΑ ADDONS ΠΡΟΪΟΝΤΟΣ ΣΤΟ POS --- */}
+      {/* --- ΑΝΑΔΥΟΜΕΝΟ ΠΑΡΑΘΥΡΟ ΓΙΑ ADDONS ΠΡΟΪΟΝΤΟΣ ΣΤΟ POS --- */}
       {posActiveProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
@@ -1364,13 +1419,26 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
+
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <span className="font-black text-gray-800 uppercase text-xs mb-2 block">
+                  ΣΗΜΕΙΩΣΗ ΠΡΟΪΟΝΤΟΣ
+                </span>
+                <textarea
+                  rows="2"
+                  placeholder="Π.χ. Χωρίς ζάχαρη..."
+                  value={posCurrentNote}
+                  onChange={(e) => setPosCurrentNote(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 font-bold resize-none"
+                ></textarea>
+              </div>
             </div>
 
             <button
               onClick={confirmPosAddons}
               className="w-full mt-6 bg-blue-600 text-white py-5 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-blue-700 active:scale-95 transition-transform"
             >
-              ΠΡΟΣΘΗΚΗ {posQuantity > 1 ? `x${posQuantity}` : ""}
+              ΠΡΟΣΘΗΚΗ
             </button>
           </div>
         </div>
@@ -1417,11 +1485,14 @@ export default function Dashboard() {
                   }`}
                 >
                   <div className="flex justify-between font-black uppercase italic">
-                    <span>{item.name}</span>
+                    <span>
+                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                      {item.name}
+                    </span>
                     <span
                       className={isKitchen ? "text-white" : "text-blue-600"}
                     >
-                      {item.price?.toFixed(2)}€
+                      {(item.price * (item.quantity || 1)).toFixed(2)}€
                     </span>
                   </div>
                   {item.note && (
@@ -1449,7 +1520,7 @@ export default function Dashboard() {
                 {(isKitchen
                   ? viewingOrder.items
                       ?.filter((i) => i.station === "kitchen")
-                      .reduce((s, it) => s + it.price, 0)
+                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
                   : viewingOrder.total_price
                 )?.toFixed(2)}
                 €

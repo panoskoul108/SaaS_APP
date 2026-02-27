@@ -112,14 +112,16 @@ export default function Menu() {
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
 
   const [showTablePicker, setShowTablePicker] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState("ΜΕΤΡΗΤΑ"); // Default επιλογή για ταχύτητα
+
+  // ΑΛΛΑΓΗ: Το paymentMethod ξεκινάει ΑΔΕΙΟ για να αποτρέψει λάθη
+  const [paymentMethod, setPaymentMethod] = useState("");
+
   const [lastOrderId, setLastOrderId] = useState(
     localStorage.getItem("lastOrderId")
   );
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [generalNote, setGeneralNote] = useState("");
 
-  // States για το modal προϊόντος (Προσθήκη / Επεξεργασία)
   const [activeProduct, setActiveProduct] = useState(null);
   const [addonSelections, setAddonSelections] = useState({});
   const [currentProductNote, setCurrentProductNote] = useState("");
@@ -233,14 +235,14 @@ export default function Menu() {
 
   const handleEditCartItem = (cartItem) => {
     const originalProduct = products.find((p) => p.id === cartItem.id);
-    if (!originalProduct) return; // Σε περίπτωση που το προϊόν διεγράφη
+    if (!originalProduct) return;
 
     setActiveProduct(originalProduct);
     setAddonSelections(cartItem.rawAddons || {});
     setCurrentProductNote(cartItem.note || "");
-    setQuantity(1); // Η επεξεργασία γίνεται ανά 1 τεμάχιο
+    setQuantity(cartItem.quantity || 1);
     setEditingCartId(cartItem.cartId);
-    setIsCartOpen(false); // Κρύβουμε το καλάθι για να δει το modal καθαρά
+    setIsCartOpen(false);
   };
 
   const closeProductModal = () => {
@@ -248,7 +250,6 @@ export default function Menu() {
     setEditingCartId(null);
     setCurrentProductNote("");
     setAddonSelections({});
-    // Αν ακυρώσει την επεξεργασία, ξανανοίγουμε το καλάθι
     if (editingCartId) setIsCartOpen(true);
   };
 
@@ -305,41 +306,50 @@ export default function Menu() {
     const finalPrice = activeProduct.price + extraPrice;
 
     if (editingCartId) {
-      // Αντικατάσταση υπάρχοντος προϊόντος (Edit)
       const updatedItem = {
         ...activeProduct,
         cartId: editingCartId,
         name: finalName,
         price: finalPrice,
         note: currentProductNote,
-        rawAddons: addonSelections, // Το κρατάμε για μελλοντικό edit
+        rawAddons: addonSelections,
+        quantity: quantity, // Η ποσότητα ενημερώνεται στο Edit
       };
       setCart(
         cart.map((item) => (item.cartId === editingCartId ? updatedItem : item))
       );
-      setIsCartOpen(true); // Ξανανοίγει το καλάθι
+      setIsCartOpen(true);
     } else {
-      // Προσθήκη νέου
-      const newItems = [];
-      for (let i = 0; i < quantity; i++) {
-        newItems.push({
-          ...activeProduct,
-          cartId: Date.now() + Math.random() + i,
-          name: finalName,
-          price: finalPrice,
-          note: currentProductNote,
-          rawAddons: addonSelections,
-        });
-      }
-      setCart([...cart, ...newItems]);
+      const newItem = {
+        ...activeProduct,
+        cartId: Date.now() + Math.random(),
+        name: finalName,
+        price: finalPrice,
+        note: currentProductNote,
+        rawAddons: addonSelections,
+        quantity: quantity, // Ενσωματώθηκε η ποσότητα
+      };
+      setCart([...cart, newItem]);
       setCartBounce(true);
       setTimeout(() => setCartBounce(false), 300);
     }
 
-    // Καθαρισμός
     setActiveProduct(null);
     setEditingCartId(null);
     setCurrentProductNote("");
+  };
+
+  // ΝΕΟ: Ενημέρωση ποσότητας μέσα στο καλάθι
+  const updateCartItemQuantity = (cartId, delta) => {
+    setCart(
+      cart.map((item) => {
+        if (item.cartId === cartId) {
+          const newQ = Math.max(1, (item.quantity || 1) + delta);
+          return { ...item, quantity: newQ };
+        }
+        return item;
+      })
+    );
   };
 
   const removeFromCart = (cartId) => {
@@ -351,6 +361,12 @@ export default function Menu() {
   const sendOrder = async () => {
     if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders)
       return;
+
+    const calculatedTotal = cart.reduce(
+      (s, i) => s + i.price * (i.quantity || 1),
+      0
+    );
+
     const { data, error } = await supabase
       .from("orders")
       .insert([
@@ -358,19 +374,20 @@ export default function Menu() {
           store_id: storeId,
           table_number: tableNum,
           items: cart,
-          total_price: cart.reduce((s, i) => s + i.price, 0),
+          total_price: calculatedTotal,
           payment_method: paymentMethod,
           status: "pending",
           general_note: generalNote,
         },
       ])
       .select();
+
     if (!error && data) {
       const newHistoryOrder = {
         id: data[0].id,
         date: new Date().toISOString(),
         items: cart,
-        total: cart.reduce((s, i) => s + i.price, 0),
+        total: calculatedTotal,
       };
       const updatedHistory = [newHistoryOrder, ...orderHistory].slice(0, 10);
       setOrderHistory(updatedHistory);
@@ -382,6 +399,7 @@ export default function Menu() {
       setLastOrderId(data[0].id);
       setCart([]);
       setGeneralNote("");
+      setPaymentMethod(""); // Καθαρίζει την επιλογή για τον επόμενο πελάτη
       setIsCartOpen(false);
     }
   };
@@ -392,6 +410,7 @@ export default function Menu() {
       ...pastOrder.items.map((item, index) => ({
         ...item,
         cartId: Date.now() + Math.random() + index,
+        quantity: item.quantity || 1, // Εξασφαλίζει συμβατότητα
       })),
     ]);
     setIsHistoryOpen(false);
@@ -419,7 +438,12 @@ export default function Menu() {
     );
   }
 
-  const totalPrice = cart.reduce((s, i) => s + i.price, 0).toFixed(2);
+  // ΝΕΟ: Υπολογισμός συνολικού ποσού με βάση την ποσότητα του κάθε είδους
+  const totalPrice = cart
+    .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
+    .toFixed(2);
+  const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
+
   const themeColor = store?.theme_color || "#2563EB";
   const placeholderImg =
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
@@ -793,7 +817,7 @@ export default function Menu() {
         )}
       </div>
 
-      {/* --- MODAL ΠΡΟΪΟΝΤΟΣ (ADDONS & ΣΗΜΕΙΩΣΕΙΣ) --- */}
+      {/* --- MODAL ΠΡΟΪΟΝΤΟΣ --- */}
       {activeProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex flex-col justify-end animate-fade-in"
@@ -911,7 +935,32 @@ export default function Menu() {
                 );
               })}
 
-              {/* ΠΕΔΙΟ ΣΗΜΕΙΩΣΗΣ (ΜΕΤΑΦΕΡΘΗΚΕ ΕΔΩ) */}
+              {/* ΠΟΣΟΤΗΤΑ ΠΑΝΩ ΑΠΟ ΤΗ ΣΗΜΕΙΩΣΗ */}
+              <div className="flex items-center justify-between bg-gray-50/50 p-5 rounded-3xl border border-gray-100">
+                <span className="font-black text-gray-800 uppercase text-sm">
+                  {t.qty}
+                </span>
+                <div className="flex items-center gap-4 bg-white px-2 py-1 rounded-2xl border border-gray-200 shadow-sm">
+                  <button
+                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                  >
+                    −
+                  </button>
+                  <span className="font-black text-xl w-6 text-center">
+                    {quantity}
+                  </span>
+                  <button
+                    onClick={() => setQuantity(quantity + 1)}
+                    className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                    style={{ color: themeColor }}
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* ΠΕΔΙΟ ΣΗΜΕΙΩΣΗΣ ΓΙΑ ΤΟ ΣΥΓΚΕΚΡΙΜΕΝΟ ΠΡΟΪΟΝ ΚΑΤΩ ΑΠΟ ΤΗΝ ΠΟΣΟΤΗΤΑ */}
               <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
                 <span className="font-black text-gray-800 uppercase text-sm mb-2 block tracking-tight">
                   {t.note}
@@ -924,33 +973,6 @@ export default function Menu() {
                   className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold resize-none shadow-sm"
                 ></textarea>
               </div>
-
-              {/* ΠΟΣΟΤΗΤΑ (Κρύβεται αν κάνουμε edit) */}
-              {!editingCartId && (
-                <div className="flex items-center justify-between bg-gray-50/50 p-5 rounded-3xl border border-gray-100">
-                  <span className="font-black text-gray-800 uppercase text-sm">
-                    {t.qty}
-                  </span>
-                  <div className="flex items-center gap-4 bg-white px-2 py-1 rounded-2xl border border-gray-200 shadow-sm">
-                    <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-800 transition-colors"
-                    >
-                      −
-                    </button>
-                    <span className="font-black text-xl w-6 text-center">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={() => setQuantity(quantity + 1)}
-                      className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-800 transition-colors"
-                      style={{ color: themeColor }}
-                    >
-                      +
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
 
             <button
@@ -979,7 +1001,7 @@ export default function Menu() {
           >
             <div className="flex items-center gap-3">
               <div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">
-                {cart.length}
+                {totalItemsCount}
               </div>
               <span className="font-black uppercase text-xs tracking-widest">
                 {t.viewCart}
@@ -993,8 +1015,10 @@ export default function Menu() {
       {/* MODAL ΚΑΛΑΘΙΟΥ */}
       {isCartOpen && (
         <div className="fixed inset-0 bg-gray-50 z-[200] flex flex-col animate-slide-up">
-          <div className="bg-white p-4 flex justify-between items-center shadow-sm border-b">
-            <h2 className="font-black uppercase text-lg">{t.yourOrder}</h2>
+          <div className="bg-white p-4 flex justify-between items-center shadow-sm border-b border-gray-100">
+            <h2 className="font-black uppercase text-lg text-gray-800">
+              {t.yourOrder}
+            </h2>
             <button
               onClick={() => setIsCartOpen(false)}
               className="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center font-black text-gray-600 hover:bg-gray-200"
@@ -1003,11 +1027,11 @@ export default function Menu() {
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-gray-50">
             {cart.map((item) => (
               <div
                 key={item.cartId}
-                className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100/50 flex flex-col gap-2 relative overflow-hidden group"
+                className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col gap-2 relative overflow-hidden"
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1 pr-3">
@@ -1019,27 +1043,50 @@ export default function Menu() {
                         📝 {item.note}
                       </p>
                     )}
-                    <p
-                      className="font-black mt-2 text-base"
-                      style={{ color: themeColor }}
-                    >
-                      {item.price.toFixed(2)}€
-                    </p>
                   </div>
+                  <span
+                    className="font-black text-base"
+                    style={{ color: themeColor }}
+                  >
+                    {(item.price * (item.quantity || 1)).toFixed(2)}€
+                  </span>
+                </div>
 
-                  {/* ΚΟΥΜΠΙΑ ΕΠΕΞΕΡΓΑΣΙΑΣ ΚΑΙ ΔΙΑΓΡΑΦΗΣ */}
-                  <div className="flex flex-col gap-2">
+                {/* ΚΟΥΜΠΙΑ ΕΛΕΓΧΟΥ ΠΟΣΟΤΗΤΑΣ / ΕΠΕΞΕΡΓΑΣΙΑΣ / ΔΙΑΓΡΑΦΗΣ */}
+                <div className="flex justify-between items-center mt-2 pt-3 border-t border-gray-50">
+                  <div className="flex items-center bg-gray-100 rounded-xl p-1 shadow-inner">
+                    <button
+                      onClick={() => updateCartItemQuantity(item.cartId, -1)}
+                      className="w-8 h-8 flex items-center justify-center font-black text-gray-600 active:scale-90 transition-transform"
+                    >
+                      {" "}
+                      −{" "}
+                    </button>
+                    <span className="font-black text-sm w-6 text-center">
+                      {item.quantity || 1}
+                    </span>
+                    <button
+                      onClick={() => updateCartItemQuantity(item.cartId, 1)}
+                      className="w-8 h-8 flex items-center justify-center font-black text-blue-600 active:scale-90 transition-transform"
+                    >
+                      {" "}
+                      +{" "}
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
                     <button
                       onClick={() => handleEditCartItem(item)}
-                      className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center text-sm shadow-sm active:scale-95 transition-transform border border-blue-100"
+                      className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-100"
                     >
-                      ✏️
+                      {" "}
+                      ✏️{" "}
                     </button>
                     <button
                       onClick={() => removeFromCart(item.cartId)}
-                      className="w-10 h-10 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center text-sm shadow-sm active:scale-95 transition-transform border border-red-100"
+                      className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-red-100"
                     >
-                      🗑️
+                      {" "}
+                      🗑️{" "}
                     </button>
                   </div>
                 </div>
@@ -1047,7 +1094,7 @@ export default function Menu() {
             ))}
           </div>
 
-          <div className="bg-white p-6 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.08)] border-t border-gray-100">
+          <div className="bg-white p-6 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.05)] border-t border-gray-100">
             <div className="mb-6">
               <p className="font-black text-[10px] uppercase text-gray-400 mb-2 tracking-widest">
                 {t.genNoteTitle}
@@ -1061,15 +1108,15 @@ export default function Menu() {
               ></textarea>
             </div>
 
-            {/* COMPACT TOGGLE ΓΙΑ ΤΗΝ ΠΛΗΡΩΜΗ */}
-            <div className="flex items-center justify-between mb-4 bg-gray-50 p-2 rounded-2xl border border-gray-100">
-              <span className="font-black text-[10px] uppercase text-gray-500 tracking-widest pl-2">
-                {t.payMethod}:
+            {/* COMPACT TOGGLE ΓΙΑ ΤΗΝ ΠΛΗΡΩΜΗ ΜΕ ΚΕΝΗ ΑΡΧΙΚΗ ΕΠΙΛΟΓΗ */}
+            <div className="flex flex-col mb-6 bg-gray-50 p-3 rounded-2xl border border-gray-100">
+              <span className="font-black text-[10px] uppercase text-gray-500 tracking-widest mb-2 text-center">
+                {t.payMethod} <span className="text-red-500">*</span>
               </span>
-              <div className="flex bg-gray-200/50 p-1 rounded-xl w-48 shadow-inner">
+              <div className="flex bg-gray-200/50 p-1 rounded-xl shadow-inner">
                 <button
                   onClick={() => setPaymentMethod(t.cash)}
-                  className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
                     paymentMethod === t.cash
                       ? "bg-white shadow-sm text-gray-900 scale-105"
                       : "text-gray-400 hover:text-gray-600"
@@ -1080,7 +1127,7 @@ export default function Menu() {
                 </button>
                 <button
                   onClick={() => setPaymentMethod(t.card)}
-                  className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                  className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
                     paymentMethod === t.card
                       ? "bg-white shadow-sm text-gray-900 scale-105"
                       : "text-gray-400 hover:text-gray-600"
@@ -1102,7 +1149,7 @@ export default function Menu() {
                 disabled={!paymentMethod || !tableNum}
                 className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 ${
                   paymentMethod && tableNum
-                    ? "text-white shadow-xl"
+                    ? "text-white shadow-xl hover:opacity-90"
                     : "bg-gray-200 text-gray-400 cursor-not-allowed"
                 }`}
                 style={
@@ -1166,7 +1213,14 @@ export default function Menu() {
                         key={i}
                         className="text-xs font-bold text-gray-700 uppercase"
                       >
-                        • {it.name}{" "}
+                        {it.quantity > 1 ? (
+                          <span className="text-blue-500 mr-1">
+                            {it.quantity}x
+                          </span>
+                        ) : (
+                          "• "
+                        )}
+                        {it.name}{" "}
                         {it.note && (
                           <span className="text-gray-400 lowercase italic">
                             ({it.note})
