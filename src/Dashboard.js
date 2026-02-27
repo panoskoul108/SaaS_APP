@@ -25,7 +25,7 @@ export default function Dashboard() {
   const [storeName, setStoreName] = useState("");
 
   const [orders, setOrders] = useState([]);
-  const [products, setProducts] = useState([]); // ΝΕΟ: Για το POS
+  const [products, setProducts] = useState([]);
   const [tab, setTab] = useState("orders");
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
@@ -41,13 +41,18 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // --- ΝΕΑ STATES ΓΙΑ ΤΟ QUICK POS ---
+  // --- STATES ΓΙΑ ΤΟ QUICK POS ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
   const [posPayment, setPosPayment] = useState("ΜΕΤΡΗΤΑ");
   const [posGeneralNote, setPosGeneralNote] = useState("");
+
+  // --- ΝΕΑ STATES ΓΙΑ ΤΙΣ ΕΠΙΛΟΓΕΣ (ADDONS) ΣΤΟ POS ---
+  const [posActiveProduct, setPosActiveProduct] = useState(null);
+  const [posAddonSelections, setPosAddonSelections] = useState({});
+  const [posQuantity, setPosQuantity] = useState(1);
 
   const isKitchen = userRole === "kitchen";
 
@@ -86,7 +91,7 @@ export default function Dashboard() {
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();
-      fetchProducts(); // Φορτώνουμε τα προϊόντα για το POS
+      fetchProducts();
       const interval = setInterval(fetchData, 5000);
       return () => clearInterval(interval);
     }
@@ -173,18 +178,81 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  // --- ΣΥΝΑΡΤΗΣΕΙΣ ΓΙΑ ΤΟ QUICK POS ---
+  // --- ΣΥΝΑΡΤΗΣΕΙΣ QUICK POS & ADDONS ---
   const posCategories = [...new Set(products.map((p) => p.category))];
   const posFilteredProducts =
     posCategory === "ΟΛΑ"
       ? products
       : products.filter((p) => p.category === posCategory);
 
-  const addToPosCart = (product) => {
-    setPosCart([
-      ...posCart,
-      { ...product, cartId: Date.now() + Math.random(), note: "" },
-    ]);
+  // Όταν πατάει ένα προϊόν στο POS, ανοίγουμε το παραθυράκι των επιλογών
+  const handlePosProductClick = (product) => {
+    const initialSels = {};
+    if (product.addons) {
+      product.addons.forEach((g) => (initialSels[g.id] = []));
+    }
+    setPosAddonSelections(initialSels);
+    setPosQuantity(1);
+    setPosActiveProduct(product);
+  };
+
+  // Εναλλαγή επιλογών (addons) στο POS
+  const togglePosAddon = (groupId, optionIndex, maxSelections) => {
+    let current = posAddonSelections[groupId] || [];
+    if (current.includes(optionIndex)) {
+      current = current.filter((i) => i !== optionIndex);
+    } else {
+      if (current.length >= maxSelections) {
+        if (maxSelections === 1) current = [optionIndex];
+        else return;
+      } else {
+        current = [...current, optionIndex];
+      }
+    }
+    setPosAddonSelections({ ...posAddonSelections, [groupId]: current });
+  };
+
+  // Επιβεβαίωση προϊόντος και προσθήκη στο καλάθι του POS
+  const confirmPosAddons = () => {
+    let extraPrice = 0;
+    let addonTexts = [];
+    let isValid = true;
+
+    (posActiveProduct.addons || []).forEach((g) => {
+      const sels = posAddonSelections[g.id] || [];
+      if (g.isRequired && sels.length === 0) isValid = false;
+      if (sels.length > 0) {
+        const names = sels.map((idx) => g.options[idx].name);
+        addonTexts.push(`${names.join(", ")}`);
+        sels.forEach((idx) => (extraPrice += g.options[idx].price));
+      }
+    });
+
+    if (!isValid) {
+      alert("Παρακαλώ συμπληρώστε όλες τις υποχρεωτικές επιλογές!");
+      return;
+    }
+
+    const finalName =
+      addonTexts.length > 0
+        ? `${posActiveProduct.name} (${addonTexts.join(" | ")})`
+        : posActiveProduct.name;
+
+    const finalPrice = posActiveProduct.price + extraPrice;
+
+    const newItems = [];
+    for (let i = 0; i < posQuantity; i++) {
+      newItems.push({
+        ...posActiveProduct,
+        cartId: Date.now() + Math.random() + i,
+        name: finalName,
+        price: finalPrice,
+        note: "",
+      });
+    }
+
+    setPosCart([...posCart, ...newItems]);
+    setPosActiveProduct(null); // Κλείνει το modal του προϊόντος
   };
 
   const updatePosNote = (cartId, note) => {
@@ -211,13 +279,12 @@ export default function Dashboard() {
 
     await supabase.from("orders").insert([newOrder]);
 
-    // Καθαρισμός & Κλείσιμο
     setPosCart([]);
     setPosTable("ΠΑΚΕΤΟ");
     setPosGeneralNote("");
     setPosPayment("ΜΕΤΡΗΤΑ");
     setIsPosOpen(false);
-    fetchData(); // Ανανεώνει άμεσα το Dashboard
+    fetchData();
   };
 
   if (!isAuthenticated)
@@ -520,7 +587,6 @@ export default function Dashboard() {
             </span>
           </h1>
           <div className="flex gap-2 items-center shrink-0">
-            {/* ΝΕΟ ΚΟΥΜΠΙ: QUICK POS (ΓΙΑ ΤΟ ΠΡΟΣΩΠΙΚΟ) */}
             {!isKitchen && (
               <button
                 onClick={() => setIsPosOpen(true)}
@@ -1005,11 +1071,10 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* --- ΝΕΟ: ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ) --- */}
+      {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ) --- */}
       {isPosOpen && (
         <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-4 print:hidden animate-fade-in">
           <div className="bg-gray-100 w-full max-w-6xl h-[90vh] rounded-[2rem] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-slide-up">
-            {/* ΑΡΙΣΤΕΡΑ: ΚΑΤΑΛΟΓΟΣ & ΠΡΟΪΟΝΤΑ */}
             <div className="flex-1 flex flex-col bg-white h-1/2 md:h-full">
               <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                 <h2 className="font-black text-lg italic uppercase text-gray-800">
@@ -1053,7 +1118,7 @@ export default function Dashboard() {
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
-                    onClick={() => addToPosCart(p)}
+                    onClick={() => handlePosProductClick(p)}
                     className="bg-white p-4 border border-gray-200 rounded-2xl flex flex-col justify-between items-start hover:border-blue-500 hover:shadow-md transition-all active:scale-95 min-h-[100px]"
                   >
                     <span className="font-bold text-sm text-left uppercase text-gray-800 leading-tight mb-2">
@@ -1067,7 +1132,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ΔΕΞΙΑ: ΚΑΛΑΘΙ & ΑΠΟΣΤΟΛΗ */}
             <div className="w-full md:w-96 bg-gray-50 flex flex-col border-l border-gray-200 shadow-xl z-20 h-1/2 md:h-full">
               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm">
                 <h2 className="font-black text-lg italic uppercase text-gray-800">
@@ -1179,6 +1243,135 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- ΝΕΟ: ΑΝΑΔΥΟΜΕΝΟ ΠΑΡΑΘΥΡΟ ΓΙΑ ADDONS ΠΡΟΪΟΝΤΟΣ ΣΤΟ POS --- */}
+      {posActiveProduct && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPosActiveProduct(null)}
+        >
+          <div
+            className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4 border-b pb-4">
+              <h2 className="font-black text-xl uppercase italic text-gray-900">
+                {posActiveProduct.name}
+              </h2>
+              <button
+                onClick={() => setPosActiveProduct(null)}
+                className="w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600 hover:bg-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-4 pr-2 no-scrollbar">
+              {(posActiveProduct.addons || []).map((group) => (
+                <div
+                  key={group.id}
+                  className="bg-gray-50 p-4 rounded-2xl border border-gray-100"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-black uppercase text-sm text-gray-800">
+                      {group.name}
+                    </h3>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase">
+                      {group.isRequired ? "ΥΠΟΧΡΕΩΤΙΚΟ" : "ΠΡΟΑΙΡΕΤΙΚΟ"} (
+                      {group.maxSelections > 1
+                        ? `ΕΩΣ ${group.maxSelections}`
+                        : "ΕΠΙΛΕΞΤΕ 1"}
+                      )
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.options.map((opt, i) => {
+                      const isSelected = (
+                        posAddonSelections[group.id] || []
+                      ).includes(i);
+                      return (
+                        <div
+                          key={i}
+                          onClick={() =>
+                            togglePosAddon(group.id, i, group.maxSelections)
+                          }
+                          className={`flex justify-between items-center p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                            isSelected
+                              ? "bg-blue-50 border-blue-500"
+                              : "bg-white border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                isSelected
+                                  ? "border-blue-500 bg-blue-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              )}
+                            </div>
+                            <span
+                              className={`font-bold text-xs uppercase ${
+                                isSelected ? "text-gray-900" : "text-gray-600"
+                              }`}
+                            >
+                              {opt.name}
+                            </span>
+                          </div>
+                          <span
+                            className={`font-black text-xs ${
+                              opt.price > 0 ? "text-blue-600" : "text-gray-400"
+                            }`}
+                          >
+                            {opt.price > 0
+                              ? `+${opt.price.toFixed(2)}€`
+                              : "ΔΩΡΕΑΝ"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <span className="font-black uppercase text-sm text-gray-800">
+                  ΠΟΣΟΤΗΤΑ
+                </span>
+                <div className="flex items-center gap-4 bg-white px-2 py-1 rounded-xl shadow-sm border border-gray-200">
+                  <button
+                    onClick={() => setPosQuantity(Math.max(1, posQuantity - 1))}
+                    className="w-10 h-10 font-bold text-2xl text-gray-500 flex items-center justify-center"
+                  >
+                    {" "}
+                    −{" "}
+                  </button>
+                  <span className="font-black text-lg w-6 text-center">
+                    {posQuantity}
+                  </span>
+                  <button
+                    onClick={() => setPosQuantity(posQuantity + 1)}
+                    className="w-10 h-10 font-bold text-2xl text-blue-600 flex items-center justify-center"
+                  >
+                    {" "}
+                    +{" "}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              onClick={confirmPosAddons}
+              className="w-full mt-6 bg-blue-600 text-white py-5 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-blue-700 active:scale-95 transition-transform"
+            >
+              ΠΡΟΣΘΗΚΗ {posQuantity > 1 ? `x${posQuantity}` : ""}
+            </button>
           </div>
         </div>
       )}
