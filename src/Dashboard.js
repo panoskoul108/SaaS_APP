@@ -26,7 +26,7 @@ export default function Dashboard() {
 
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
-  const [reviews, setReviews] = useState([]); // ΝΕΟ: Για τις κριτικές
+  const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("orders");
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
@@ -64,7 +64,6 @@ export default function Dashboard() {
       .order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
 
-    // ΝΕΟ: Ανάγνωση Κριτικών
     const { data: reviewsData } = await supabase
       .from("reviews")
       .select("*")
@@ -155,6 +154,28 @@ export default function Dashboard() {
       .update({ is_accepting_orders: newStatus })
       .eq("id", storeId);
     setIsAcceptingOrders(newStatus);
+  };
+
+  // ΕΠΑΝΑΦΟΡΑ ΤΟΥ DOWNLOAD QR ΠΟΥ ΕΙΧΕ ΣΒΗΣΤΕΙ
+  const downloadQR = async (tableNumber) => {
+    try {
+      const qrData = encodeURIComponent(
+        `${window.location.origin}/?store=${storeId}&table=${tableNumber}`
+      );
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `QR_Store${storeId}_Table_${tableNumber}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      alert("Σφάλμα. Δοκιμάστε ξανά.");
+    }
   };
 
   const handleLogout = () => {
@@ -342,6 +363,13 @@ export default function Dashboard() {
   const totalOrdersCount = historyOrders.length;
   const avgOrderValue =
     totalOrdersCount > 0 ? totalRevenue / totalOrdersCount : 0;
+
+  // ΕΠΑΝΑΦΟΡΑ ΤΩΝ ACTIVE TABLES ΠΟΥ ΕΙΧΑΝ ΣΒΗΣΤΕΙ
+  const activeTables = [
+    ...new Set(
+      orders.filter((o) => o.status !== "completed").map((o) => o.table_number)
+    ),
+  ];
 
   const productCounts = {};
   historyOrders.forEach((o) => {
@@ -649,7 +677,6 @@ export default function Dashboard() {
               (t === "tables" || t === "products" || t === "reviews")
             )
               return null;
-            // Μόνο ο Admin βλέπει τις Κριτικές
             if (t === "reviews" && userRole !== "admin") return null;
 
             return (
@@ -740,7 +767,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* --- ΝΕΑ ΚΑΡΤΕΛΑ: ΚΡΙΤΙΚΕΣ (ΜΟΝΟ ADMIN) --- */}
         {tab === "reviews" && userRole === "admin" && (
           <div className="max-w-6xl mx-auto space-y-6 pb-20">
             <h2 className="font-black text-2xl uppercase italic tracking-tighter text-gray-800 border-b pb-4">
@@ -1281,6 +1307,7 @@ export default function Dashboard() {
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
 
+                {/* COMPACT TOGGLE ΓΙΑ ΤΗΝ ΠΛΗΡΩΜΗ ΜΕ ΚΕΝΗ ΑΡΧΙΚΗ ΕΠΙΛΟΓΗ */}
                 <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
                   <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
                     ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
@@ -1332,6 +1359,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* --- ΑΝΑΔΥΟΜΕΝΟ ΠΑΡΑΘΥΡΟ ΓΙΑ ADDONS ΠΡΟΪΟΝΤΟΣ ΣΤΟ POS --- */}
       {posActiveProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
