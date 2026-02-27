@@ -26,6 +26,7 @@ export default function Dashboard() {
 
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
+  const [reviews, setReviews] = useState([]); // ΝΕΟ: Για τις κριτικές
   const [tab, setTab] = useState("orders");
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
@@ -45,11 +46,8 @@ export default function Dashboard() {
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
-
-  // ΑΛΛΑΓΗ: Το POS Payment ξεκινάει ΑΔΕΙΟ
   const [posPayment, setPosPayment] = useState("");
   const [posGeneralNote, setPosGeneralNote] = useState("");
-
   const [posActiveProduct, setPosActiveProduct] = useState(null);
   const [posAddonSelections, setPosAddonSelections] = useState({});
   const [posQuantity, setPosQuantity] = useState(1);
@@ -65,6 +63,14 @@ export default function Dashboard() {
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
+
+    // ΝΕΟ: Ανάγνωση Κριτικών
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+    if (reviewsData) setReviews(reviewsData);
 
     const { data: storeData } = await supabase
       .from("stores")
@@ -151,27 +157,6 @@ export default function Dashboard() {
     setIsAcceptingOrders(newStatus);
   };
 
-  const downloadQR = async (tableNumber) => {
-    try {
-      const qrData = encodeURIComponent(
-        `${window.location.origin}/?store=${storeId}&table=${tableNumber}`
-      );
-      const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `QR_Store${storeId}_Table_${tableNumber}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      alert("Σφάλμα. Δοκιμάστε ξανά.");
-    }
-  };
-
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserRole(null);
@@ -179,7 +164,6 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  // --- QUICK POS FUNCTIONS ---
   const posCategories = [...new Set(products.map((p) => p.category))];
   const posFilteredProducts =
     posCategory === "ΟΛΑ"
@@ -252,7 +236,6 @@ export default function Dashboard() {
     setPosActiveProduct(null);
   };
 
-  // Ενημέρωση ποσότητας μέσα στο καλάθι του POS
   const updatePosCartQuantity = (cartId, delta) => {
     setPosCart(
       posCart.map((item) => {
@@ -292,7 +275,7 @@ export default function Dashboard() {
     setPosCart([]);
     setPosTable("ΠΑΚΕΤΟ");
     setPosGeneralNote("");
-    setPosPayment(""); // Επαναφορά για να μην γίνει λάθος στο επόμενο
+    setPosPayment("");
     setIsPosOpen(false);
     fetchData();
   };
@@ -359,11 +342,6 @@ export default function Dashboard() {
   const totalOrdersCount = historyOrders.length;
   const avgOrderValue =
     totalOrdersCount > 0 ? totalRevenue / totalOrdersCount : 0;
-  const activeTables = [
-    ...new Set(
-      orders.filter((o) => o.status !== "completed").map((o) => o.table_number)
-    ),
-  ];
 
   const productCounts = {};
   historyOrders.forEach((o) => {
@@ -664,9 +642,16 @@ export default function Dashboard() {
             isKitchen ? "bg-gray-900 border-gray-800" : "bg-white"
           }`}
         >
-          {["orders", "tables", "history", "products"].map((t) => {
+          {["orders", "tables", "reviews", "history", "products"].map((t) => {
             if (userRole === "staff" && t !== "orders") return null;
-            if (isKitchen && (t === "tables" || t === "products")) return null;
+            if (
+              isKitchen &&
+              (t === "tables" || t === "products" || t === "reviews")
+            )
+              return null;
+            // Μόνο ο Admin βλέπει τις Κριτικές
+            if (t === "reviews" && userRole !== "admin") return null;
+
             return (
               <button
                 key={t}
@@ -685,6 +670,8 @@ export default function Dashboard() {
                   ? "ΠΑΡΑΓΓΕΛΙΕΣ"
                   : t === "tables"
                   ? "ΤΡΑΠΕΖΙΑ"
+                  : t === "reviews"
+                  ? "ΚΡΙΤΙΚΕΣ"
                   : t === "history"
                   ? "ΙΣΤΟΡΙΚΟ"
                   : "ΚΑΤΑΛΟΓΟΣ"}
@@ -750,6 +737,50 @@ export default function Dashboard() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {/* --- ΝΕΑ ΚΑΡΤΕΛΑ: ΚΡΙΤΙΚΕΣ (ΜΟΝΟ ADMIN) --- */}
+        {tab === "reviews" && userRole === "admin" && (
+          <div className="max-w-6xl mx-auto space-y-6 pb-20">
+            <h2 className="font-black text-2xl uppercase italic tracking-tighter text-gray-800 border-b pb-4">
+              Εσωτερικες Κριτικες
+            </h2>
+            {reviews.length === 0 ? (
+              <p className="text-center text-gray-400 font-bold mt-10 uppercase text-sm">
+                Δεν υπαρχουν αρνητικες κριτικες! 🎉
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {reviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 flex flex-col gap-3"
+                  >
+                    <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+                      <div className="text-xl">
+                        {Array.from({ length: rev.rating }).map((_, i) => (
+                          <span key={i} className="text-orange-400">
+                            ★
+                          </span>
+                        ))}
+                        {Array.from({ length: 5 - rev.rating }).map((_, i) => (
+                          <span key={i} className="text-gray-200">
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        {new Date(rev.created_at).toLocaleDateString("el-GR")}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-700 italic">
+                      "{rev.comment}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -1250,7 +1281,6 @@ export default function Dashboard() {
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
 
-                {/* COMPACT TOGGLE ΓΙΑ ΤΗΝ ΠΛΗΡΩΜΗ ΜΕ ΚΕΝΗ ΑΡΧΙΚΗ ΕΠΙΛΟΓΗ */}
                 <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
                   <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
                     ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
@@ -1302,7 +1332,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* --- ΑΝΑΔΥΟΜΕΝΟ ΠΑΡΑΘΥΡΟ ΓΙΑ ADDONS ΠΡΟΪΟΝΤΟΣ ΣΤΟ POS --- */}
       {posActiveProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
