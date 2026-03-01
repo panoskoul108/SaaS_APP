@@ -51,7 +51,7 @@ const DICT = {
     edit: "ΕΠΕΞΕΡΓΑΣΙΑ",
     save: "ΑΠΟΘΗΚΕΥΣΗ",
     loyaltyTitle: "LOYALTY ΠΕΛΑΤΗ",
-    loyaltySteps: "Συγκέντρωσε 5 παραγγελίες για δώρο!",
+    loyaltySteps: "Συγκέντρωσε 5 παραγγελίες άνω των 25€ για δώρο!",
     loyaltyReward: "ΣΥΓΧΑΡΗΤΗΡΙΑ! ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΟ ΜΕ ΑΥΤΗ ΤΗΝ ΠΑΡΑΓΓΕΛΙΑ! 🎁",
   },
   en: {
@@ -91,7 +91,7 @@ const DICT = {
     edit: "EDIT",
     save: "SAVE",
     loyaltyTitle: "CUSTOMER LOYALTY",
-    loyaltySteps: "Collect 5 orders for a free gift!",
+    loyaltySteps: "Collect 5 orders over 25€ for a free gift!",
     loyaltyReward: "CONGRATULATIONS! YOU GET A GIFT WITH THIS ORDER! 🎁",
   },
 };
@@ -110,7 +110,7 @@ export default function Menu() {
   const [lang, setLang] = useState("gr");
   const t = DICT[lang];
 
-  // --- LOYALTY SYSTEM: ΜΟΝΑΔΙΚΟ ID ΠΕΛΑΤΗ ---
+  // --- LOYALTY SYSTEM ---
   const [custId] = useState(() => {
     let id = localStorage.getItem("loyalty_id");
     if (!id) {
@@ -167,20 +167,47 @@ export default function Menu() {
       .order("category");
     if (p) setProducts(p);
 
-    // FETCH LOYALTY POINTS
-    const { count } = await supabase
+    // FETCH LOYALTY: Νέος Αλγόριθμος
+    const { data: loyaltyOrders } = await supabase
       .from("orders")
-      .select("*", { count: "exact", head: true })
+      .select("is_loyalty_reward, total_price")
       .eq("store_id", storeId)
       .eq("customer_id", custId)
       .eq("status", "completed");
-    setLoyaltyPoints(count || 0);
+
+    let earned = 0;
+    let spent = 0;
+
+    if (loyaltyOrders) {
+      loyaltyOrders.forEach((o) => {
+        if (o.is_loyalty_reward) {
+          spent += 1; // Παραγγελίες που καταναλώθηκε το δώρο
+        } else if (o.total_price >= 25) {
+          earned += 1; // Παραγγελίες άνω των 25€ δίνουν πόντο
+        }
+      });
+    }
+
+    // Οι καθαροί διαθέσιμοι πόντοι
+    let currentPoints = earned - spent * 5;
+    setLoyaltyPoints(Math.max(0, currentPoints));
   };
 
   useEffect(() => {
     fetchData();
     const interval = setInterval(fetchData, 5000);
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("menu_realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "products" },
+        () => fetchData()
+      )
+      .subscribe();
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
   }, [storeId, custId]);
 
   const hasRecommended = products.some((p) => p.is_recommended);
@@ -362,9 +389,8 @@ export default function Menu() {
     if (newCart.length === 0) setIsCartOpen(false);
   };
 
-  // Υπολογισμός Loyalty Στάδιου
-  const stamps = loyaltyPoints % 5;
-  const isRewardOrder = loyaltyPoints > 0 && stamps === 0;
+  const isRewardOrder = loyaltyPoints >= 5;
+  const stamps = isRewardOrder ? 5 : loyaltyPoints;
 
   const sendOrder = async () => {
     if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders)
@@ -386,8 +412,8 @@ export default function Menu() {
           payment_method: paymentMethod,
           status: "pending",
           general_note: generalNote,
-          customer_id: custId, // Στέλνουμε το ID Πελάτη
-          is_loyalty_reward: isRewardOrder, // Στέλνουμε αν δικαιούται δώρο
+          customer_id: custId,
+          is_loyalty_reward: isRewardOrder,
         },
       ])
       .select();
