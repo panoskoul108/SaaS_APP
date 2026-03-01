@@ -1422,7 +1422,7 @@ export default function Dashboard() {
                   rows="1"
                   placeholder="Γενική Σημείωση..."
                   value={posGeneralNote}
-                  onChange={(e) => setGeneralNote(e.target.value)}
+                  onChange={(e) => setPosGeneralNote(e.target.value)} // <---- ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ, ΤΟ ΔΙΟΡΘΩΣΑΜΕ!
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
 
