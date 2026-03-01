@@ -320,7 +320,6 @@ export default function Dashboard() {
       </div>
     );
 
-  // --- ΥΠΟΛΟΓΙΣΜΟΙ ΙΣΤΟΡΙΚΟΥ ---
   const historyOrders = orders.filter((o) => {
     if (o.status !== "completed") return false;
     const orderDate = new Date(o.created_at);
@@ -425,7 +424,6 @@ export default function Dashboard() {
     .slice(0, 3);
   const maxHourCount = peakHours.length > 0 ? peakHours[0][1] : 1;
 
-  // --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΕΞΑΓΩΓΗ ΤΟΥ Z ΣΕ ΑΡΧΕΙΟ .TXT ---
   const downloadReportFile = () => {
     const periodMap = {
       today: "ΣΗΜΕΡΙΝΗ",
@@ -452,13 +450,11 @@ export default function Dashboard() {
 ======================================
     `.trim();
 
-    // Δημιουργία αρχείου και κατέβασμα
     const blob = new Blob([reportText], { type: "text/plain;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
 
-    // Όνομα αρχείου (π.χ. Z_Report_24-5-2024.txt)
     const dateStr = new Date().toLocaleDateString("el-GR").replace(/\//g, "-");
     link.download = `Z_Report_${dateStr}.txt`;
 
@@ -488,8 +484,20 @@ export default function Dashboard() {
           isKitchen
             ? "bg-gray-800 border-gray-700 text-white"
             : "bg-white border-gray-100 text-gray-800"
-        } rounded-2xl p-4 mb-4 shadow-sm border cursor-pointer hover:shadow-md transition-shadow`}
+        } rounded-2xl p-4 mb-4 shadow-sm border cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden`}
       >
+        {/* --- ΝΕΟ: ΕΝΔΕΙΞΗ LOYALTY --- */}
+        {order.is_loyalty_reward && (
+          <div className="mb-3 p-3 rounded-xl bg-purple-100 border-2 border-purple-400 text-purple-900 text-center shadow-inner">
+            <span className="font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2">
+              🎁 ΠΕΛΑΤΗΣ LOYALTY
+            </span>
+            <p className="text-xs font-bold mt-1">
+              Δικαιούται δώρο με αυτή την παραγγελία!
+            </p>
+          </div>
+        )}
+
         <div
           className={`flex justify-between items-start mb-3 border-b pb-2 ${
             isKitchen ? "border-gray-700" : ""
@@ -515,6 +523,7 @@ export default function Dashboard() {
             {new Date(order.created_at).toLocaleTimeString("el-GR")}
           </span>
         </div>
+
         {order.general_note && (
           <div
             className={`mb-3 p-2 rounded-xl border ${
@@ -1029,7 +1038,6 @@ export default function Dashboard() {
                 </span>
               </div>
 
-              {/* ΤΟ ΝΕΟ ΚΟΥΜΠΙ ΕΞΑΓΩΓΗΣ ΑΡΧΕΙΟΥ (ΑΝΤΙ ΓΙΑ ΕΚΤΥΠΩΣΗ) */}
               <button
                 onClick={downloadReportFile}
                 className="bg-gray-900 text-white p-4 rounded-[2rem] shadow-lg font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
