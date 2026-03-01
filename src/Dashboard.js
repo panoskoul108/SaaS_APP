@@ -486,7 +486,6 @@ export default function Dashboard() {
             : "bg-white border-gray-100 text-gray-800"
         } rounded-2xl p-4 mb-4 shadow-sm border cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden`}
       >
-        {/* --- ΝΕΟ: ΕΝΔΕΙΞΗ LOYALTY --- */}
         {order.is_loyalty_reward && (
           <div className="mb-3 p-3 rounded-xl bg-purple-100 border-2 border-purple-400 text-purple-900 text-center shadow-inner">
             <span className="font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2">
@@ -1423,7 +1422,7 @@ export default function Dashboard() {
                   rows="1"
                   placeholder="Γενική Σημείωση..."
                   value={posGeneralNote}
-                  onChange={(e) => setPosGeneralNote(e.target.value)}
+                  onChange={(e) => setGeneralNote(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
 
@@ -1707,6 +1706,48 @@ export default function Dashboard() {
             >
               ΚΛΕΙΣΙΜΟ
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ΕΔΩ ΕΙΝΑΙ ΤΟ ΚΟΜΜΑΤΙ ΜΕ ΤΑ QR ΠΟΥ ΕΙΧΕ ΚΟΠΕΙ! */}
+      {selectedTableForQR && userRole === "admin" && (
+        <div
+          className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 print:bg-white print:p-0"
+          onClick={() => setSelectedTableForQR(null)}
+        >
+          <div
+            className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-3xl font-black italic uppercase mb-2">
+              ΤΡΑΠΕΖΙ {selectedTableForQR}
+            </h2>
+            <img
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
+                window.location.origin +
+                  "/?store=" +
+                  storeId +
+                  "&table=" +
+                  selectedTableForQR
+              )}`}
+              alt="QR"
+              className="w-64 h-64 mb-8"
+            />
+            <div className="w-full flex flex-col gap-3 print:hidden">
+              <button
+                onClick={() => downloadQR(selectedTableForQR)}
+                className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg"
+              >
+                ΛΗΨΗ ΕΙΚΟΝΑΣ (PNG)
+              </button>
+              <button
+                onClick={() => setSelectedTableForQR(null)}
+                className="w-full bg-red-50 text-red-500 py-4 rounded-2xl font-black uppercase text-xs"
+              >
+                ΑΚΥΡΟ
+              </button>
+            </div>
           </div>
         </div>
       )}
