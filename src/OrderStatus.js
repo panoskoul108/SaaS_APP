@@ -106,6 +106,8 @@ export default function OrderStatus({
         .single();
 
       if (data && isMounted) {
+        setOrder(data); // <--- ΑΥΤΟ ΕΛΕΙΠΕ ΚΑΙ ΕΚΑΝΕ ΤΗΝ ΑΞΙΟΛΟΓΗΣΗ ΝΑ ΜΗΝ ΦΑΙΝΕΤΑΙ
+
         const { data: storeData } = await supabase
           .from("stores")
           .select("google_review_link")
@@ -117,7 +119,6 @@ export default function OrderStatus({
         if (data.status === "completed") {
           setShowReview(true);
         } else {
-          setOrder(data);
           setPrevStatus(data.status);
         }
       }
@@ -132,6 +133,8 @@ export default function OrderStatus({
         .single();
 
       if (data && isMounted) {
+        setOrder(data); // ΠΑΝΤΑ ΕΝΗΜΕΡΩΝΟΥΜΕ ΤΑ ΔΕΔΟΜΕΝΑ
+
         if (data.status === "completed") {
           clearInterval(interval);
           setShowReview(true);
@@ -161,7 +164,6 @@ export default function OrderStatus({
         }
 
         setPrevStatus(currentOverall);
-        setOrder(data);
       }
     }, 3000);
 
@@ -207,6 +209,15 @@ export default function OrderStatus({
       ? `${baseName} (${addonTexts.join(" | ")})`
       : baseName;
   };
+
+  // Προστασία αν δεν έχει φορτώσει ακόμα η παραγγελία
+  if (!order) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   if (showReview) {
     return (
@@ -313,14 +324,6 @@ export default function OrderStatus({
             </button>
           )}
         </div>
-      </div>
-    );
-  }
-
-  if (!order) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }

@@ -1619,7 +1619,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Modal Λεπτομερειών (Για υπάρχουσες παραγγελίες) */}
       {viewingOrder && (
         <div
           className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 print:hidden"
@@ -1708,47 +1707,6 @@ export default function Dashboard() {
             >
               ΚΛΕΙΣΙΜΟ
             </button>
-          </div>
-        </div>
-      )}
-
-      {selectedTableForQR && userRole === "admin" && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 print:bg-white print:p-0"
-          onClick={() => setSelectedTableForQR(null)}
-        >
-          <div
-            className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-3xl font-black italic uppercase mb-2">
-              ΤΡΑΠΕΖΙ {selectedTableForQR}
-            </h2>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
-                window.location.origin +
-                  "/?store=" +
-                  storeId +
-                  "&table=" +
-                  selectedTableForQR
-              )}`}
-              alt="QR"
-              className="w-64 h-64 mb-8"
-            />
-            <div className="w-full flex flex-col gap-3 print:hidden">
-              <button
-                onClick={() => downloadQR(selectedTableForQR)}
-                className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg"
-              >
-                ΛΗΨΗ ΕΙΚΟΝΑΣ (PNG)
-              </button>
-              <button
-                onClick={() => setSelectedTableForQR(null)}
-                className="w-full bg-red-50 text-red-500 py-4 rounded-2xl font-black uppercase text-xs"
-              >
-                ΑΚΥΡΟ
-              </button>
-            </div>
           </div>
         </div>
       )}

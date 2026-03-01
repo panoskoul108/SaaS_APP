@@ -104,9 +104,13 @@ export default function Menu() {
   const [storeId] = useState(
     new URLSearchParams(window.location.search).get("store") || "1"
   );
+
+  // ΔΙΟΡΘΩΣΗ: Αν ο browser στείλει τη λέξη "null", το μετατρέπουμε σε άδειο.
+  const urlTable = new URLSearchParams(window.location.search).get("table");
   const [tableNum, setTableNum] = useState(
-    new URLSearchParams(window.location.search).get("table")
+    urlTable === "null" ? null : urlTable
   );
+
   const [lang, setLang] = useState("gr");
   const t = DICT[lang];
 
@@ -167,7 +171,7 @@ export default function Menu() {
       .order("category");
     if (p) setProducts(p);
 
-    // FETCH LOYALTY: Νέος Αλγόριθμος
+    // FETCH LOYALTY: Μόνο άνω των 25€
     const { data: loyaltyOrders } = await supabase
       .from("orders")
       .select("is_loyalty_reward, total_price")
@@ -567,10 +571,62 @@ export default function Menu() {
         </div>
       )}
 
+      {/* ΔΙΟΡΘΩΣΗ: Αν δεν υπάρχει τραπέζι, ΕΜΦΑΝΙΖΕΤΑΙ το BACKUP MODE */}
+      {(!tableNum || tableNum === "") && backupMode === true && (
+        <div
+          className={`mx-4 mb-2 p-6 bg-white border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${
+            !isAcceptingOrders ? "mt-[110px]" : "mt-[88px]"
+          }`}
+          style={{ borderColor: themeColor }}
+        >
+          <p
+            className="text-xs font-black uppercase mb-3"
+            style={{ color: themeColor }}
+          >
+            {t.selectManual}
+          </p>
+          <button
+            onClick={() => setShowTablePicker(true)}
+            className="w-full text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform"
+            style={{ backgroundColor: themeColor }}
+          >
+            {t.btnSelectTable}
+          </button>
+        </div>
+      )}
+
+      {showTablePicker && (
+        <div className="fixed inset-0 bg-black/90 z-[200] p-6 overflow-y-auto flex flex-col items-center justify-start pt-20">
+          <div className="flex justify-between items-center mb-8 text-white font-black italic uppercase text-lg w-full max-w-md">
+            {t.btnSelectTable}{" "}
+            <button
+              onClick={() => setShowTablePicker(false)}
+              className="text-3xl"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
+            {TABLES_LIST.map((table) => (
+              <button
+                key={table}
+                onClick={() => {
+                  setTableNum(table);
+                  setShowTablePicker(false);
+                }}
+                className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform"
+              >
+                {table}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* --- LOYALTY PROGRESS BAR --- */}
       <div
         className={`px-4 pt-4 pb-2 bg-gray-50 z-20 ${
-          !isAcceptingOrders ? "mt-[110px]" : "mt-[88px]"
+          tableNum ? (!isAcceptingOrders ? "mt-[110px]" : "mt-[88px]") : ""
         }`}
       >
         <div
