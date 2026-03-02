@@ -6,73 +6,96 @@ export const PrintTicket = ({ order }) => {
   return (
     <div
       style={{
-        width: "80mm",
-        padding: "5mm",
-        backgroundColor: "white",
-        color: "black",
-        fontFamily: "monospace",
+        width: "100%",
+        padding: "0px",
+        margin: "0px", // Μηδενισμός εξωτερικού κενού
+        color: "#000",
+        fontFamily: "Arial, sans-serif",
+        lineHeight: "1.1",
       }}
     >
-      <div
-        style={{
-          textAlign: "center",
-          borderBottom: "1px dashed black",
-          paddingBottom: "10px",
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "bold" }}>
-          STATUS ΚΟΥΖΙΝΑ
-        </h2>
-        <p style={{ margin: "5px 0", fontSize: "10px" }}>
-          {new Date(order.created_at).toLocaleString("el-GR")}
-        </p>
-      </div>
-
-      <div style={{ textAlign: "center", margin: "15px 0" }}>
-        <h1 style={{ fontSize: "32px", margin: 0, fontWeight: "900" }}>
-          {order.table_number}
+      {/* ΤΡΑΠΕΖΙ - ΣΥΜΠΥΚΝΩΜΕΝΟ ΠΑΝΩ ΜΕΡΟΣ */}
+      <div style={{ 
+        textAlign: "center", 
+        borderBottom: "2px solid #000", 
+        paddingBottom: "5px", 
+        marginBottom: "8px",
+        marginTop: "-10px" // Τραβάει το κείμενο ακόμα πιο πάνω
+      }}>
+        <h1 style={{ fontSize: "35px", margin: "0", fontWeight: "900" }}>
+          ΤΡ: {order.table_number}
         </h1>
+        <div style={{ fontSize: "12px", fontWeight: "bold" }}>
+          {new Date(order.created_at).toLocaleTimeString("el-GR")}
+        </div>
       </div>
 
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        {order.items.map((item, i) => (
-          <tr key={i} style={{ fontSize: "16px", fontWeight: "bold" }}>
-            <td style={{ padding: "5px 0" }}>• {item.name}</td>
-            <td style={{ textAlign: "right" }}>1x</td>
-          </tr>
+      {/* ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ - ΕΔΩ ΕΙΝΑΙ Η ΜΕΓΑΛΗ ΓΡΑΜΜΑΤΟΣΕΙΡΑ */}
+      <div style={{ marginBottom: "5px" }}>
+        {order.items?.map((item, index) => (
+          <div key={index} style={{ marginBottom: "8px", borderBottom: "1px solid #ccc", paddingBottom: "4px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "start" }}>
+              <span style={{ 
+                fontSize: "28px", // ΠΟΛΥ ΜΕΓΑΛΟ ΓΙΑ ΤΑ ΠΡΟΪΟΝΤΑ
+                fontWeight: "900", 
+                textTransform: "uppercase", 
+                flex: "1",
+                lineHeight: "1"
+              }}>
+                {item.quantity}x {item.name}
+              </span>
+            </div>
+            
+            {/* ΣΗΜΕΙΩΣΗ ΠΡΟΪΟΝΤΟΣ */}
+            {item.note && (
+              <div style={{ 
+                fontSize: "18px", 
+                fontWeight: "900", 
+                fontStyle: "italic", 
+                marginTop: "2px",
+                padding: "2px",
+                border: "1px solid #000" // Πλαίσιο για να μην χάνεται η σημείωση
+              }}>
+                ΣΗΜ: {item.note}
+              </div>
+            )}
+          </div>
         ))}
-      </table>
+      </div>
 
-      <div
-        style={{
-          borderTop: "2px solid black",
-          marginTop: "15px",
-          paddingTop: "10px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            fontSize: "18px",
-            fontWeight: "bold",
-          }}
-        >
-          <span>ΣΥΝΟΛΟ:</span>
-          <span>{order.total_price.toFixed(2)}€</span>
+      {/* ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ */}
+      {order.general_note && (
+        <div style={{ border: "1px solid #000", padding: "4px", marginBottom: "8px" }}>
+          <span style={{ fontSize: "12px", fontWeight: "900", display: "block" }}>ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ:</span>
+          <span style={{ fontSize: "18px", fontWeight: "bold" }}>{order.general_note}</span>
         </div>
-        <div
-          style={{
-            marginTop: "10px",
-            fontSize: "14px",
-            fontWeight: "bold",
-            textAlign: "center",
-            border: "1px solid black",
-            padding: "5px",
-          }}
-        >
+      )}
+
+      {/* ΣΥΝΟΛΟ & ΠΛΗΡΩΜΗ - ΠΙΟ ΜΙΚΡΑ ΓΙΑ ΟΙΚΟΝΟΜΙΑ ΧΑΡΤΙΟΥ */}
+      <div style={{ borderTop: "1px dashed #000", paddingTop: "5px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span style={{ fontSize: "16px", fontWeight: "bold" }}>ΣΥΝΟΛΟ:</span>
+          <span style={{ fontSize: "24px", fontWeight: "900" }}>{order.total_price?.toFixed(2)}€</span>
+        </div>
+        <div style={{ fontSize: "12px", textAlign: "right", fontWeight: "bold", marginTop: "2px" }}>
           ΠΛΗΡΩΜΗ: {order.payment_method}
         </div>
+      </div>
+
+      {/* LOYALTY ΕΙΔΟΠΟΙΗΣΗ */}
+      {order.is_loyalty_reward && (
+        <div style={{ 
+          marginTop: "8px", 
+          padding: "5px", 
+          border: "2px solid #000", 
+          textAlign: "center" 
+        }}>
+          <span style={{ fontSize: "16px", fontWeight: "900" }}>🎁 ΔΩΡΟ LOYALTY 🎁</span>
+        </div>
+      )}
+
+      <div style={{ textAlign: "center", marginTop: "10px", fontSize: "10px" }}>
+        --- ΤΕΛΟΣ ΠΑΡΑΓΓΕΛΙΑΣ ---
       </div>
     </div>
   );
