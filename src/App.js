@@ -4,26 +4,23 @@ import Dashboard from "./Dashboard";
 
 export default function App() {
   const [isAdmin, setIsAdmin] = useState(false);
+  const [visits, setVisits] = useState(0);
 
   useEffect(() => {
-    // Διαβάζει το URL και ελέγχει αν υπάρχει η παράμετρος admin
     const params = new URLSearchParams(window.location.search);
-
-    // Αν το URL έχει ?admin τότε isAdmin = true
     if (params.has("admin")) {
       setIsAdmin(true);
-    } else {
-      setIsAdmin(false);
     }
+
+    // Φόρτωση Loyalty από το κινητό του πελάτη
+    const storeId = params.get("store") || "1";
+    const saved = localStorage.getItem(`loyalty_visits_${storeId}`);
+    if (saved) setVisits(parseInt(saved));
   }, []);
 
   return (
     <div>
-      {/* Σωστή Λογική: 
-         Αν isAdmin είναι true -> Dashboard
-         Αν isAdmin είναι false -> Menu 
-      */}
-      {isAdmin === true ? <Dashboard /> : <Menu />}
+      {isAdmin ? <Dashboard /> : <Menu visits={visits} setVisits={setVisits} />}
     </div>
   );
 }

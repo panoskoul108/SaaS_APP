@@ -7,7 +7,7 @@ export const PrintTicket = ({ order }) => {
     <div
       style={{
         width: "80mm",
-        padding: "0px", // Μηδενισμός κενού για οικονομία χαρτιού
+        padding: "0px",
         backgroundColor: "white",
         color: "black",
         fontFamily: "monospace",
@@ -24,7 +24,6 @@ export const PrintTicket = ({ order }) => {
         <h2 style={{ margin: 0, fontSize: "20px", fontWeight: "bold" }}>
           STATUS
         </h2>
-        {/* Η ΩΡΑ ΜΕΓΑΛΩΣΕ ΕΔΩ */}
         <p style={{ margin: "5px 0", fontSize: "14px", fontWeight: "bold" }}>
           {new Date(order.created_at).toLocaleString("el-GR")}
         </p>
@@ -39,13 +38,27 @@ export const PrintTicket = ({ order }) => {
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <tbody>
           {order.items.map((item, i) => (
-            <tr key={i} style={{ fontSize: "18px", fontWeight: "bold" }}>
-              <td style={{ padding: "4px 0" }}>• {item.name}</td>
+            <tr key={i} style={{ fontSize: "22px", fontWeight: "bold" }}>
+              <td style={{ padding: "6px 0" }}>• {item.name}</td>
               <td style={{ textAlign: "right" }}>{item.quantity || 1}x</td>
             </tr>
           ))}
         </tbody>
       </table>
+
+      {order.general_note && (
+        <div
+          style={{
+            border: "1px solid black",
+            padding: "4px",
+            marginTop: "10px",
+            fontSize: "16px",
+            fontWeight: "bold",
+          }}
+        >
+          ΣΗΜ: {order.general_note}
+        </div>
+      )}
 
       <div
         style={{
@@ -78,6 +91,19 @@ export const PrintTicket = ({ order }) => {
           ΠΛΗΡΩΜΗ: {order.payment_method}
         </div>
       </div>
+
+      {order.is_loyalty_reward && (
+        <div
+          style={{
+            marginTop: "10px",
+            border: "2px solid black",
+            textAlign: "center",
+            fontWeight: "bold",
+          }}
+        >
+          🎁 ΔΩΡΟ LOYALTY 🎁
+        </div>
+      )}
     </div>
   );
 };
