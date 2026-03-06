@@ -65,7 +65,7 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // --- POS STATE ---
+  // --- POS STATE (ΤΑΜΕΙΟ) ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
@@ -1380,27 +1380,29 @@ export default function Dashboard() {
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
-        <div className="fixed inset-0 bg-black/60 z-[300] flex justify-center items-center md:p-6 animate-fade-in">
-          {/* Main POS Container - Χωρίζεται στα 2 σε μεγάλες οθόνες */}
-          <div className="bg-gray-100 w-full h-full md:max-w-7xl md:h-[90vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
-            {/* ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ */}
+        <div className="fixed inset-0 bg-gray-100 md:bg-black/80 z-[300] flex items-center justify-center md:p-6 animate-fade-in">
+          {/* Main POS Container */}
+          <div className="bg-gray-100 w-full h-full md:max-w-[95vw] xl:max-w-[1400px] md:h-[95vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
+            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ -- */}
             <div
-              className={`flex-1 flex flex-col bg-white h-full ${
+              className={`flex-1 flex flex-col bg-white h-full relative ${
                 isPosCartOpen ? "hidden md:flex" : "flex"
               }`}
             >
-              <div className="p-4 border-b flex justify-between items-center bg-gray-50 shrink-0">
+              {/* Header Καταλόγου */}
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                 <h2 className="font-black text-xl italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
                 <button
                   onClick={() => setIsPosOpen(false)}
-                  className="w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
+                  className="md:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
+              {/* Κατηγορίες */}
               <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0">
                 <button
                   onClick={() => setPosCategory("ΟΛΑ")}
@@ -1427,7 +1429,8 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
+              {/* Λίστα Προϊόντων */}
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
@@ -1444,7 +1447,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Πλωτό κουμπί μόνο για κινητά */}
+              {/* Πλωτό κουμπί μόνο για μικρές οθόνες */}
               {!isPosCartOpen && posCart.length > 0 && (
                 <div className="md:hidden absolute bottom-4 left-4 right-4 z-50">
                   <button
@@ -1470,12 +1473,13 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ (Πάντα ορατή σε Desktop) */}
+            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ (Πάντα ορατή σε Desktop) -- */}
             <div
-              className={`w-full md:w-[400px] xl:w-[450px] bg-gray-50 flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
+              className={`w-full md:w-[450px] lg:w-[500px] xl:w-[550px] bg-gray-50 flex flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
                 isPosCartOpen ? "flex" : "hidden md:flex"
               }`}
             >
+              {/* Header Καλαθιού */}
               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm shrink-0">
                 <div className="flex items-center gap-3">
                   <button
@@ -1499,6 +1503,7 @@ export default function Dashboard() {
                 </button>
               </div>
 
+              {/* Είδη Καλαθιού */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                 {posCart.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-gray-400 font-black uppercase text-sm italic opacity-50">
@@ -1512,16 +1517,16 @@ export default function Dashboard() {
                     >
                       <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
                       <div className="flex justify-between items-start mb-2 pl-2">
-                        <span className="font-black text-xs uppercase text-gray-800 pr-2 flex-1 leading-tight">
+                        <span className="font-black text-sm uppercase text-gray-800 pr-2 flex-1 leading-tight">
                           {item.name}
                         </span>
-                        <span className="font-black text-blue-600 text-sm">
+                        <span className="font-black text-blue-600 text-lg">
                           {(item.price * (item.quantity || 1)).toFixed(2)}€
                         </span>
                       </div>
                       {item.note && (
                         <div className="pl-2 mb-2">
-                          <span className="text-[10px] text-gray-500 font-bold italic bg-gray-50 p-1.5 rounded-lg border border-gray-100 block">
+                          <span className="text-xs text-gray-500 font-bold italic bg-gray-50 p-2 rounded-lg border border-gray-100 block">
                             📝 {item.note}
                           </span>
                         </div>
@@ -1532,18 +1537,18 @@ export default function Dashboard() {
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, -1)
                             }
-                            className="w-8 h-8 flex items-center justify-center font-black text-gray-600 active:scale-90 transition-transform"
+                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
                           >
                             −
                           </button>
-                          <span className="font-black text-sm w-6 text-center">
+                          <span className="font-black text-sm w-8 text-center">
                             {item.quantity || 1}
                           </span>
                           <button
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, 1)
                             }
-                            className="w-8 h-8 flex items-center justify-center font-black text-blue-600 active:scale-90 transition-transform"
+                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
                           >
                             +
                           </button>
@@ -1551,13 +1556,13 @@ export default function Dashboard() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEditCartItem(item)}
-                            className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                            className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform text-lg"
                           >
                             ✏️
                           </button>
                           <button
                             onClick={() => removeFromPosCart(item.cartId)}
-                            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform text-lg"
                           >
                             🗑️
                           </button>
@@ -1568,29 +1573,30 @@ export default function Dashboard() {
                 )}
               </div>
 
+              {/* Footer Καλαθιού (Πληρωμή) */}
               <div className="p-4 bg-white border-t border-gray-200 space-y-3 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] shrink-0">
                 <input
                   type="text"
                   placeholder="ΤΡΑΠΕΖΙ ή ΟΝΟΜΑ (ΠΑΚΕΤΟ)"
                   value={posTable}
                   onChange={(e) => setPosTable(e.target.value)}
-                  className="w-full border-2 border-gray-200 p-3 rounded-xl font-black uppercase text-sm focus:outline-none focus:border-blue-500"
+                  className="w-full border-2 border-gray-200 p-4 rounded-xl font-black uppercase text-sm focus:outline-none focus:border-blue-500"
                 />
                 <textarea
                   rows="1"
                   placeholder="Γενική Σημείωση..."
                   value={posGeneralNote}
                   onChange={(e) => setPosGeneralNote(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
+                  className="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
                 <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
-                  <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
+                  <span className="font-black text-[10px] uppercase text-gray-500 tracking-widest mb-1 text-center">
                     ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
                   </span>
-                  <div className="flex gap-1 bg-gray-200/50 p-1 rounded-lg">
+                  <div className="flex gap-1 bg-gray-200/50 p-1 rounded-xl">
                     <button
                       onClick={() => setPosPayment("ΜΕΤΡΗΤΑ")}
-                      className={`flex-1 py-3 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                      className={`flex-1 py-4 rounded-lg font-black text-xs uppercase transition-all flex items-center justify-center gap-1 ${
                         posPayment === "ΜΕΤΡΗΤΑ"
                           ? "bg-white shadow-sm text-blue-600 scale-105"
                           : "text-gray-500 hover:text-gray-700"
@@ -1600,7 +1606,7 @@ export default function Dashboard() {
                     </button>
                     <button
                       onClick={() => setPosPayment("ΚΑΡΤΑ")}
-                      className={`flex-1 py-3 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                      className={`flex-1 py-4 rounded-lg font-black text-xs uppercase transition-all flex items-center justify-center gap-1 ${
                         posPayment === "ΚΑΡΤΑ"
                           ? "bg-white shadow-sm text-blue-600 scale-105"
                           : "text-gray-500 hover:text-gray-700"
@@ -1613,7 +1619,7 @@ export default function Dashboard() {
                 <button
                   onClick={submitPosOrder}
                   disabled={posCart.length === 0 || !posTable || !posPayment}
-                  className={`w-full p-4 rounded-xl font-black uppercase text-sm shadow-xl transition-all active:scale-95 flex justify-between items-center ${
+                  className={`w-full p-5 rounded-2xl font-black uppercase text-sm shadow-xl transition-all active:scale-95 flex justify-between items-center ${
                     posCart.length === 0 || !posTable || !posPayment
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-green-600 text-white hover:bg-green-700"
@@ -1771,7 +1777,7 @@ export default function Dashboard() {
                   placeholder="Π.χ. Χωρίς ζάχαρη..."
                   value={posCurrentNote}
                   onChange={(e) => setPosCurrentNote(e.target.value)}
-                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 font-bold resize-none"
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400 font-bold resize-none"
                 ></textarea>
               </div>
             </div>
