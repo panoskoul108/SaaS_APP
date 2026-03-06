@@ -60,6 +60,7 @@ export default function Dashboard() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
+
   const [isPrinting, setIsPrinting] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
@@ -215,15 +216,23 @@ export default function Dashboard() {
     setIsAcceptingOrders(newStatus);
   };
 
+  // --- ΔΙΟΡΘΩΜΕΝΗ ΛΕΙΤΟΥΡΓΙΑ ΛΗΨΗΣ QR ---
   const downloadQR = async (tableNumber) => {
     try {
       const qrData = encodeURIComponent(
         `${window.location.origin}/?store=${storeId}&table=${tableNumber}`
       );
       const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
-      const response = await fetch(url);
+
+      // Χρησιμοποιούμε έναν proxy για να παρακάμψουμε το CORS του Browser
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
+        url
+      )}`;
+
+      const response = await fetch(proxyUrl);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
+
       const link = document.createElement("a");
       link.href = blobUrl;
       link.download = `QR_Store${storeId}_Table_${tableNumber}.png`;
@@ -232,7 +241,12 @@ export default function Dashboard() {
       document.body.removeChild(link);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      alert("Σφάλμα. Δοκιμάστε ξανά.");
+      // Αν αποτύχει ο proxy, το ανοίγουμε σε νέα καρτέλα!
+      const qrData = encodeURIComponent(
+        `${window.location.origin}/?store=${storeId}&table=${tableNumber}`
+      );
+      const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
+      window.open(url, "_blank");
     }
   };
 
@@ -1379,19 +1393,20 @@ export default function Dashboard() {
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center lg:p-6 animate-fade-in">
+        <div className="fixed inset-0 bg-gray-100 lg:bg-black/80 z-[300] flex items-center justify-center lg:p-6 animate-fade-in">
+          {/* Main POS Container με Hardcoded Inline Styles για απόλυτη σιγουριά στο Desktop */}
           <div
-            style={{ width: "98vw", height: "95vh" }}
-            className="bg-gray-100 rounded-none lg:rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden relative"
+            style={{
+              width: window.innerWidth >= 1024 ? "98vw" : "100%",
+              height: window.innerWidth >= 1024 ? "95vh" : "100%",
+            }}
+            className="bg-gray-100 lg:rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden relative"
           >
             {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ (55%) -- */}
             <div
-              style={{
-                width:
-                  isPosCartOpen && window.innerWidth < 1024 ? "100%" : "55%",
-              }}
+              style={{ width: window.innerWidth >= 1024 ? "55%" : "100%" }}
               className={`flex-col bg-white h-full relative border-r border-gray-200 ${
-                isPosCartOpen ? "hidden lg:flex" : "flex w-full lg:w-[55%]"
+                isPosCartOpen ? "hidden lg:flex" : "flex"
               }`}
             >
               <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
@@ -1449,6 +1464,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
+              {/* Πλωτό κουμπί μόνο για κινητά */}
               {!isPosCartOpen && posCart.length > 0 && (
                 <div className="lg:hidden absolute bottom-4 left-4 right-4 z-50">
                   <button
@@ -1498,7 +1514,7 @@ export default function Dashboard() {
                     setIsPosCartOpen(false);
                     setIsPosOpen(false);
                   }}
-                  className="hidden lg:flex w-12 h-12 bg-gray-100 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-100 hover:text-red-500 transition-colors text-lg"
+                  className="hidden lg:flex w-10 h-10 bg-white border border-gray-200 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
                 >
                   ✕
                 </button>
@@ -1537,7 +1553,7 @@ export default function Dashboard() {
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, -1)
                             }
-                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
+                            className="w-8 h-8 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
                           >
                             −
                           </button>
@@ -1548,7 +1564,7 @@ export default function Dashboard() {
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, 1)
                             }
-                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
+                            className="w-8 h-8 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
                           >
                             +
                           </button>
