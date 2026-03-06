@@ -79,7 +79,6 @@ export default function Dashboard() {
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
 
-  // Έλεγχος Ώρας για το Πρωινό
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   useEffect(() => {
     const interval = setInterval(
@@ -1381,16 +1380,16 @@ export default function Dashboard() {
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
-        <div className="fixed inset-0 bg-gray-100 lg:bg-black/80 z-[300] flex items-center justify-center lg:p-4 print:hidden animate-fade-in">
-          <div className="bg-gray-100 w-full h-full lg:max-w-6xl lg:h-[90vh] lg:rounded-3xl flex flex-col lg:flex-row overflow-hidden shadow-2xl relative">
-            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ -- */}
+        <div className="fixed inset-0 bg-black/60 z-[300] flex justify-center items-center md:p-6 animate-fade-in">
+          {/* Main POS Container - Χωρίζεται στα 2 σε μεγάλες οθόνες */}
+          <div className="bg-gray-100 w-full h-full md:max-w-7xl md:h-[90vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
+            {/* ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ */}
             <div
-              className={`flex-1 flex-col bg-white h-full relative ${
-                isPosCartOpen ? "hidden lg:flex" : "flex"
+              className={`flex-1 flex flex-col bg-white h-full ${
+                isPosCartOpen ? "hidden md:flex" : "flex"
               }`}
             >
-              {/* Header */}
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+              <div className="p-4 border-b flex justify-between items-center bg-gray-50 shrink-0">
                 <h2 className="font-black text-xl italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
@@ -1402,7 +1401,6 @@ export default function Dashboard() {
                 </button>
               </div>
 
-              {/* Κατηγορίες */}
               <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0">
                 <button
                   onClick={() => setPosCategory("ΟΛΑ")}
@@ -1429,8 +1427,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Λίστα Προϊόντων */}
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 lg:pb-4">
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
@@ -1447,9 +1444,9 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Κινητό: Πλωτό Κουμπί Καλαθιού */}
+              {/* Πλωτό κουμπί μόνο για κινητά */}
               {!isPosCartOpen && posCart.length > 0 && (
-                <div className="lg:hidden absolute bottom-4 left-4 right-4 z-50">
+                <div className="md:hidden absolute bottom-4 left-4 right-4 z-50">
                   <button
                     onClick={() => setIsPosCartOpen(true)}
                     className="w-full bg-blue-600 text-white py-4 px-6 rounded-2xl shadow-2xl flex justify-between items-center transition-all active:scale-95 border-2 border-blue-500"
@@ -1473,18 +1470,17 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ -- */}
+            {/* ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ (Πάντα ορατή σε Desktop) */}
             <div
-              className={`w-full lg:w-[450px] h-full flex-col bg-gray-50 border-l border-gray-200 z-20 shrink-0 ${
-                isPosCartOpen ? "flex" : "hidden lg:flex"
+              className={`w-full md:w-[400px] xl:w-[450px] bg-gray-50 flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
+                isPosCartOpen ? "flex" : "hidden md:flex"
               }`}
             >
-              {/* Header Καλαθιού */}
               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm shrink-0">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsPosCartOpen(false)}
-                    className="lg:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 transition-colors"
+                    className="md:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-xl transition-colors"
                   >
                     ←
                   </button>
@@ -1494,16 +1490,15 @@ export default function Dashboard() {
                 </div>
                 <button
                   onClick={() => {
-                    setIsPosOpen(false);
                     setIsPosCartOpen(false);
+                    setIsPosOpen(false);
                   }}
-                  className="hidden lg:flex w-10 h-10 bg-white border border-gray-200 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
+                  className="hidden md:flex w-10 h-10 bg-white border border-gray-200 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Είδη Καλαθιού */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                 {posCart.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-gray-400 font-black uppercase text-sm italic opacity-50">
@@ -1524,7 +1519,6 @@ export default function Dashboard() {
                           {(item.price * (item.quantity || 1)).toFixed(2)}€
                         </span>
                       </div>
-
                       {item.note && (
                         <div className="pl-2 mb-2">
                           <span className="text-[10px] text-gray-500 font-bold italic bg-gray-50 p-1.5 rounded-lg border border-gray-100 block">
@@ -1532,25 +1526,24 @@ export default function Dashboard() {
                           </span>
                         </div>
                       )}
-
                       <div className="flex justify-between items-center pl-2 pt-2 border-t border-gray-100 mt-1">
                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                           <button
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, -1)
                             }
-                            className="w-6 h-6 flex items-center justify-center font-black text-gray-600 active:scale-90 transition-transform"
+                            className="w-8 h-8 flex items-center justify-center font-black text-gray-600 active:scale-90 transition-transform"
                           >
                             −
                           </button>
-                          <span className="font-black text-xs w-6 text-center">
+                          <span className="font-black text-sm w-6 text-center">
                             {item.quantity || 1}
                           </span>
                           <button
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, 1)
                             }
-                            className="w-6 h-6 flex items-center justify-center font-black text-blue-600 active:scale-90 transition-transform"
+                            className="w-8 h-8 flex items-center justify-center font-black text-blue-600 active:scale-90 transition-transform"
                           >
                             +
                           </button>
@@ -1558,13 +1551,13 @@ export default function Dashboard() {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleEditCartItem(item)}
-                            className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                            className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
                           >
                             ✏️
                           </button>
                           <button
                             onClick={() => removeFromPosCart(item.cartId)}
-                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                            className="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
                           >
                             🗑️
                           </button>
@@ -1575,7 +1568,6 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Footer Καλαθιού (Πληρωμή) */}
               <div className="p-4 bg-white border-t border-gray-200 space-y-3 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] shrink-0">
                 <input
                   type="text"
@@ -1584,7 +1576,6 @@ export default function Dashboard() {
                   onChange={(e) => setPosTable(e.target.value)}
                   className="w-full border-2 border-gray-200 p-3 rounded-xl font-black uppercase text-sm focus:outline-none focus:border-blue-500"
                 />
-
                 <textarea
                   rows="1"
                   placeholder="Γενική Σημείωση..."
@@ -1592,7 +1583,6 @@ export default function Dashboard() {
                   onChange={(e) => setPosGeneralNote(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
-
                 <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
                   <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
                     ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
@@ -1600,7 +1590,7 @@ export default function Dashboard() {
                   <div className="flex gap-1 bg-gray-200/50 p-1 rounded-lg">
                     <button
                       onClick={() => setPosPayment("ΜΕΤΡΗΤΑ")}
-                      className={`flex-1 py-2 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                      className={`flex-1 py-3 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
                         posPayment === "ΜΕΤΡΗΤΑ"
                           ? "bg-white shadow-sm text-blue-600 scale-105"
                           : "text-gray-500 hover:text-gray-700"
@@ -1610,7 +1600,7 @@ export default function Dashboard() {
                     </button>
                     <button
                       onClick={() => setPosPayment("ΚΑΡΤΑ")}
-                      className={`flex-1 py-2 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                      className={`flex-1 py-3 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
                         posPayment === "ΚΑΡΤΑ"
                           ? "bg-white shadow-sm text-blue-600 scale-105"
                           : "text-gray-500 hover:text-gray-700"
@@ -1620,7 +1610,6 @@ export default function Dashboard() {
                     </button>
                   </div>
                 </div>
-
                 <button
                   onClick={submitPosOrder}
                   disabled={posCart.length === 0 || !posTable || !posPayment}
@@ -1631,7 +1620,7 @@ export default function Dashboard() {
                   }`}
                 >
                   <span>{!posPayment ? "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ" : "ΑΠΟΣΤΟΛΗ"}</span>
-                  <span className="text-lg">
+                  <span className="text-xl">
                     {posCart
                       .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
                       .toFixed(2)}
@@ -1647,7 +1636,7 @@ export default function Dashboard() {
       {/* --- MODAL ΠΡΟΪΟΝΤΟΣ ΓΙΑ ΤΟ POS (Επιλογές / Σημείωση) --- */}
       {posActiveProduct && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[600] flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
           onClick={() => {
             setPosActiveProduct(null);
             setEditingCartId(null);
@@ -1759,8 +1748,7 @@ export default function Dashboard() {
                     onClick={() => setPosQuantity(Math.max(1, posQuantity - 1))}
                     className="w-10 h-10 font-bold text-2xl text-gray-500 flex items-center justify-center"
                   >
-                    {" "}
-                    −{" "}
+                    −
                   </button>
                   <span className="font-black text-lg w-6 text-center">
                     {posQuantity}
@@ -1769,8 +1757,7 @@ export default function Dashboard() {
                     onClick={() => setPosQuantity(posQuantity + 1)}
                     className="w-10 h-10 font-bold text-2xl text-blue-600 flex items-center justify-center"
                   >
-                    {" "}
-                    +{" "}
+                    +
                   </button>
                 </div>
               </div>
@@ -1798,139 +1785,6 @@ export default function Dashboard() {
                 {!editingCartId && posQuantity > 1 ? `x${posQuantity}` : ""}
               </span>
             </button>
-          </div>
-        </div>
-      )}
-
-      {viewingOrder && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 print:hidden"
-          onClick={() => setViewingOrder(null)}
-        >
-          <div
-            className={`${
-              isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-            } w-full max-w-md rounded-[3rem] p-8 shadow-2xl`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">
-              ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}
-            </h2>
-            {viewingOrder.general_note && (
-              <div
-                className={`mb-6 p-4 rounded-2xl ${
-                  isKitchen
-                    ? "bg-orange-900/50 text-orange-200"
-                    : "bg-blue-50 text-blue-800"
-                }`}
-              >
-                <p className="text-sm font-bold italic">
-                  {viewingOrder.general_note}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-              {(isKitchen
-                ? viewingOrder.items?.filter((i) => i.station === "kitchen")
-                : viewingOrder.items
-              )?.map((item, i) => (
-                <div
-                  key={i}
-                  className={`border-b pb-3 ${
-                    isKitchen ? "border-gray-700" : "border-gray-100"
-                  }`}
-                >
-                  <div className="flex justify-between font-black uppercase italic">
-                    <span>
-                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                      {item.name}
-                    </span>
-                    <span
-                      className={isKitchen ? "text-white" : "text-blue-600"}
-                    >
-                      {(item.price * (item.quantity || 1)).toFixed(2)}€
-                    </span>
-                  </div>
-                  {item.note && (
-                    <div
-                      className={`p-3 rounded-xl mt-2 text-xs font-bold italic ${
-                        isKitchen
-                          ? "bg-gray-700 text-yellow-400"
-                          : "bg-yellow-50 text-yellow-800"
-                      }`}
-                    >
-                      📝 {item.note}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div
-              className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
-                isKitchen ? "border-gray-700" : "border-gray-100"
-              }`}
-            >
-              <span>ΣΥΝΟΛΟ:</span>
-              <span className={isKitchen ? "text-white" : "text-gray-900"}>
-                {(isKitchen
-                  ? viewingOrder.items
-                      ?.filter((i) => i.station === "kitchen")
-                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
-                  : viewingOrder.total_price
-                )?.toFixed(2)}
-                €
-              </span>
-            </div>
-
-            <button
-              onClick={() => setViewingOrder(null)}
-              className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs hover:bg-blue-700"
-            >
-              ΚΛΕΙΣΙΜΟ
-            </button>
-          </div>
-        </div>
-      )}
-
-      {selectedTableForQR && userRole === "admin" && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 print:bg-white print:p-0"
-          onClick={() => setSelectedTableForQR(null)}
-        >
-          <div
-            className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="text-3xl font-black italic uppercase mb-2">
-              ΤΡΑΠΕΖΙ {selectedTableForQR}
-            </h2>
-            <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
-                window.location.origin +
-                  "/?store=" +
-                  storeId +
-                  "&table=" +
-                  selectedTableForQR
-              )}`}
-              alt="QR"
-              className="w-64 h-64 mb-8"
-            />
-            <div className="w-full flex flex-col gap-3 print:hidden">
-              <button
-                onClick={() => downloadQR(selectedTableForQR)}
-                className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase text-xs shadow-lg"
-              >
-                ΛΗΨΗ ΕΙΚΟΝΑΣ (PNG)
-              </button>
-              <button
-                onClick={() => setSelectedTableForQR(null)}
-                className="w-full bg-red-50 text-red-500 py-4 rounded-2xl font-black uppercase text-xs"
-              >
-                ΑΚΥΡΟ
-              </button>
-            </div>
           </div>
         </div>
       )}
