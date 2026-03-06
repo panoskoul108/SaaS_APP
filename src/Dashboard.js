@@ -18,13 +18,11 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
-// Συνάρτηση αφαίρεσης τόνων
 const removeAccents = (str) => {
   if (!str) return str;
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
 
-// Η ΙΔΑΝΙΚΗ ΣΕΙΡΑ ΤΩΝ ΚΑΤΗΓΟΡΙΩΝ ΣΤΟ POS
 const CATEGORY_ORDER = [
   "ΠΡΟΤΕΙΝΟΜΕΝΑ",
   "ΚΑΦΕΔΕΣ",
@@ -62,15 +60,13 @@ export default function Dashboard() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
-
   const [isPrinting, setIsPrinting] = useState(false);
-
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // POS (Ταμείο) State
+  // --- POS STATE ---
   const [isPosOpen, setIsPosOpen] = useState(false);
-  const [isPosCartOpen, setIsPosCartOpen] = useState(false); // Για κινητά
+  const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
@@ -82,7 +78,6 @@ export default function Dashboard() {
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
 
-  // --- ΛΟΓΙΚΗ ΓΙΑ ΤΗΝ ΩΡΑ (ΓΙΑ ΤΟ ΠΡΩΙΝΟ) ---
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   useEffect(() => {
     const interval = setInterval(
@@ -134,7 +129,6 @@ export default function Dashboard() {
       .order("name", { ascending: true });
 
     if (data) {
-      // Καθαρίζουμε τους τόνους
       const cleanedProducts = data.map((prod) => {
         const cleanedProd = {
           ...prod,
@@ -249,7 +243,7 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  // --- POS ΦΙΛΤΡΑ & ΚΑΤΗΓΟΡΙΕΣ ---
+  // POS Λειτουργίες
   const posVisibleProducts = products.filter((p) => {
     if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
     return true;
@@ -285,7 +279,6 @@ export default function Dashboard() {
   const handleEditCartItem = (cartItem) => {
     const originalProduct = products.find((p) => p.id === cartItem.id);
     if (!originalProduct) return;
-
     setPosActiveProduct(originalProduct);
     setPosAddonSelections(cartItem.rawAddons || {});
     setPosCurrentNote(cartItem.note || "");
@@ -380,9 +373,9 @@ export default function Dashboard() {
   };
 
   const removeFromPosCart = (cartId) => {
-    setPosCart(posCart.filter((item) => item.cartId !== cartId));
-    // Αν αδειάσει το καλάθι στο κινητό, κλείσε το modal του καλαθιού
-    if (posCart.length === 1) setIsPosCartOpen(false);
+    const newCart = posCart.filter((item) => item.cartId !== cartId);
+    setPosCart(newCart);
+    if (newCart.length === 0) setIsPosCartOpen(false); // Κλείνει αυτόματα στα κινητά αν αδειάσει
   };
 
   const submitPosOrder = async () => {
@@ -1384,7 +1377,7 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ) --- */}
+      {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
         <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center md:p-4 print:hidden animate-fade-in">
           <div className="bg-gray-100 w-full h-full md:max-w-6xl md:h-[90vh] md:rounded-[2rem] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-slide-up relative">
@@ -1461,17 +1454,15 @@ export default function Dashboard() {
                   ΚΑΛΑΘΙ ({posCart.length})
                 </h2>
                 <div className="flex gap-2">
-                  {/* Κουμπί για κλείσιμο του καλαθιού στα κινητά */}
                   <button
                     onClick={() => setIsPosCartOpen(false)}
-                    className="md:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 transition-colors"
+                    className="md:hidden w-10 h-10 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full flex justify-center items-center font-bold transition-colors"
                   >
-                    ✕
+                    <span className="text-xl">←</span>
                   </button>
-                  {/* Κουμπί για κλείσιμο όλου του POS (μόνο στο Desktop φαίνεται εδώ) */}
                   <button
                     onClick={() => setIsPosOpen(false)}
-                    className="hidden md:flex w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full justify-center items-center font-bold text-gray-600 transition-colors"
+                    className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 transition-colors"
                   >
                     ✕
                   </button>
@@ -1614,9 +1605,9 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ΠΛΩΤΟ ΚΟΥΜΠΙ ΚΑΛΑΘΙΟΥ ΓΙΑ ΤΑ ΚΙΝΗΤΑ */}
+            {/* ΠΛΩΤΟ ΚΟΥΜΠΙ ΚΑΛΑΘΙΟΥ ΓΙΑ ΤΑ ΚΙΝΗΤΑ (Κολλημένο ακριβώς πάνω από το keyboard/bottom) */}
             {!isPosCartOpen && posCart.length > 0 && (
-              <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 via-white/80 to-transparent backdrop-blur-sm z-40">
+              <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 via-white/80 to-transparent backdrop-blur-sm z-[350]">
                 <button
                   onClick={() => setIsPosCartOpen(true)}
                   className="w-full bg-blue-600 text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300"
@@ -1642,7 +1633,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* --- MODAL ΠΡΟΪΟΝΤΟΣ ΓΙΑ ΤΟ POS --- */}
+      {/* --- MODAL ΠΡΟΪΟΝΤΟΣ ΓΙΑ ΤΟ POS (Επιλογές / Σημείωση) --- */}
       {posActiveProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
