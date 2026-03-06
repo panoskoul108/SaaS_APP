@@ -16,6 +16,23 @@ const TABLES_LIST = [
 // ΤΟ ΟΡΙΟ ΓΙΑ ΤΟ ΔΩΡΟ (Μπορείς να το αλλάξεις εδώ εύκολα)
 const REWARD_THRESHOLD = 25;
 
+// Η ΙΔΑΝΙΚΗ ΣΕΙΡΑ ΤΩΝ ΚΑΤΗΓΟΡΙΩΝ ΣΤΟ ΜΕΝΟΥ (Μπορείς να την αλλάξεις αν θέλεις)
+const CATEGORY_ORDER = [
+  "ΚΑΦΕΔΕΣ",
+  "ΠΡΩΙΝΟ",
+  "ΣΝΑΚΣ",
+  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ",
+  "ΠΙΤΣΕΣ",
+  "ΖΥΜΑΡΙΚΑ",
+  "ΣΑΛΑΤΕΣ",
+  "ΣΥΝΟΔΕΥΤΙΚΑ",
+  "ΓΛΥΚΕΣ ΚΡΕΠΕΣ",
+  "ΓΛΥΚΑ",
+  "ΡΟΦΗΜΑΤΑ",
+  "ΑΝΑΨΥΚΤΙΚΑ",
+  "ΜΠΥΡΕΣ",
+];
+
 const DICT = {
   gr: {
     requiredTable: "ΑΠΑΙΤΕΙΤΑΙ ΤΡΑΠΕΖΙ",
@@ -166,7 +183,8 @@ export default function Menu() {
       .from("products")
       .select("*")
       .eq("store_id", storeId)
-      .order("category");
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
     if (p) setProducts(p);
   };
 
@@ -188,10 +206,30 @@ export default function Menu() {
   }, [storeId]);
 
   const hasRecommended = products.some((p) => p.is_recommended);
-  const rawCategories = [...new Set(products.map((p) => p.category))];
+
+  const rawCategories = [...new Set(products.map((p) => p.category))].sort(
+    (a, b) => {
+      let idxA = CATEGORY_ORDER.indexOf(a);
+      let idxB = CATEGORY_ORDER.indexOf(b);
+      if (idxA === -1) idxA = 999;
+      if (idxB === -1) idxB = 999;
+      return idxA - idxB;
+    }
+  );
+
   const baseCategories = hasRecommended
     ? ["ΠΡΟΤΕΙΝΟΜΕΝΑ", ...rawCategories]
     : rawCategories;
+
+  useEffect(() => {
+    if (
+      baseCategories.length > 0 &&
+      selectedCategory === "ΠΡΟΤΕΙΝΟΜΕΝΑ" &&
+      !hasRecommended
+    ) {
+      setSelectedCategory(baseCategories[0]);
+    }
+  }, [baseCategories, hasRecommended, selectedCategory]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -201,7 +239,8 @@ export default function Menu() {
         const el = document.getElementById(`category-${cat}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= 200 && rect.bottom >= 200) {
+          // Το 220px είναι το ύψος των κολλημένων (sticky) μενού μαζί
+          if (rect.top <= 220 && rect.bottom >= 220) {
             currentActive = cat;
           }
         }
@@ -225,7 +264,8 @@ export default function Menu() {
     setSelectedCategory(cat);
     const el = document.getElementById(`category-${cat}`);
     if (el) {
-      const y = el.getBoundingClientRect().top + window.scrollY - 180;
+      // Το -200 εξασφαλίζει ότι ο τίτλος δεν κρύβεται κάτω από τα sticky headers
+      const y = el.getBoundingClientRect().top + window.scrollY - 200;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
   };
@@ -545,7 +585,7 @@ export default function Menu() {
       </header>
 
       {!isAcceptingOrders && (
-        <div className="fixed top-[72px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">
+        <div className="fixed top-[88px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">
           ⚠️ {t.pausedBanner}
         </div>
       )}
@@ -553,7 +593,7 @@ export default function Menu() {
       {(!tableNum || tableNum === "") && backupMode === true && (
         <div
           className={`mx-4 mb-2 p-6 bg-white border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${
-            !isAcceptingOrders ? "mt-[110px]" : "mt-[88px]"
+            !isAcceptingOrders ? "mt-[120px]" : "mt-[88px]"
           }`}
           style={{ borderColor: themeColor }}
         >
@@ -603,7 +643,7 @@ export default function Menu() {
 
       <div
         className={`px-4 pt-4 pb-2 bg-gray-50 z-20 ${
-          tableNum ? (!isAcceptingOrders ? "mt-[110px]" : "mt-[88px]") : ""
+          tableNum ? (!isAcceptingOrders ? "mt-[120px]" : "mt-[88px]") : ""
         }`}
       >
         <div
@@ -651,7 +691,12 @@ export default function Menu() {
         </div>
       </div>
 
-      <div className="px-4 py-2 sticky top-[0px] z-20 bg-gray-50/90 backdrop-blur-md">
+      {/* ΔΙΟΡΘΩΣΗ STICKY OFFSET ΑΝΑΖΗΤΗΣΗΣ */}
+      <div
+        className={`px-4 py-2 sticky z-20 bg-gray-50/90 backdrop-blur-md transition-all ${
+          !isAcceptingOrders ? "top-[120px]" : "top-[88px]"
+        }`}
+      >
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
             🔍
@@ -667,10 +712,13 @@ export default function Menu() {
         </div>
       </div>
 
+      {/* ΔΙΟΡΘΩΣΗ STICKY OFFSET ΚΑΤΗΓΟΡΙΩΝ */}
       {!searchQuery && (
         <div
           ref={categoryNavRef}
-          className="flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky top-[60px] z-20 no-scrollbar border-b border-gray-200/50"
+          className={`flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky z-20 no-scrollbar border-b border-gray-200/50 transition-all ${
+            !isAcceptingOrders ? "top-[180px]" : "top-[148px]"
+          }`}
         >
           {baseCategories.map((cat) => (
             <button
@@ -781,7 +829,7 @@ export default function Menu() {
               <div
                 key={cat}
                 id={`category-${cat}`}
-                className="scroll-mt-[200px]"
+                className="scroll-mt-[220px]"
               >
                 <h2 className="font-black italic text-2xl mb-4 text-gray-800 tracking-tighter pl-1">
                   {getCategoryDisplayName(cat)}
