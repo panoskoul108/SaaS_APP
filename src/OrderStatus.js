@@ -16,7 +16,7 @@ export default function OrderStatus({ orderId, onBack }) {
   useEffect(() => {
     if (!orderId) return;
 
-    let isMounted = true; // Προστασία για να μην τρέχει αν αλλάξει η οθόνη
+    let isMounted = true;
 
     const fetchInitial = async () => {
       const { data } = await supabase
@@ -26,7 +26,7 @@ export default function OrderStatus({ orderId, onBack }) {
         .single();
       if (data && isMounted) {
         if (data.status === "completed") {
-          onBack(true); // Αν για κάποιο λόγο έχει ήδη ολοκληρωθεί, γύρνα πίσω αμέσως
+          onBack(true);
         } else {
           setOrder(data);
           setPrevStatus(data.status);
@@ -43,14 +43,12 @@ export default function OrderStatus({ orderId, onBack }) {
         .single();
 
       if (data && isMounted) {
-        // Αν η παραγγελία ολοκληρώθηκε, σταματάμε τον timer και φεύγουμε αμέσως!
         if (data.status === "completed") {
           clearInterval(interval);
           onBack(true);
           return;
         }
 
-        // Ήχος όταν γίνει έτοιμη
         if (data.status === "ready" && prevStatus !== "ready") {
           const audio = new Audio(READY_SOUND);
           audio.play().catch((e) => console.log("Audio blocked by browser"));
@@ -61,12 +59,10 @@ export default function OrderStatus({ orderId, onBack }) {
       }
     }, 3000);
 
-    // Καθαρισμός όταν κλείνει η οθόνη
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
-    // Εδώ βγάλαμε τα περιττά dependencies για να μην κολλάει ο timer
   }, [orderId]);
 
   if (!order) {
@@ -82,7 +78,7 @@ export default function OrderStatus({ orderId, onBack }) {
   const isReady = status === "ready";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative pb-20 animate-fade-in">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative pb-24 animate-fade-in">
       <header className="p-6 bg-white shadow-sm text-center sticky top-0 z-20">
         <h1 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">
           Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ
@@ -94,77 +90,74 @@ export default function OrderStatus({ orderId, onBack }) {
 
       <div className="p-6 flex-1 max-w-md mx-auto w-full">
         <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 mb-6">
-          <div className="flex justify-between items-center relative">
-            <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-gray-100 -translate-y-1/2 z-0 rounded-full"></div>
+          <div className="relative">
+            {/* Γραμμή προόδου στο παρασκήνιο */}
+            <div className="absolute top-6 left-[10%] right-[10%] h-1.5 bg-gray-100 z-0 rounded-full"></div>
             <div
-              className="absolute top-1/2 left-0 h-1.5 bg-blue-600 -translate-y-1/2 z-0 rounded-full transition-all duration-700 ease-in-out"
+              className="absolute top-6 left-[10%] h-1.5 bg-blue-600 z-0 rounded-full transition-all duration-700 ease-in-out"
               style={{
                 width:
                   status === "pending"
                     ? "0%"
                     : status === "preparing"
-                    ? "50%"
-                    : "100%",
+                    ? "40%"
+                    : "80%",
               }}
             ></div>
 
-            <div className="relative z-10 flex flex-col items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
-                  status === "pending"
-                    ? "bg-blue-600 text-white animate-pulse"
-                    : "bg-blue-600 text-white"
-                }`}
-              >
-                📝
+            {/* Τα 3 βήματα */}
+            <div className="flex justify-between relative z-10">
+              {/* Βήμα 1: Εστάλη */}
+              <div className="flex flex-col items-center gap-2">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 bg-blue-600 text-white animate-pulse">
+                  📝
+                </div>
+                <span className="text-[9px] font-black uppercase tracking-widest text-blue-600">
+                  Εσταλη
+                </span>
               </div>
-              <span
-                className={`text-[9px] font-black uppercase tracking-widest ${
-                  status === "pending" ? "text-blue-600" : "text-gray-400"
-                }`}
-              >
-                Εσταλη
-              </span>
-            </div>
 
-            <div className="relative z-10 flex flex-col items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
-                  isPrep
-                    ? status === "preparing"
-                      ? "bg-blue-600 text-white animate-bounce"
-                      : "bg-blue-600 text-white"
-                    : "bg-white border-4 border-gray-100 text-gray-300"
-                }`}
-              >
-                🍳
+              {/* Βήμα 2: Ετοιμάζεται */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
+                    isPrep
+                      ? status === "preparing"
+                        ? "bg-blue-600 text-white animate-bounce"
+                        : "bg-blue-600 text-white"
+                      : "bg-white border-4 border-gray-100 text-gray-300"
+                  }`}
+                >
+                  🍳
+                </div>
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${
+                    isPrep ? "text-blue-600" : "text-gray-400"
+                  }`}
+                >
+                  Ετοιμαζεται
+                </span>
               </div>
-              <span
-                className={`text-[9px] font-black uppercase tracking-widest ${
-                  status === "preparing" ? "text-blue-600" : "text-gray-400"
-                }`}
-              >
-                Ετοιμαζεται
-              </span>
-            </div>
 
-            <div className="relative z-10 flex flex-col items-center gap-3">
-              <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
-                  isReady
-                    ? "bg-green-500 text-white animate-pulse shadow-green-200"
-                    : "bg-white border-4 border-gray-100 text-gray-300"
-                }`}
-              >
-                ✅
+              {/* Βήμα 3: Έτοιμη */}
+              <div className="flex flex-col items-center gap-2">
+                <div
+                  className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
+                    isReady
+                      ? "bg-green-500 text-white animate-pulse shadow-green-200"
+                      : "bg-white border-4 border-gray-100 text-gray-300"
+                  }`}
+                >
+                  ✅
+                </div>
+                <span
+                  className={`text-[9px] font-black uppercase tracking-widest ${
+                    isReady ? "text-green-500" : "text-gray-400"
+                  }`}
+                >
+                  Ετοιμη
+                </span>
               </div>
-              <span
-                className={`text-[9px] font-black uppercase tracking-widest ${
-                  status === "ready" ? "text-green-500" : "text-gray-400"
-                }`}
-              >
-                Ετοιμη
-              </span>
             </div>
           </div>
 
@@ -195,6 +188,9 @@ export default function OrderStatus({ orderId, onBack }) {
               <div key={index} className="flex justify-between items-start">
                 <div className="flex-1">
                   <span className="font-black uppercase text-sm text-gray-800">
+                    {item.quantity && item.quantity > 1
+                      ? `${item.quantity}x `
+                      : ""}
                     {item.name}
                   </span>
                   {item.note && (
@@ -228,9 +224,9 @@ export default function OrderStatus({ orderId, onBack }) {
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-gray-100 z-30">
         <button
           onClick={() => onBack(false)}
-          className="w-full bg-gray-100 text-gray-500 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-gray-200 transition-colors"
+          className="w-full bg-blue-50 text-blue-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors shadow-sm border border-blue-100"
         >
-          ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ / ΠΙΣΩ
+          ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ
         </button>
       </div>
     </div>
