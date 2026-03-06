@@ -1381,8 +1381,8 @@ export default function Dashboard() {
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
         <div className="fixed inset-0 bg-gray-100 md:bg-black/80 z-[300] flex items-center justify-center md:p-6 animate-fade-in">
-          {/* Main POS Container */}
-          <div className="bg-gray-100 w-full h-full md:max-w-[95vw] xl:max-w-[1400px] md:h-[95vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
+          {/* Main POS Container: Εδώ το πλάτος γίνεται πολύ μεγαλύτερο και πιάνει όλη την οθόνη σχεδόν */}
+          <div className="bg-gray-100 w-full h-full md:w-[95vw] md:h-[95vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
             {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ -- */}
             <div
               className={`flex-1 flex flex-col bg-white h-full relative ${
@@ -1430,7 +1430,7 @@ export default function Dashboard() {
               </div>
 
               {/* Λίστα Προϊόντων */}
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
@@ -1473,9 +1473,9 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ (Πάντα ορατή σε Desktop) -- */}
+            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ (Πάντα ορατή σε Desktop, φαρδύτερη) -- */}
             <div
-              className={`w-full md:w-[450px] lg:w-[500px] xl:w-[550px] bg-gray-50 flex flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
+              className={`w-full md:w-[50%] lg:w-[45%] xl:w-[600px] bg-gray-50 flex flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
                 isPosCartOpen ? "flex" : "hidden md:flex"
               }`}
             >
@@ -1513,10 +1513,10 @@ export default function Dashboard() {
                   posCart.map((item) => (
                     <div
                       key={item.cartId}
-                      className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden"
+                      className="bg-white p-4 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden"
                     >
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
-                      <div className="flex justify-between items-start mb-2 pl-2">
+                      <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-blue-500"></div>
+                      <div className="flex justify-between items-start mb-3 pl-3">
                         <span className="font-black text-sm uppercase text-gray-800 pr-2 flex-1 leading-tight">
                           {item.name}
                         </span>
@@ -1525,19 +1525,19 @@ export default function Dashboard() {
                         </span>
                       </div>
                       {item.note && (
-                        <div className="pl-2 mb-2">
+                        <div className="pl-3 mb-3">
                           <span className="text-xs text-gray-500 font-bold italic bg-gray-50 p-2 rounded-lg border border-gray-100 block">
                             📝 {item.note}
                           </span>
                         </div>
                       )}
-                      <div className="flex justify-between items-center pl-2 pt-2 border-t border-gray-100 mt-1">
+                      <div className="flex justify-between items-center pl-3 pt-3 border-t border-gray-100 mt-1">
                         <div className="flex items-center bg-gray-100 rounded-lg p-1">
                           <button
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, -1)
                             }
-                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
+                            className="w-8 h-8 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
                           >
                             −
                           </button>
@@ -1548,7 +1548,7 @@ export default function Dashboard() {
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, 1)
                             }
-                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
+                            className="w-8 h-8 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
                           >
                             +
                           </button>
@@ -1574,7 +1574,7 @@ export default function Dashboard() {
               </div>
 
               {/* Footer Καλαθιού (Πληρωμή) */}
-              <div className="p-4 bg-white border-t border-gray-200 space-y-3 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] shrink-0">
+              <div className="p-5 bg-white border-t border-gray-200 space-y-4 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] shrink-0">
                 <input
                   type="text"
                   placeholder="ΤΡΑΠΕΖΙ ή ΟΝΟΜΑ (ΠΑΚΕΤΟ)"
@@ -1619,14 +1619,14 @@ export default function Dashboard() {
                 <button
                   onClick={submitPosOrder}
                   disabled={posCart.length === 0 || !posTable || !posPayment}
-                  className={`w-full p-5 rounded-2xl font-black uppercase text-sm shadow-xl transition-all active:scale-95 flex justify-between items-center ${
+                  className={`w-full p-5 rounded-2xl font-black uppercase text-base shadow-xl transition-all active:scale-95 flex justify-between items-center ${
                     posCart.length === 0 || !posTable || !posPayment
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-green-600 text-white hover:bg-green-700"
                   }`}
                 >
                   <span>{!posPayment ? "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ" : "ΑΠΟΣΤΟΛΗ"}</span>
-                  <span className="text-xl">
+                  <span className="text-2xl">
                     {posCart
                       .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
                       .toFixed(2)}
