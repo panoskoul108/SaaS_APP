@@ -1422,7 +1422,7 @@ export default function Dashboard() {
                   rows="1"
                   placeholder="Γενική Σημείωση..."
                   value={posGeneralNote}
-                  onChange={(e) => setGeneralNote(e.target.value)}
+                  onChange={(e) => setPosGeneralNote(e.target.value)}
                   className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
 
@@ -1710,7 +1710,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* ΕΔΩ ΕΙΝΑΙ ΤΟ ΚΟΜΜΑΤΙ ΜΕ ΤΑ QR ΠΟΥ ΕΙΧΕ ΚΟΠΕΙ! */}
       {selectedTableForQR && userRole === "admin" && (
         <div
           className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 print:bg-white print:p-0"
