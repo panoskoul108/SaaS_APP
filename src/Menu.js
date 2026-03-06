@@ -13,24 +13,30 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
-// ΤΟ ΟΡΙΟ ΓΙΑ ΤΟ ΔΩΡΟ (Μπορείς να το αλλάξεις εδώ εύκολα)
 const REWARD_THRESHOLD = 25;
 
-// Η ΙΔΑΝΙΚΗ ΣΕΙΡΑ ΤΩΝ ΚΑΤΗΓΟΡΙΩΝ ΣΤΟ ΜΕΝΟΥ (Μπορείς να την αλλάξεις αν θέλεις)
+// Λειτουργία που αφαιρεί όλους τους τόνους από τις λέξεις
+const removeAccents = (str) => {
+  if (!str) return str;
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+};
+
+// Η ΙΔΑΝΙΚΗ ΣΕΙΡΑ ΤΩΝ ΚΑΤΗΓΟΡΙΩΝ ΠΟΥ ΜΑΣ ΖΗΤΗΣΕΣ
 const CATEGORY_ORDER = [
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ",
   "ΚΑΦΕΔΕΣ",
+  "ΑΝΑΨΥΚΤΙΚΑ",
+  "ΡΟΦΗΜΑΤΑ",
   "ΠΡΩΙΝΟ",
+  "ΜΠΥΡΕΣ",
   "ΣΝΑΚΣ",
-  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ",
-  "ΠΙΤΣΕΣ",
-  "ΖΥΜΑΡΙΚΑ",
-  "ΣΑΛΑΤΕΣ",
   "ΣΥΝΟΔΕΥΤΙΚΑ",
+  "ΣΑΛΑΤΕΣ",
+  "ΖΥΜΑΡΙΚΑ",
+  "ΠΙΤΣΕΣ",
+  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ",
   "ΓΛΥΚΕΣ ΚΡΕΠΕΣ",
   "ΓΛΥΚΑ",
-  "ΡΟΦΗΜΑΤΑ",
-  "ΑΝΑΨΥΚΤΙΚΑ",
-  "ΜΠΥΡΕΣ",
 ];
 
 const DICT = {
@@ -168,6 +174,23 @@ export default function Menu() {
 
   const categoryNavRef = useRef(null);
 
+  // --- ΛΟΓΙΚΗ ΓΙΑ ΤΗΝ ΩΡΑ (ΓΙΑ ΤΟ ΠΡΩΙΝΟ) ---
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+
+  useEffect(() => {
+    // Ελέγχει την ώρα κάθε 1 λεπτό
+    const interval = setInterval(
+      () => setCurrentHour(new Date().getHours()),
+      60000
+    );
+    return () => clearInterval(interval);
+  }, []);
+
+  // ΕΔΩ ΟΡΙΖΕΙΣ ΤΙΣ ΩΡΕΣ ΤΟΥ ΠΡΩΙΝΟΥ.
+  // >= 6 σημαίνει από τις 06:00 το πρωί.
+  // < 14 σημαίνει μέχρι τις 13:59 το μεσημέρι.
+  const isMorning = currentHour >= 6 && currentHour < 14;
+
   const fetchData = async () => {
     const { data: s } = await supabase
       .from("stores")
@@ -179,13 +202,42 @@ export default function Menu() {
       setBackupMode(s.backup_mode);
       setIsAcceptingOrders(s.is_accepting_orders !== false);
     }
+
     const { data: p } = await supabase
       .from("products")
       .select("*")
       .eq("store_id", storeId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
-    if (p) setProducts(p);
+
+    if (p) {
+      // Καθαρίζουμε τους τόνους από ΟΛΑ τα δεδομένα που ήρθαν!
+      const cleanedProducts = p.map((prod) => {
+        const cleanedProd = {
+          ...prod,
+          name: removeAccents(prod.name),
+          name_en: removeAccents(prod.name_en),
+          description: removeAccents(prod.description),
+          description_en: removeAccents(prod.description_en),
+          category: removeAccents(prod.category),
+        };
+        // Καθαρίζουμε και τις επιλογές (αν υπάρχουν addons)
+        if (cleanedProd.addons) {
+          cleanedProd.addons = cleanedProd.addons.map((g) => ({
+            ...g,
+            name: removeAccents(g.name),
+            name_en: removeAccents(g.name_en),
+            options: g.options.map((opt) => ({
+              ...opt,
+              name: removeAccents(opt.name),
+              name_en: removeAccents(opt.name_en),
+            })),
+          }));
+        }
+        return cleanedProd;
+      });
+      setProducts(cleanedProducts);
+    }
   };
 
   useEffect(() => {
@@ -205,17 +257,24 @@ export default function Menu() {
     };
   }, [storeId]);
 
-  const hasRecommended = products.some((p) => p.is_recommended);
+  // Κρύβουμε τα προϊόντα "ΠΡΩΙΝΟ" αν δεν είναι η κατάλληλη ώρα
+  const visibleProducts = products.filter((p) => {
+    if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
+    return true;
+  });
 
-  const rawCategories = [...new Set(products.map((p) => p.category))].sort(
-    (a, b) => {
-      let idxA = CATEGORY_ORDER.indexOf(a);
-      let idxB = CATEGORY_ORDER.indexOf(b);
-      if (idxA === -1) idxA = 999;
-      if (idxB === -1) idxB = 999;
-      return idxA - idxB;
-    }
-  );
+  const hasRecommended = visibleProducts.some((p) => p.is_recommended);
+
+  // Φιλτράρισμα και Ταξινόμηση Κατηγοριών με βάση το CATEGORY_ORDER
+  const rawCategories = [
+    ...new Set(visibleProducts.map((p) => p.category)),
+  ].sort((a, b) => {
+    let idxA = CATEGORY_ORDER.indexOf(a);
+    let idxB = CATEGORY_ORDER.indexOf(b);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
+  });
 
   const baseCategories = hasRecommended
     ? ["ΠΡΟΤΕΙΝΟΜΕΝΑ", ...rawCategories]
@@ -239,7 +298,6 @@ export default function Menu() {
         const el = document.getElementById(`category-${cat}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          // Το 220px είναι το ύψος των κολλημένων (sticky) μενού μαζί
           if (rect.top <= 220 && rect.bottom >= 220) {
             currentActive = cat;
           }
@@ -264,7 +322,6 @@ export default function Menu() {
     setSelectedCategory(cat);
     const el = document.getElementById(`category-${cat}`);
     if (el) {
-      // Το -200 εξασφαλίζει ότι ο τίτλος δεν κρύβεται κάτω από τα sticky headers
       const y = el.getBoundingClientRect().top + window.scrollY - 200;
       window.scrollTo({ top: y, behavior: "smooth" });
     }
@@ -273,7 +330,7 @@ export default function Menu() {
   const getCategoryDisplayName = (cat) => {
     if (cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ") return `⭐ ${t.rec}`;
     if (lang === "gr") return cat;
-    const sampleProduct = products.find((p) => p.category === cat);
+    const sampleProduct = visibleProducts.find((p) => p.category === cat);
     return sampleProduct && sampleProduct.category_en
       ? sampleProduct.category_en
       : cat;
@@ -360,7 +417,7 @@ export default function Menu() {
         cartId: editingCartId,
         name: finalName,
         price: finalPrice,
-        note: currentProductNote,
+        note: removeAccents(currentProductNote), // Καθαρίζουμε και τη σημείωση
         rawAddons: addonSelections,
         quantity: quantity,
       };
@@ -374,7 +431,7 @@ export default function Menu() {
         cartId: Date.now() + Math.random(),
         name: finalName,
         price: finalPrice,
-        note: currentProductNote,
+        note: removeAccents(currentProductNote), // Καθαρίζουμε και τη σημείωση
         rawAddons: addonSelections,
         quantity: quantity,
       };
@@ -431,7 +488,7 @@ export default function Menu() {
           total_price: currentCartTotal,
           payment_method: paymentMethod,
           status: "pending",
-          general_note: generalNote,
+          general_note: removeAccents(generalNote), // Καθαρίζουμε και τη γενική σημείωση
           customer_id: custId,
           is_loyalty_reward: isRewardOrder,
         },
@@ -500,7 +557,7 @@ export default function Menu() {
       <OrderStatus
         orderId={lastOrderId}
         lang={lang}
-        products={products}
+        products={products} // Στέλνουμε όλα τα προϊόντα (ακόμα και το πρωινό τη νύχτα) για το ιστορικό
         onBack={(clearTable) => {
           setLastOrderId(null);
           localStorage.removeItem("lastOrderId");
@@ -519,21 +576,16 @@ export default function Menu() {
   }
 
   const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
-
   const themeColor = store?.theme_color || "#2563EB";
   const placeholderImg =
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 
-  const removeAccents = (str) => {
-    return str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "";
-  };
-
   const filteredProducts = searchQuery
-    ? products.filter((p) => {
+    ? visibleProducts.filter((p) => {
         const searchLow = removeAccents(searchQuery.toLowerCase());
-        const matchGr = removeAccents(p.name.toLowerCase()).includes(searchLow);
+        const matchGr = p.name.toLowerCase().includes(searchLow);
         const matchEn = p.name_en
-          ? removeAccents(p.name_en.toLowerCase()).includes(searchLow)
+          ? p.name_en.toLowerCase().includes(searchLow)
           : false;
         return matchGr || matchEn;
       })
@@ -691,7 +743,6 @@ export default function Menu() {
         </div>
       </div>
 
-      {/* ΔΙΟΡΘΩΣΗ STICKY OFFSET ΑΝΑΖΗΤΗΣΗΣ */}
       <div
         className={`px-4 py-2 sticky z-20 bg-gray-50/90 backdrop-blur-md transition-all ${
           !isAcceptingOrders ? "top-[120px]" : "top-[88px]"
@@ -712,7 +763,6 @@ export default function Menu() {
         </div>
       </div>
 
-      {/* ΔΙΟΡΘΩΣΗ STICKY OFFSET ΚΑΤΗΓΟΡΙΩΝ */}
       {!searchQuery && (
         <div
           ref={categoryNavRef}
@@ -821,8 +871,8 @@ export default function Menu() {
           baseCategories.map((cat) => {
             const sectionProducts =
               cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ"
-                ? products.filter((p) => p.is_recommended)
-                : products.filter((p) => p.category === cat);
+                ? visibleProducts.filter((p) => p.is_recommended)
+                : visibleProducts.filter((p) => p.category === cat);
             if (sectionProducts.length === 0) return null;
 
             return (
