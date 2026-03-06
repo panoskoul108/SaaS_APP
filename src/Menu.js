@@ -114,8 +114,6 @@ export default function Menu() {
   const [lang, setLang] = useState("gr");
   const t = DICT[lang];
 
-  // Το customerId παραμένει (μπορεί να χρειαστεί μελλοντικά),
-  // αλλά οι "πόντοι" έφυγαν!
   const [custId] = useState(() => {
     let id = localStorage.getItem("loyalty_id");
     if (!id) {
@@ -368,12 +366,10 @@ export default function Menu() {
     if (newCart.length === 0) setIsCartOpen(false);
   };
 
-  // --- Η ΝΕΑ ΛΟΓΙΚΗ ΤΟΥ ΔΩΡΟΥ ---
   const currentCartTotal = cart.reduce(
     (s, i) => s + i.price * (i.quantity || 1),
     0
   );
-  // Το δώρο "ξεκλειδώνει" αν το σύνολο είναι ίσο ή μεγαλύτερο από το όριο
   const isRewardOrder = currentCartTotal >= REWARD_THRESHOLD;
   const progressPercent = Math.min(
     (currentCartTotal / REWARD_THRESHOLD) * 100,
@@ -397,7 +393,7 @@ export default function Menu() {
           status: "pending",
           general_note: generalNote,
           customer_id: custId,
-          is_loyalty_reward: isRewardOrder, // Το στέλνει κανονικά στο σύστημα!
+          is_loyalty_reward: isRewardOrder,
         },
       ])
       .select();
@@ -503,6 +499,12 @@ export default function Menu() {
       })
     : [];
 
+  const activeDispDesc = activeProduct
+    ? lang === "en" && activeProduct.description_en
+      ? activeProduct.description_en
+      : activeProduct.description
+    : "";
+
   return (
     <div className="min-h-screen bg-gray-50 pb-32 font-sans relative">
       <header className="fixed top-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md shadow-sm z-30 flex justify-between items-center transition-all duration-300">
@@ -599,7 +601,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* --- Η ΝΕΑ ΜΠΑΡΑ ΑΜΕΣΗΣ ΕΠΙΒΡΑΒΕΥΣΗΣ (UPSELLING) --- */}
       <div
         className={`px-4 pt-4 pb-2 bg-gray-50 z-20 ${
           tableNum ? (!isAcceptingOrders ? "mt-[110px]" : "mt-[88px]") : ""
@@ -704,6 +705,10 @@ export default function Menu() {
               filteredProducts.map((p) => {
                 const dispName =
                   lang === "en" && p.name_en ? p.name_en : p.name;
+                const dispDesc =
+                  lang === "en" && p.description_en
+                    ? p.description_en
+                    : p.description;
                 return (
                   <div
                     key={p.id}
@@ -727,6 +732,11 @@ export default function Menu() {
                         <h3 className="font-black text-gray-900 text-sm leading-tight uppercase">
                           {dispName}
                         </h3>
+                        {dispDesc && (
+                          <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">
+                            {dispDesc}
+                          </p>
+                        )}
                         {p.addons && p.addons.length > 0 && (
                           <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">
                             {t.hasOptions}
@@ -782,6 +792,10 @@ export default function Menu() {
                     {sectionProducts.map((p) => {
                       const dispName =
                         lang === "en" && p.name_en ? p.name_en : p.name;
+                      const dispDesc =
+                        lang === "en" && p.description_en
+                          ? p.description_en
+                          : p.description;
                       return (
                         <div
                           key={p.id}
@@ -807,6 +821,11 @@ export default function Menu() {
                               <h3 className="font-black text-gray-900 text-[13px] uppercase leading-tight line-clamp-2">
                                 {dispName}
                               </h3>
+                              {dispDesc && (
+                                <p className="text-[9px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">
+                                  {dispDesc}
+                                </p>
+                              )}
                               {p.addons && p.addons.length > 0 && (
                                 <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">
                                   {t.hasOptions}
@@ -839,6 +858,10 @@ export default function Menu() {
                     {sectionProducts.map((p) => {
                       const dispName =
                         lang === "en" && p.name_en ? p.name_en : p.name;
+                      const dispDesc =
+                        lang === "en" && p.description_en
+                          ? p.description_en
+                          : p.description;
                       return (
                         <div
                           key={p.id}
@@ -864,6 +887,11 @@ export default function Menu() {
                               <h3 className="font-black text-gray-900 text-sm leading-tight uppercase">
                                 {dispName}
                               </h3>
+                              {dispDesc && (
+                                <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">
+                                  {dispDesc}
+                                </p>
+                              )}
                               {p.addons && p.addons.length > 0 && (
                                 <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">
                                   {t.hasOptions}
@@ -912,20 +940,27 @@ export default function Menu() {
             className="bg-white w-full rounded-t-[2.5rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-4">
-              <h2 className="font-black text-xl uppercase italic text-gray-900 flex flex-col">
-                {lang === "en" && activeProduct.name_en
-                  ? activeProduct.name_en
-                  : activeProduct.name}
+            <div className="flex justify-between items-start mb-4 border-b border-gray-100 pb-4">
+              <div className="flex flex-col pr-4">
+                <h2 className="font-black text-xl uppercase italic text-gray-900">
+                  {lang === "en" && activeProduct.name_en
+                    ? activeProduct.name_en
+                    : activeProduct.name}
+                </h2>
+                {activeDispDesc && (
+                  <p className="text-xs text-gray-500 mt-1 font-medium italic">
+                    {activeDispDesc}
+                  </p>
+                )}
                 {editingCartId && (
-                  <span className="text-[10px] text-blue-500 mt-1">
+                  <span className="text-[10px] text-blue-500 mt-1 font-black uppercase">
                     {t.edit}
                   </span>
                 )}
-              </h2>
+              </div>
               <button
                 onClick={closeProductModal}
-                className="bg-gray-100 w-10 h-10 rounded-full font-black flex items-center justify-center text-gray-600 hover:bg-gray-200"
+                className="bg-gray-100 w-10 h-10 rounded-full font-black flex items-center justify-center text-gray-600 hover:bg-gray-200 shrink-0"
               >
                 ✕
               </button>
