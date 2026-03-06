@@ -60,12 +60,11 @@ export default function Dashboard() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
-
   const [isPrinting, setIsPrinting] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // --- POS STATE (ΤΑΜΕΙΟ) ---
+  // --- POS STATE ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
@@ -1380,29 +1379,33 @@ export default function Dashboard() {
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
-        <div className="fixed inset-0 bg-gray-100 md:bg-black/80 z-[300] flex items-center justify-center md:p-6 animate-fade-in">
-          {/* Main POS Container */}
-          <div className="bg-gray-100 w-full h-full md:max-w-[95vw] xl:max-w-[1400px] md:h-[95vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
+        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center lg:p-6 animate-fade-in">
+          <div
+            style={{ width: "98vw", height: "95vh" }}
+            className="bg-gray-100 rounded-none lg:rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden relative"
+          >
             {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ (55%) -- */}
             <div
-              className={`w-full md:w-[55%] flex flex-col bg-white h-full relative shrink-0 ${
-                isPosCartOpen ? "hidden md:flex" : "flex"
+              style={{
+                width:
+                  isPosCartOpen && window.innerWidth < 1024 ? "100%" : "55%",
+              }}
+              className={`flex-col bg-white h-full relative border-r border-gray-200 ${
+                isPosCartOpen ? "hidden lg:flex" : "flex w-full lg:w-[55%]"
               }`}
             >
-              {/* Header Καταλόγου */}
               <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                 <h2 className="font-black text-xl italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
                 <button
                   onClick={() => setIsPosOpen(false)}
-                  className="md:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
+                  className="lg:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Κατηγορίες */}
               <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0">
                 <button
                   onClick={() => setPosCategory("ΟΛΑ")}
@@ -1429,8 +1432,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Λίστα Προϊόντων */}
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 lg:pb-4">
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
@@ -1447,9 +1449,8 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Πλωτό κουμπί μόνο για μικρές οθόνες */}
               {!isPosCartOpen && posCart.length > 0 && (
-                <div className="md:hidden absolute bottom-4 left-4 right-4 z-50">
+                <div className="lg:hidden absolute bottom-4 left-4 right-4 z-50">
                   <button
                     onClick={() => setIsPosCartOpen(true)}
                     className="w-full bg-blue-600 text-white py-4 px-6 rounded-2xl shadow-2xl flex justify-between items-center transition-all active:scale-95 border-2 border-blue-500"
@@ -1475,16 +1476,16 @@ export default function Dashboard() {
 
             {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ (45%) -- */}
             <div
-              className={`w-full md:w-[45%] bg-gray-50 flex flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
-                isPosCartOpen ? "flex" : "hidden md:flex"
+              style={{ width: window.innerWidth >= 1024 ? "45%" : "100%" }}
+              className={`bg-gray-50 flex-col z-20 h-full shrink-0 ${
+                isPosCartOpen ? "flex" : "hidden lg:flex"
               }`}
             >
-              {/* Header Καλαθιού */}
               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm shrink-0">
                 <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsPosCartOpen(false)}
-                    className="md:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-xl transition-colors"
+                    className="lg:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-xl transition-colors"
                   >
                     ←
                   </button>
@@ -1497,13 +1498,12 @@ export default function Dashboard() {
                     setIsPosCartOpen(false);
                     setIsPosOpen(false);
                   }}
-                  className="hidden md:flex w-10 h-10 bg-white border border-gray-200 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
+                  className="hidden lg:flex w-12 h-12 bg-gray-100 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-100 hover:text-red-500 transition-colors text-lg"
                 >
                   ✕
                 </button>
               </div>
 
-              {/* Είδη Καλαθιού */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                 {posCart.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-gray-400 font-black uppercase text-sm italic opacity-50">
@@ -1537,7 +1537,7 @@ export default function Dashboard() {
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, -1)
                             }
-                            className="w-8 h-8 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
+                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-gray-600 active:scale-90 transition-transform"
                           >
                             −
                           </button>
@@ -1548,7 +1548,7 @@ export default function Dashboard() {
                             onClick={() =>
                               updatePosCartQuantity(item.cartId, 1)
                             }
-                            className="w-8 h-8 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
+                            className="w-10 h-10 flex items-center justify-center font-black text-lg text-blue-600 active:scale-90 transition-transform"
                           >
                             +
                           </button>
@@ -1573,7 +1573,6 @@ export default function Dashboard() {
                 )}
               </div>
 
-              {/* Footer Καλαθιού (Πληρωμή) */}
               <div className="p-5 bg-white border-t border-gray-200 space-y-4 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] shrink-0">
                 <input
                   type="text"
@@ -1590,7 +1589,7 @@ export default function Dashboard() {
                   className="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
                 <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
-                  <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
+                  <span className="font-black text-[10px] uppercase text-gray-500 tracking-widest mb-1 text-center">
                     ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
                   </span>
                   <div className="flex gap-1 bg-gray-200/50 p-1 rounded-xl">
