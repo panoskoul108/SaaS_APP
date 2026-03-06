@@ -25,18 +25,35 @@ export default function Dashboard() {
   const [storeName, setStoreName] = useState("");
 
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("orders");
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
+  const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
+
   const [historySearch, setHistorySearch] = useState("");
   const [dateRange, setDateRange] = useState("today");
   const [specificDate, setSpecificDate] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
+
   const [isPrinting, setIsPrinting] = useState(false);
+
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
+
+  const [isPosOpen, setIsPosOpen] = useState(false);
+  const [posCategory, setPosCategory] = useState("ΟΛΑ");
+  const [posCart, setPosCart] = useState([]);
+  const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
+  const [posPayment, setPosPayment] = useState("");
+  const [posGeneralNote, setPosGeneralNote] = useState("");
+  const [posActiveProduct, setPosActiveProduct] = useState(null);
+  const [posAddonSelections, setPosAddonSelections] = useState({});
+  const [posQuantity, setPosQuantity] = useState(1);
+  const [posCurrentNote, setPosCurrentNote] = useState("");
 
   const isKitchen = userRole === "kitchen";
 
@@ -48,24 +65,46 @@ export default function Dashboard() {
       .eq("store_id", storeId)
       .order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
+
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("created_at", { ascending: false });
+    if (reviewsData) setReviews(reviewsData);
+
     const { data: storeData } = await supabase
       .from("stores")
-      .select("name, backup_mode")
+      .select("name, backup_mode, is_accepting_orders")
       .eq("id", storeId)
       .single();
+
     if (storeData) {
       setBackupMode(storeData.backup_mode);
       setStoreName(storeData.name);
+      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
     }
+  };
+
+  const fetchProducts = async () => {
+    if (!isAuthenticated || !storeId) return;
+    const { data } = await supabase
+      .from("products")
+      .select("*")
+      .eq("store_id", storeId)
+      .order("category");
+    if (data) setProducts(data);
   };
 
   useEffect(() => {
     if (isAuthenticated) {
       fetchData();
+      fetchProducts();
       const interval = setInterval(fetchData, 5000);
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, storeId]);
+
   useEffect(() => {
     const pendingCount = orders.filter((o) => {
       if (o.status === "completed") return false;
@@ -100,6 +139,7 @@ export default function Dashboard() {
       fetchData();
     }
   };
+
   const toggleBackupMode = async () => {
     const newStatus = !backupMode;
     await supabase
@@ -107,6 +147,15 @@ export default function Dashboard() {
       .update({ backup_mode: newStatus })
       .eq("id", storeId);
     setBackupMode(newStatus);
+  };
+
+  const toggleAcceptingOrders = async () => {
+    const newStatus = !isAcceptingOrders;
+    await supabase
+      .from("stores")
+      .update({ is_accepting_orders: newStatus })
+      .eq("id", storeId);
+    setIsAcceptingOrders(newStatus);
   };
 
   const downloadQR = async (tableNumber) => {
@@ -137,6 +186,122 @@ export default function Dashboard() {
     setTab("orders");
   };
 
+  const posCategories = [...new Set(products.map((p) => p.category))];
+  const posFilteredProducts =
+    posCategory === "ΟΛΑ"
+      ? products
+      : products.filter((p) => p.category === posCategory);
+
+  const handlePosProductClick = (product) => {
+    const initialSels = {};
+    if (product.addons) {
+      product.addons.forEach((g) => (initialSels[g.id] = []));
+    }
+    setPosAddonSelections(initialSels);
+    setPosQuantity(1);
+    setPosCurrentNote("");
+    setPosActiveProduct(product);
+  };
+
+  const togglePosAddon = (groupId, optionIndex, maxSelections) => {
+    let current = posAddonSelections[groupId] || [];
+    if (current.includes(optionIndex)) {
+      current = current.filter((i) => i !== optionIndex);
+    } else {
+      if (current.length >= maxSelections) {
+        if (maxSelections === 1) current = [optionIndex];
+        else return;
+      } else {
+        current = [...current, optionIndex];
+      }
+    }
+    setPosAddonSelections({ ...posAddonSelections, [groupId]: current });
+  };
+
+  const confirmPosAddons = () => {
+    let extraPrice = 0;
+    let addonTexts = [];
+    let isValid = true;
+
+    (posActiveProduct.addons || []).forEach((g) => {
+      const sels = posAddonSelections[g.id] || [];
+      if (g.isRequired && sels.length === 0) isValid = false;
+      if (sels.length > 0) {
+        const names = sels.map((idx) => g.options[idx].name);
+        addonTexts.push(`${names.join(", ")}`);
+        sels.forEach((idx) => (extraPrice += g.options[idx].price));
+      }
+    });
+
+    if (!isValid) {
+      alert("Παρακαλώ συμπληρώστε όλες τις υποχρεωτικές επιλογές!");
+      return;
+    }
+
+    const finalName =
+      addonTexts.length > 0
+        ? `${posActiveProduct.name} (${addonTexts.join(" | ")})`
+        : posActiveProduct.name;
+
+    const finalPrice = posActiveProduct.price + extraPrice;
+
+    const newItem = {
+      ...posActiveProduct,
+      cartId: Date.now() + Math.random(),
+      name: finalName,
+      price: finalPrice,
+      note: posCurrentNote,
+      quantity: posQuantity,
+    };
+
+    setPosCart([...posCart, newItem]);
+    setPosActiveProduct(null);
+  };
+
+  const updatePosCartQuantity = (cartId, delta) => {
+    setPosCart(
+      posCart.map((item) => {
+        if (item.cartId === cartId) {
+          const newQ = Math.max(1, (item.quantity || 1) + delta);
+          return { ...item, quantity: newQ };
+        }
+        return item;
+      })
+    );
+  };
+
+  const removeFromPosCart = (cartId) => {
+    setPosCart(posCart.filter((item) => item.cartId !== cartId));
+  };
+
+  const submitPosOrder = async () => {
+    if (posCart.length === 0 || !posTable || !posPayment) return;
+
+    const calculatedTotal = posCart.reduce(
+      (s, i) => s + i.price * (i.quantity || 1),
+      0
+    );
+
+    const newOrder = {
+      store_id: storeId,
+      table_number: posTable,
+      items: posCart,
+      total_price: calculatedTotal,
+      payment_method: posPayment,
+      status: "pending",
+      general_note: posGeneralNote,
+    };
+
+    await supabase.from("orders").insert([newOrder]);
+
+    setPosCart([]);
+    setPosTable("ΠΑΚΕΤΟ");
+    setPosGeneralNote("");
+    setPosPayment("");
+    setIsPosOpen(false);
+    fetchData();
+  };
+
   if (!isAuthenticated)
     return (
       <Login
@@ -147,6 +312,7 @@ export default function Dashboard() {
         }}
       />
     );
+
   if (isPrinting)
     return (
       <div className="bg-white">
@@ -185,22 +351,49 @@ export default function Dashboard() {
     return matchesSearch && matchesTime;
   });
 
-  // --- ΑΠΟΛΥΤΟ ΦΙΛΤΡΟ ΓΙΑ ΤΑ ΣΤΑΤΙΣΤΙΚΑ ΤΗΣ ΚΟΥΖΙΝΑΣ ---
   const totalRevenue = historyOrders.reduce((sum, o) => {
     if (isKitchen) {
-      // Η κουζίνα μετράει ΜΟΝΟ τον τζίρο των δικών της πιάτων
       const kitchenSum =
         o.items
           ?.filter((it) => it.station === "kitchen")
-          .reduce((s, it) => s + it.price, 0) || 0;
+          .reduce((s, it) => s + it.price * (it.quantity || 1), 0) || 0;
       return sum + kitchenSum;
     }
     return sum + (o.total_price || 0);
   }, 0);
 
+  const cashTotal = historyOrders.reduce((sum, o) => {
+    if (o.payment_method !== "ΜΕΤΡΗΤΑ") return sum;
+    if (isKitchen) {
+      return (
+        sum +
+        (o.items
+          ?.filter((it) => it.station === "kitchen")
+          .reduce((s, it) => s + it.price * (it.quantity || 1), 0) || 0)
+      );
+    }
+    return sum + (o.total_price || 0);
+  }, 0);
+
+  const cardTotal = historyOrders.reduce((sum, o) => {
+    if (o.payment_method === "ΚΑΡΤΑ") {
+      if (isKitchen) {
+        return (
+          sum +
+          (o.items
+            ?.filter((it) => it.station === "kitchen")
+            .reduce((s, it) => s + it.price * (it.quantity || 1), 0) || 0)
+        );
+      }
+      return sum + (o.total_price || 0);
+    }
+    return sum;
+  }, 0);
+
   const totalOrdersCount = historyOrders.length;
   const avgOrderValue =
     totalOrdersCount > 0 ? totalRevenue / totalOrdersCount : 0;
+
   const activeTables = [
     ...new Set(
       orders.filter((o) => o.status !== "completed").map((o) => o.table_number)
@@ -210,9 +403,9 @@ export default function Dashboard() {
   const productCounts = {};
   historyOrders.forEach((o) => {
     o.items?.forEach((item) => {
-      // Η κουζίνα "Αγνοεί" τα προϊόντα που δεν είναι δικά της
       if (isKitchen && item.station !== "kitchen") return;
-      productCounts[item.name] = (productCounts[item.name] || 0) + 1;
+      productCounts[item.name] =
+        (productCounts[item.name] || 0) + (item.quantity || 1);
     });
   });
   const topProducts = Object.entries(productCounts)
@@ -231,6 +424,46 @@ export default function Dashboard() {
     .slice(0, 3);
   const maxHourCount = peakHours.length > 0 ? peakHours[0][1] : 1;
 
+  const downloadReportFile = () => {
+    const periodMap = {
+      today: "ΣΗΜΕΡΙΝΗ",
+      week: "ΕΒΔΟΜΑΔΙΑΙΑ",
+      month: "ΜΗΝΙΑΙΑ",
+      all: "ΣΥΝΟΛΙΚΗ",
+      specific: specificDate || "ΕΙΔΙΚΗ",
+    };
+
+    const reportText = `
+======================================
+         ΑΝΑΦΟΡΑ ΤΑΜΕΙΟΥ (Z)
+======================================
+ΚΑΤΑΣΤΗΜΑ: ${storeName || `ΚΑΤΑΣΤΗΜΑ ${storeId}`}
+ΗΜΕΡΟΜΗΝΙΑ ΕΞΑΓΩΓΗΣ: ${new Date().toLocaleString("el-GR")}
+ΠΕΡΙΟΔΟΣ: ${periodMap[dateRange] || "ΑΓΝΩΣΤΗ"}
+--------------------------------------
+ΣΥΝΟΛΙΚΟΣ ΤΖΙΡΟΣ : ${totalRevenue.toFixed(2)}€
+ΜΕΤΡΗΤΑ          : ${cashTotal.toFixed(2)}€
+ΚΑΡΤΑ            : ${cardTotal.toFixed(2)}€
+--------------------------------------
+ΣΥΝΟΛΟ ΠΑΡΑΓΓΕΛΙΩΝ: ${totalOrdersCount}
+ΜΕΣΗ ΑΞΙΑ / ΠΑΡ.  : ${avgOrderValue.toFixed(2)}€
+======================================
+    `.trim();
+
+    const blob = new Blob([reportText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+
+    const dateStr = new Date().toLocaleDateString("el-GR").replace(/\//g, "-");
+    link.download = `Z_Report_${dateStr}.txt`;
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const OrderCard = ({ order }) => {
     const displayItems = isKitchen
       ? order.items?.filter((it) => it.station === "kitchen") || []
@@ -241,6 +474,9 @@ export default function Dashboard() {
       ? order.kitchen_status || "pending"
       : order.status || "pending";
 
+    const hasKitchenItem = order.items?.some((it) => it.station === "kitchen");
+    const kitchenIsReady = (order.kitchen_status || "pending") === "ready";
+
     return (
       <div
         onClick={() => setViewingOrder(order)}
@@ -248,8 +484,19 @@ export default function Dashboard() {
           isKitchen
             ? "bg-gray-800 border-gray-700 text-white"
             : "bg-white border-gray-100 text-gray-800"
-        } rounded-2xl p-4 mb-4 shadow-sm border cursor-pointer hover:shadow-md transition-shadow`}
+        } rounded-2xl p-4 mb-4 shadow-sm border cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden`}
       >
+        {order.is_loyalty_reward && (
+          <div className="mb-3 p-3 rounded-xl bg-purple-100 border-2 border-purple-400 text-purple-900 text-center shadow-inner">
+            <span className="font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2">
+              🎁 ΠΕΛΑΤΗΣ LOYALTY
+            </span>
+            <p className="text-xs font-bold mt-1">
+              Δικαιούται δώρο με αυτή την παραγγελία!
+            </p>
+          </div>
+        )}
+
         <div
           className={`flex justify-between items-start mb-3 border-b pb-2 ${
             isKitchen ? "border-gray-700" : ""
@@ -275,6 +522,7 @@ export default function Dashboard() {
             {new Date(order.created_at).toLocaleTimeString("el-GR")}
           </span>
         </div>
+
         {order.general_note && (
           <div
             className={`mb-3 p-2 rounded-xl border ${
@@ -290,7 +538,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {!isKitchen && order.items?.some((it) => it.station === "kitchen") && (
+        {!isKitchen && hasKitchenItem && (
           <div
             className={`mb-3 p-2 rounded-xl flex items-center justify-between border ${
               (order.kitchen_status || "pending") === "ready"
@@ -321,7 +569,18 @@ export default function Dashboard() {
                   isKitchen ? "text-white text-base" : ""
                 }`}
               >
-                • {it.name}
+                {it.quantity > 1 ? (
+                  <span
+                    className={
+                      isKitchen ? "text-orange-400 mr-1" : "text-blue-500 mr-1"
+                    }
+                  >
+                    {it.quantity}x
+                  </span>
+                ) : (
+                  "• "
+                )}
+                {it.name}
               </span>
               {it.note && (
                 <span
@@ -382,14 +641,25 @@ export default function Dashboard() {
               ΕΤΟΙΜΗ
             </button>
           )}
-          {currentStatus === "ready" && !isKitchen && (
-            <button
-              onClick={() => updateStatus(order.id, "completed", false)}
-              className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-[10px] uppercase"
-            >
-              ΟΛΟΚΛΗΡΩΣΗ
-            </button>
-          )}
+
+          {currentStatus === "ready" &&
+            !isKitchen &&
+            (hasKitchenItem && !kitchenIsReady ? (
+              <button
+                disabled
+                className="w-full bg-orange-50 text-orange-600 py-4 rounded-xl font-black text-[10px] uppercase border-2 border-orange-200 cursor-not-allowed opacity-80"
+              >
+                ⏳ ΑΝΑΜΟΝΗ ΚΟΥΖΙΝΑΣ
+              </button>
+            ) : (
+              <button
+                onClick={() => updateStatus(order.id, "completed", false)}
+                className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg hover:bg-green-700 transition-colors"
+              >
+                ΟΛΟΚΛΗΡΩΣΗ
+              </button>
+            ))}
+
           {userRole === "admin" && (
             <button
               onClick={() => deleteOrders([order.id])}
@@ -411,12 +681,12 @@ export default function Dashboard() {
     >
       <div className="print:hidden">
         <header
-          className={`border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm ${
+          className={`border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm overflow-x-auto no-scrollbar ${
             isKitchen ? "bg-gray-900 border-gray-800" : "bg-white"
           }`}
         >
           <h1
-            className={`font-black italic text-xl tracking-tighter ${
+            className={`font-black italic text-xl tracking-tighter shrink-0 mr-4 ${
               isKitchen ? "text-white" : "text-gray-800"
             }`}
           >
@@ -425,7 +695,29 @@ export default function Dashboard() {
               {isKitchen ? "KITCHEN" : userRole === "admin" ? "ADMIN" : "STAFF"}
             </span>
           </h1>
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-2 items-center shrink-0">
+            {!isKitchen && (
+              <button
+                onClick={() => setIsPosOpen(true)}
+                className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-1"
+              >
+                <span className="text-sm">+</span> ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ
+              </button>
+            )}
+
+            {!isKitchen && (
+              <button
+                onClick={toggleAcceptingOrders}
+                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${
+                  isAcceptingOrders
+                    ? "bg-green-500 text-white hover:bg-green-600"
+                    : "bg-red-600 text-white hover:bg-red-700 animate-pulse"
+                }`}
+              >
+                {isAcceptingOrders ? "🟢 ON" : "🔴 OFF"}
+              </button>
+            )}
+
             {userRole === "admin" && (
               <button
                 onClick={toggleBackupMode}
@@ -459,9 +751,15 @@ export default function Dashboard() {
             isKitchen ? "bg-gray-900 border-gray-800" : "bg-white"
           }`}
         >
-          {["orders", "tables", "history", "products"].map((t) => {
+          {["orders", "tables", "reviews", "history", "products"].map((t) => {
             if (userRole === "staff" && t !== "orders") return null;
-            if (isKitchen && (t === "tables" || t === "products")) return null;
+            if (
+              isKitchen &&
+              (t === "tables" || t === "products" || t === "reviews")
+            )
+              return null;
+            if (t === "reviews" && userRole !== "admin") return null;
+
             return (
               <button
                 key={t}
@@ -480,6 +778,8 @@ export default function Dashboard() {
                   ? "ΠΑΡΑΓΓΕΛΙΕΣ"
                   : t === "tables"
                   ? "ΤΡΑΠΕΖΙΑ"
+                  : t === "reviews"
+                  ? "ΚΡΙΤΙΚΕΣ"
                   : t === "history"
                   ? "ΙΣΤΟΡΙΚΟ"
                   : "ΚΑΤΑΛΟΓΟΣ"}
@@ -545,6 +845,49 @@ export default function Dashboard() {
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {tab === "reviews" && userRole === "admin" && (
+          <div className="max-w-6xl mx-auto space-y-6 pb-20">
+            <h2 className="font-black text-2xl uppercase italic tracking-tighter text-gray-800 border-b pb-4">
+              Εσωτερικες Κριτικες
+            </h2>
+            {reviews.length === 0 ? (
+              <p className="text-center text-gray-400 font-bold mt-10 uppercase text-sm">
+                Δεν υπαρχουν αρνητικες κριτικες! 🎉
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {reviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 flex flex-col gap-3"
+                  >
+                    <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+                      <div className="text-xl">
+                        {Array.from({ length: rev.rating }).map((_, i) => (
+                          <span key={i} className="text-orange-400">
+                            ★
+                          </span>
+                        ))}
+                        {Array.from({ length: 5 - rev.rating }).map((_, i) => (
+                          <span key={i} className="text-gray-200">
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">
+                        {new Date(rev.created_at).toLocaleDateString("el-GR")}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-700 italic">
+                      "{rev.comment}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -662,6 +1005,44 @@ export default function Dashboard() {
                   {avgOrderValue.toFixed(2)}€
                 </span>
               </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div
+                className={`p-4 rounded-[2rem] flex justify-between items-center shadow-sm border ${
+                  isKitchen
+                    ? "bg-gray-800 border-gray-700 text-white"
+                    : "bg-green-50 border-green-200 text-green-800"
+                }`}
+              >
+                <span className="font-black text-[10px] uppercase tracking-widest">
+                  💵 ΜΕΤΡΗΤΑ
+                </span>
+                <span className="font-black text-2xl">
+                  {cashTotal.toFixed(2)}€
+                </span>
+              </div>
+              <div
+                className={`p-4 rounded-[2rem] flex justify-between items-center shadow-sm border ${
+                  isKitchen
+                    ? "bg-gray-800 border-gray-700 text-white"
+                    : "bg-blue-50 border-blue-200 text-blue-800"
+                }`}
+              >
+                <span className="font-black text-[10px] uppercase tracking-widest">
+                  💳 ΚΑΡΤΑ
+                </span>
+                <span className="font-black text-2xl">
+                  {cardTotal.toFixed(2)}€
+                </span>
+              </div>
+
+              <button
+                onClick={downloadReportFile}
+                className="bg-gray-900 text-white p-4 rounded-[2rem] shadow-lg font-black uppercase text-[11px] tracking-widest flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+              >
+                💾 ΕΞΑΓΩΓΗ ΑΝΑΦΟΡΑΣ (Z)
+              </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -787,11 +1168,13 @@ export default function Dashboard() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {historyOrders.map((o) => {
-                    // ΕΔΩ Η ΚΟΥΖΙΝΑ ΒΛΕΠΕΙ ΜΟΝΟ ΤΟ ΚΟΣΤΟΣ ΤΟΥ ΦΑΓΗΤΟΥ!
                     const orderTotal = isKitchen
                       ? o.items
                           ?.filter((it) => it.station === "kitchen")
-                          .reduce((s, it) => s + it.price, 0)
+                          .reduce(
+                            (s, it) => s + it.price * (it.quantity || 1),
+                            0
+                          )
                       : o.total_price;
                     return (
                       <div
@@ -889,7 +1272,353 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Modal Λεπτομερειών */}
+      {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ) --- */}
+      {isPosOpen && (
+        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-4 print:hidden animate-fade-in">
+          <div className="bg-gray-100 w-full max-w-6xl h-[90vh] rounded-[2rem] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-slide-up">
+            <div className="flex-1 flex flex-col bg-white h-1/2 md:h-full">
+              <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h2 className="font-black text-lg italic uppercase text-gray-800">
+                  ΚΑΤΑΛΟΓΟΣ TAMEIOY
+                </h2>
+                <button
+                  onClick={() => setIsPosOpen(false)}
+                  className="md:hidden w-8 h-8 bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex overflow-x-auto gap-2 p-3 bg-white border-b border-gray-100 no-scrollbar shadow-sm z-10">
+                <button
+                  onClick={() => setPosCategory("ΟΛΑ")}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                    posCategory === "ΟΛΑ"
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  ΟΛΑ
+                </button>
+                {posCategories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setPosCategory(cat)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                      posCategory === cat
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50">
+                {posFilteredProducts.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => handlePosProductClick(p)}
+                    className="bg-white p-4 border border-gray-200 rounded-2xl flex flex-col justify-between items-start hover:border-blue-500 hover:shadow-md transition-all active:scale-95 min-h-[100px]"
+                  >
+                    <span className="font-bold text-sm text-left uppercase text-gray-800 leading-tight mb-2">
+                      {p.name}
+                    </span>
+                    <span className="text-blue-600 font-black text-lg">
+                      {p.price.toFixed(2)}€
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="w-full md:w-96 bg-gray-50 flex flex-col border-l border-gray-200 shadow-xl z-20 h-1/2 md:h-full">
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm">
+                <h2 className="font-black text-lg italic uppercase text-gray-800">
+                  ΚΑΛΑΘΙ ({posCart.length})
+                </h2>
+                <button
+                  onClick={() => setIsPosOpen(false)}
+                  className="hidden md:flex w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full justify-center items-center font-bold text-gray-600 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
+                {posCart.length === 0 ? (
+                  <div className="h-full flex items-center justify-center text-gray-400 font-black uppercase text-sm italic opacity-50">
+                    ΤΟ ΚΑΛΑΘΙ ΕΙΝΑΙ ΑΔΕΙΟ
+                  </div>
+                ) : (
+                  posCart.map((item, index) => (
+                    <div
+                      key={item.cartId}
+                      className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden"
+                    >
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-500"></div>
+                      <div className="flex justify-between items-start mb-2 pl-2">
+                        <span className="font-black text-xs uppercase text-gray-800 pr-2 flex-1 leading-tight">
+                          {item.name}
+                        </span>
+                        <span className="font-black text-blue-600 text-sm">
+                          {(item.price * (item.quantity || 1)).toFixed(2)}€
+                        </span>
+                      </div>
+
+                      {item.note && (
+                        <div className="pl-2 mb-2">
+                          <span className="text-[10px] text-gray-500 font-bold italic bg-gray-50 p-1.5 rounded-lg border border-gray-100 block">
+                            📝 {item.note}
+                          </span>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-center pl-2 pt-2 border-t border-gray-100 mt-1">
+                        <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                          <button
+                            onClick={() =>
+                              updatePosCartQuantity(item.cartId, -1)
+                            }
+                            className="w-6 h-6 flex items-center justify-center font-black text-gray-600 active:scale-90 transition-transform"
+                          >
+                            −
+                          </button>
+                          <span className="font-black text-xs w-6 text-center">
+                            {item.quantity || 1}
+                          </span>
+                          <button
+                            onClick={() =>
+                              updatePosCartQuantity(item.cartId, 1)
+                            }
+                            className="w-6 h-6 flex items-center justify-center font-black text-blue-600 active:scale-90 transition-transform"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <button
+                          onClick={() => removeFromPosCart(item.cartId)}
+                          className="bg-red-50 text-red-500 px-3 py-2 rounded-xl text-xs font-black hover:bg-red-100 transition-colors"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="p-4 bg-white border-t border-gray-200 space-y-3 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+                <input
+                  type="text"
+                  placeholder="ΤΡΑΠΕΖΙ ή ΟΝΟΜΑ (ΠΑΚΕΤΟ)"
+                  value={posTable}
+                  onChange={(e) => setPosTable(e.target.value)}
+                  className="w-full border-2 border-gray-200 p-3 rounded-xl font-black uppercase text-sm focus:outline-none focus:border-blue-500"
+                />
+
+                <textarea
+                  rows="1"
+                  placeholder="Γενική Σημείωση..."
+                  value={posGeneralNote}
+                  onChange={(e) => setGeneralNote(e.target.value)}
+                  onChange={(e) => setPosGeneralNote(e.target.value)} // <---- ΕΔΩ ΗΤΑΝ ΤΟ ΛΑΘΟΣ, ΤΟ ΔΙΟΡΘΩΣΑΜΕ!
+                  className="w-full bg-gray-50 border border-gray-200 p-3 rounded-xl font-bold italic text-xs resize-none focus:outline-none focus:border-blue-500"
+                ></textarea>
+
+                <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
+                  <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
+                    ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
+                  </span>
+                  <div className="flex gap-1 bg-gray-200/50 p-1 rounded-lg">
+                    <button
+                      onClick={() => setPosPayment("ΜΕΤΡΗΤΑ")}
+                      className={`flex-1 py-2 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                        posPayment === "ΜΕΤΡΗΤΑ"
+                          ? "bg-white shadow-sm text-blue-600 scale-105"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      💵 ΜΕΤΡΗΤΑ
+                    </button>
+                    <button
+                      onClick={() => setPosPayment("ΚΑΡΤΑ")}
+                      className={`flex-1 py-2 rounded-md font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+                        posPayment === "ΚΑΡΤΑ"
+                          ? "bg-white shadow-sm text-blue-600 scale-105"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                    >
+                      💳 ΚΑΡΤΑ
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  onClick={submitPosOrder}
+                  disabled={posCart.length === 0 || !posTable || !posPayment}
+                  className={`w-full p-4 rounded-xl font-black uppercase text-sm shadow-xl transition-all active:scale-95 flex justify-between items-center ${
+                    posCart.length === 0 || !posTable || !posPayment
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-green-600 text-white hover:bg-green-700"
+                  }`}
+                >
+                  <span>{!posPayment ? "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ" : "ΑΠΟΣΤΟΛΗ"}</span>
+                  <span className="text-lg">
+                    {posCart
+                      .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
+                      .toFixed(2)}
+                    €
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {posActiveProduct && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
+          onClick={() => setPosActiveProduct(null)}
+        >
+          <div
+            className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4 border-b pb-4">
+              <h2 className="font-black text-xl uppercase italic text-gray-900">
+                {posActiveProduct.name}
+              </h2>
+              <button
+                onClick={() => setPosActiveProduct(null)}
+                className="w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600 hover:bg-gray-200"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="overflow-y-auto flex-1 space-y-4 pr-2 no-scrollbar">
+              {(posActiveProduct.addons || []).map((group) => (
+                <div
+                  key={group.id}
+                  className="bg-gray-50 p-4 rounded-2xl border border-gray-100"
+                >
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-black uppercase text-sm text-gray-800">
+                      {group.name}
+                    </h3>
+                    <span className="text-[9px] font-bold text-gray-500 uppercase">
+                      {group.isRequired ? "ΥΠΟΧΡΕΩΤΙΚΟ" : "ΠΡΟΑΙΡΕΤΙΚΟ"} (
+                      {group.maxSelections > 1
+                        ? `ΕΩΣ ${group.maxSelections}`
+                        : "ΕΠΙΛΕΞΤΕ 1"}
+                      )
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {group.options.map((opt, i) => {
+                      const isSelected = (
+                        posAddonSelections[group.id] || []
+                      ).includes(i);
+                      return (
+                        <div
+                          key={i}
+                          onClick={() =>
+                            togglePosAddon(group.id, i, group.maxSelections)
+                          }
+                          className={`flex justify-between items-center p-4 rounded-xl cursor-pointer border-2 transition-all ${
+                            isSelected
+                              ? "bg-blue-50 border-blue-500"
+                              : "bg-white border-gray-200"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
+                                isSelected
+                                  ? "border-blue-500 bg-blue-500"
+                                  : "border-gray-300"
+                              }`}
+                            >
+                              {isSelected && (
+                                <div className="w-2 h-2 bg-white rounded-full"></div>
+                              )}
+                            </div>
+                            <span
+                              className={`font-bold text-xs uppercase ${
+                                isSelected ? "text-gray-900" : "text-gray-600"
+                              }`}
+                            >
+                              {opt.name}
+                            </span>
+                          </div>
+                          <span
+                            className={`font-black text-xs ${
+                              opt.price > 0 ? "text-blue-600" : "text-gray-400"
+                            }`}
+                          >
+                            {opt.price > 0
+                              ? `+${opt.price.toFixed(2)}€`
+                              : "ΔΩΡΕΑΝ"}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+
+              <div className="flex items-center justify-between bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <span className="font-black uppercase text-sm text-gray-800">
+                  ΠΟΣΟΤΗΤΑ
+                </span>
+                <div className="flex items-center gap-4 bg-white px-2 py-1 rounded-xl shadow-sm border border-gray-200">
+                  <button
+                    onClick={() => setPosQuantity(Math.max(1, posQuantity - 1))}
+                    className="w-10 h-10 font-bold text-2xl text-gray-500 flex items-center justify-center"
+                  >
+                    {" "}
+                    −{" "}
+                  </button>
+                  <span className="font-black text-lg w-6 text-center">
+                    {posQuantity}
+                  </span>
+                  <button
+                    onClick={() => setPosQuantity(posQuantity + 1)}
+                    className="w-10 h-10 font-bold text-2xl text-blue-600 flex items-center justify-center"
+                  >
+                    {" "}
+                    +{" "}
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                <span className="font-black text-gray-800 uppercase text-xs mb-2 block">
+                  ΣΗΜΕΙΩΣΗ ΠΡΟΪΟΝΤΟΣ
+                </span>
+                <textarea
+                  rows="2"
+                  placeholder="Π.χ. Χωρίς ζάχαρη..."
+                  value={posCurrentNote}
+                  onChange={(e) => setPosCurrentNote(e.target.value)}
+                  className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-400 font-bold resize-none"
+                ></textarea>
+              </div>
+            </div>
+
+            <button
+              onClick={confirmPosAddons}
+              className="w-full mt-6 bg-blue-600 text-white py-5 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-blue-700 active:scale-95 transition-transform"
+            >
+              ΠΡΟΣΘΗΚΗ
+            </button>
+          </div>
+        </div>
+      )}
+
       {viewingOrder && (
         <div
           className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 print:hidden"
@@ -930,11 +1659,14 @@ export default function Dashboard() {
                   }`}
                 >
                   <div className="flex justify-between font-black uppercase italic">
-                    <span>{item.name}</span>
+                    <span>
+                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                      {item.name}
+                    </span>
                     <span
                       className={isKitchen ? "text-white" : "text-blue-600"}
                     >
-                      {item.price?.toFixed(2)}€
+                      {(item.price * (item.quantity || 1)).toFixed(2)}€
                     </span>
                   </div>
                   {item.note && (
@@ -952,7 +1684,6 @@ export default function Dashboard() {
               ))}
             </div>
 
-            {/* ΕΠΑΝΑΦΟΡΑ ΣΥΝΟΛΟΥ */}
             <div
               className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
                 isKitchen ? "border-gray-700" : "border-gray-100"
@@ -963,7 +1694,7 @@ export default function Dashboard() {
                 {(isKitchen
                   ? viewingOrder.items
                       ?.filter((i) => i.station === "kitchen")
-                      .reduce((s, it) => s + it.price, 0)
+                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
                   : viewingOrder.total_price
                 )?.toFixed(2)}
                 €
@@ -980,6 +1711,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* ΕΔΩ ΕΙΝΑΙ ΤΟ ΚΟΜΜΑΤΙ ΜΕ ΤΑ QR ΠΟΥ ΕΙΧΕ ΚΟΠΕΙ! */}
       {selectedTableForQR && userRole === "admin" && (
         <div
           className="fixed inset-0 bg-black/80 z-[200] flex items-center justify-center p-4 print:bg-white print:p-0"
