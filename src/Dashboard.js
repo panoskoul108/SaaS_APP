@@ -216,7 +216,6 @@ export default function Dashboard() {
     setIsAcceptingOrders(newStatus);
   };
 
-  // --- ΔΙΟΡΘΩΜΕΝΗ ΛΕΙΤΟΥΡΓΙΑ ΛΗΨΗΣ QR ---
   const downloadQR = async (tableNumber) => {
     try {
       const qrData = encodeURIComponent(
@@ -224,12 +223,8 @@ export default function Dashboard() {
       );
       const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
 
-      // Χρησιμοποιούμε έναν proxy για να παρακάμψουμε το CORS του Browser
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
-        url
-      )}`;
-
-      const response = await fetch(proxyUrl);
+      // Προσπάθεια λήψης μέσω fetch
+      const response = await fetch(url);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
 
@@ -241,7 +236,7 @@ export default function Dashboard() {
       document.body.removeChild(link);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      // Αν αποτύχει ο proxy, το ανοίγουμε σε νέα καρτέλα!
+      // Αν το CORS μπλοκάρει το fetch, ανοίγει το URL σε νέο παράθυρο
       const qrData = encodeURIComponent(
         `${window.location.origin}/?store=${storeId}&table=${tableNumber}`
       );
@@ -1394,7 +1389,6 @@ export default function Dashboard() {
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
         <div className="fixed inset-0 bg-gray-100 lg:bg-black/80 z-[300] flex items-center justify-center lg:p-6 animate-fade-in">
-          {/* Main POS Container με Hardcoded Inline Styles για απόλυτη σιγουριά στο Desktop */}
           <div
             style={{
               width: window.innerWidth >= 1024 ? "98vw" : "100%",
