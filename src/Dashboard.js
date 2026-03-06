@@ -18,6 +18,30 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
+// Συνάρτηση αφαίρεσης τόνων
+const removeAccents = (str) => {
+  if (!str) return str;
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+};
+
+// Η ΙΔΑΝΙΚΗ ΣΕΙΡΑ ΤΩΝ ΚΑΤΗΓΟΡΙΩΝ ΣΤΟ POS
+const CATEGORY_ORDER = [
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ",
+  "ΚΑΦΕΔΕΣ",
+  "ΑΝΑΨΥΚΤΙΚΑ",
+  "ΡΟΦΗΜΑΤΑ",
+  "ΠΡΩΙΝΟ",
+  "ΜΠΥΡΕΣ",
+  "ΣΝΑΚΣ",
+  "ΣΥΝΟΔΕΥΤΙΚΑ",
+  "ΣΑΛΑΤΕΣ",
+  "ΖΥΜΑΡΙΚΑ",
+  "ΠΙΤΣΕΣ",
+  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ",
+  "ΓΛΥΚΕΣ ΚΡΕΠΕΣ",
+  "ΓΛΥΚΑ",
+];
+
 export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -54,6 +78,18 @@ export default function Dashboard() {
   const [posAddonSelections, setPosAddonSelections] = useState({});
   const [posQuantity, setPosQuantity] = useState(1);
   const [posCurrentNote, setPosCurrentNote] = useState("");
+  const [editingCartId, setEditingCartId] = useState(null); // Προσθήκη state για επεξεργασία!
+
+  // --- ΛΟΓΙΚΗ ΓΙΑ ΤΗΝ ΩΡΑ (ΓΙΑ ΤΟ ΠΡΩΙΝΟ) ---
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  useEffect(() => {
+    const interval = setInterval(
+      () => setCurrentHour(new Date().getHours()),
+      60000
+    );
+    return () => clearInterval(interval);
+  }, []);
+  const isMorning = currentHour >= 6 && currentHour < 14;
 
   const isKitchen = userRole === "kitchen";
 
@@ -92,8 +128,33 @@ export default function Dashboard() {
       .from("products")
       .select("*")
       .eq("store_id", storeId)
-      .order("category");
-    if (data) setProducts(data);
+      .order("sort_order", { ascending: true })
+      .order("name", { ascending: true });
+
+    if (data) {
+      // Καθαρίζουμε τους τόνους και εδώ στο POS
+      const cleanedProducts = data.map((prod) => {
+        const cleanedProd = {
+          ...prod,
+          name: removeAccents(prod.name),
+          name_en: removeAccents(prod.name_en),
+          description: removeAccents(prod.description),
+          category: removeAccents(prod.category),
+        };
+        if (cleanedProd.addons) {
+          cleanedProd.addons = cleanedProd.addons.map((g) => ({
+            ...g,
+            name: removeAccents(g.name),
+            options: g.options.map((opt) => ({
+              ...opt,
+              name: removeAccents(opt.name),
+            })),
+          }));
+        }
+        return cleanedProd;
+      });
+      setProducts(cleanedProducts);
+    }
   };
 
   useEffect(() => {
@@ -186,11 +247,26 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  const posCategories = [...new Set(products.map((p) => p.category))];
+  // POS Φιλτράρισμα Προϊόντων
+  const posVisibleProducts = products.filter((p) => {
+    if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
+    return true;
+  });
+
+  const posCategories = [
+    ...new Set(posVisibleProducts.map((p) => p.category)),
+  ].sort((a, b) => {
+    let idxA = CATEGORY_ORDER.indexOf(a);
+    let idxB = CATEGORY_ORDER.indexOf(b);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
+  });
+
   const posFilteredProducts =
     posCategory === "ΟΛΑ"
-      ? products
-      : products.filter((p) => p.category === posCategory);
+      ? posVisibleProducts
+      : posVisibleProducts.filter((p) => p.category === posCategory);
 
   const handlePosProductClick = (product) => {
     const initialSels = {};
@@ -200,7 +276,19 @@ export default function Dashboard() {
     setPosAddonSelections(initialSels);
     setPosQuantity(1);
     setPosCurrentNote("");
+    setEditingCartId(null);
     setPosActiveProduct(product);
+  };
+
+  const handleEditCartItem = (cartItem) => {
+    const originalProduct = products.find((p) => p.id === cartItem.id);
+    if (!originalProduct) return;
+
+    setPosActiveProduct(originalProduct);
+    setPosAddonSelections(cartItem.rawAddons || {});
+    setPosCurrentNote(cartItem.note || "");
+    setPosQuantity(cartItem.quantity || 1);
+    setEditingCartId(cartItem.cartId);
   };
 
   const togglePosAddon = (groupId, optionIndex, maxSelections) => {
@@ -245,17 +333,36 @@ export default function Dashboard() {
 
     const finalPrice = posActiveProduct.price + extraPrice;
 
-    const newItem = {
-      ...posActiveProduct,
-      cartId: Date.now() + Math.random(),
-      name: finalName,
-      price: finalPrice,
-      note: posCurrentNote,
-      quantity: posQuantity,
-    };
+    if (editingCartId) {
+      const updatedItem = {
+        ...posActiveProduct,
+        cartId: editingCartId,
+        name: finalName,
+        price: finalPrice,
+        note: removeAccents(posCurrentNote),
+        rawAddons: posAddonSelections,
+        quantity: posQuantity,
+      };
+      setPosCart(
+        posCart.map((item) =>
+          item.cartId === editingCartId ? updatedItem : item
+        )
+      );
+    } else {
+      const newItem = {
+        ...posActiveProduct,
+        cartId: Date.now() + Math.random(),
+        name: finalName,
+        price: finalPrice,
+        note: removeAccents(posCurrentNote),
+        rawAddons: posAddonSelections,
+        quantity: posQuantity,
+      };
+      setPosCart([...posCart, newItem]);
+    }
 
-    setPosCart([...posCart, newItem]);
     setPosActiveProduct(null);
+    setEditingCartId(null);
   };
 
   const updatePosCartQuantity = (cartId, delta) => {
@@ -289,7 +396,7 @@ export default function Dashboard() {
       total_price: calculatedTotal,
       payment_method: posPayment,
       status: "pending",
-      general_note: posGeneralNote,
+      general_note: removeAccents(posGeneralNote),
     };
 
     await supabase.from("orders").insert([newOrder]);
@@ -1397,12 +1504,20 @@ export default function Dashboard() {
                             +
                           </button>
                         </div>
-                        <button
-                          onClick={() => removeFromPosCart(item.cartId)}
-                          className="bg-red-50 text-red-500 px-3 py-2 rounded-xl text-xs font-black hover:bg-red-100 transition-colors"
-                        >
-                          🗑️
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditCartItem(item)}
+                            className="w-8 h-8 rounded-lg bg-blue-50 text-blue-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                          >
+                            ✏️
+                          </button>
+                          <button
+                            onClick={() => removeFromPosCart(item.cartId)}
+                            className="w-8 h-8 rounded-lg bg-red-50 text-red-500 flex items-center justify-center shadow-sm active:scale-95 transition-transform"
+                          >
+                            🗑️
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
@@ -1480,19 +1595,32 @@ export default function Dashboard() {
       {posActiveProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setPosActiveProduct(null)}
+          onClick={() => {
+            setPosActiveProduct(null);
+            setEditingCartId(null);
+          }}
         >
           <div
             className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4 border-b pb-4">
-              <h2 className="font-black text-xl uppercase italic text-gray-900">
-                {posActiveProduct.name}
-              </h2>
+            <div className="flex justify-between items-start mb-4 border-b pb-4">
+              <div className="flex flex-col pr-4">
+                <h2 className="font-black text-xl uppercase italic text-gray-900">
+                  {posActiveProduct.name}
+                </h2>
+                {editingCartId && (
+                  <span className="text-[10px] text-blue-500 mt-1 font-black uppercase">
+                    ΕΠΕΞΕΡΓΑΣΙΑ
+                  </span>
+                )}
+              </div>
               <button
-                onClick={() => setPosActiveProduct(null)}
-                className="w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600 hover:bg-gray-200"
+                onClick={() => {
+                  setPosActiveProduct(null);
+                  setEditingCartId(null);
+                }}
+                className="w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600 hover:bg-gray-200 shrink-0"
               >
                 ✕
               </button>
@@ -1610,9 +1738,12 @@ export default function Dashboard() {
 
             <button
               onClick={confirmPosAddons}
-              className="w-full mt-6 bg-blue-600 text-white py-5 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-blue-700 active:scale-95 transition-transform"
+              className="w-full mt-6 bg-blue-600 text-white py-5 rounded-xl font-black uppercase text-sm shadow-lg hover:bg-blue-700 active:scale-95 transition-transform flex justify-between px-6"
             >
-              ΠΡΟΣΘΗΚΗ
+              <span>{editingCartId ? "ΑΠΟΘΗΚΕΥΣΗ" : "ΠΡΟΣΘΗΚΗ"}</span>
+              <span>
+                {!editingCartId && posQuantity > 1 ? `x${posQuantity}` : ""}
+              </span>
             </button>
           </div>
         </div>
