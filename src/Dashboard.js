@@ -60,6 +60,7 @@ export default function Dashboard() {
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
+
   const [isPrinting, setIsPrinting] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
@@ -78,6 +79,7 @@ export default function Dashboard() {
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
 
+  // Έλεγχος Ώρας για το Πρωινό
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
   useEffect(() => {
     const interval = setInterval(
@@ -243,7 +245,7 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  // POS Λειτουργίες
+  // --- POS ΛΕΙΤΟΥΡΓΙΕΣ ---
   const posVisibleProducts = products.filter((p) => {
     if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
     return true;
@@ -375,7 +377,7 @@ export default function Dashboard() {
   const removeFromPosCart = (cartId) => {
     const newCart = posCart.filter((item) => item.cartId !== cartId);
     setPosCart(newCart);
-    if (newCart.length === 0) setIsPosCartOpen(false); // Κλείνει αυτόματα στα κινητά αν αδειάσει
+    if (newCart.length === 0) setIsPosCartOpen(false);
   };
 
   const submitPosOrder = async () => {
@@ -1379,32 +1381,34 @@ export default function Dashboard() {
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center md:p-4 print:hidden animate-fade-in">
-          <div className="bg-gray-100 w-full h-full md:max-w-6xl md:h-[90vh] md:rounded-[2rem] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-slide-up relative">
+        <div className="fixed inset-0 bg-gray-100 lg:bg-black/80 z-[300] flex items-center justify-center lg:p-4 print:hidden animate-fade-in">
+          <div className="bg-gray-100 w-full h-full lg:max-w-6xl lg:h-[90vh] lg:rounded-3xl flex flex-col lg:flex-row overflow-hidden shadow-2xl relative">
             {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ -- */}
             <div
-              className={`flex-1 flex-col bg-white h-full ${
-                isPosCartOpen ? "hidden md:flex" : "flex"
+              className={`flex-1 flex-col bg-white h-full relative ${
+                isPosCartOpen ? "hidden lg:flex" : "flex"
               }`}
             >
-              <div className="p-4 border-b flex justify-between items-center bg-gray-50">
-                <h2 className="font-black text-lg italic uppercase text-gray-800">
+              {/* Header */}
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <h2 className="font-black text-xl italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
                 <button
                   onClick={() => setIsPosOpen(false)}
-                  className="w-10 h-10 bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 hover:bg-gray-300 transition-colors"
+                  className="w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
                 >
                   ✕
                 </button>
               </div>
 
-              <div className="flex overflow-x-auto gap-2 p-3 bg-white border-b border-gray-100 no-scrollbar shadow-sm z-10">
+              {/* Κατηγορίες */}
+              <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0">
                 <button
                   onClick={() => setPosCategory("ΟΛΑ")}
                   className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
                     posCategory === "ΟΛΑ"
-                      ? "bg-blue-600 text-white"
+                      ? "bg-blue-600 text-white shadow-md"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -1416,7 +1420,7 @@ export default function Dashboard() {
                     onClick={() => setPosCategory(cat)}
                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
                       posCategory === cat
-                        ? "bg-blue-600 text-white"
+                        ? "bg-blue-600 text-white shadow-md"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
@@ -1425,7 +1429,8 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
+              {/* Λίστα Προϊόντων */}
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 lg:pb-4">
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
@@ -1441,34 +1446,64 @@ export default function Dashboard() {
                   </button>
                 ))}
               </div>
+
+              {/* Κινητό: Πλωτό Κουμπί Καλαθιού */}
+              {!isPosCartOpen && posCart.length > 0 && (
+                <div className="lg:hidden absolute bottom-4 left-4 right-4 z-50">
+                  <button
+                    onClick={() => setIsPosCartOpen(true)}
+                    className="w-full bg-blue-600 text-white py-4 px-6 rounded-2xl shadow-2xl flex justify-between items-center transition-all active:scale-95 border-2 border-blue-500"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="bg-white text-blue-600 w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">
+                        {posCart.reduce((s, i) => s + (i.quantity || 1), 0)}
+                      </div>
+                      <span className="font-black uppercase text-xs tracking-widest">
+                        ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ
+                      </span>
+                    </div>
+                    <span className="font-black text-lg">
+                      {posCart
+                        .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
+                        .toFixed(2)}
+                      €
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ -- */}
             <div
-              className={`w-full md:w-96 bg-gray-50 flex-col border-l border-gray-200 shadow-xl z-20 h-full ${
-                isPosCartOpen ? "flex" : "hidden md:flex"
+              className={`w-full lg:w-[450px] h-full flex-col bg-gray-50 border-l border-gray-200 z-20 shrink-0 ${
+                isPosCartOpen ? "flex" : "hidden lg:flex"
               }`}
             >
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm">
-                <h2 className="font-black text-lg italic uppercase text-gray-800">
-                  ΚΑΛΑΘΙ ({posCart.length})
-                </h2>
-                <div className="flex gap-2">
+              {/* Header Καλαθιού */}
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm shrink-0">
+                <div className="flex items-center gap-3">
                   <button
                     onClick={() => setIsPosCartOpen(false)}
-                    className="md:hidden w-10 h-10 bg-blue-50 text-blue-600 hover:bg-blue-100 rounded-full flex justify-center items-center font-bold transition-colors"
+                    className="lg:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 transition-colors"
                   >
-                    <span className="text-xl">←</span>
+                    ←
                   </button>
-                  <button
-                    onClick={() => setIsPosOpen(false)}
-                    className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 transition-colors"
-                  >
-                    ✕
-                  </button>
+                  <h2 className="font-black text-xl italic uppercase text-gray-800">
+                    ΚΑΛΑΘΙ ({posCart.length})
+                  </h2>
                 </div>
+                <button
+                  onClick={() => {
+                    setIsPosOpen(false);
+                    setIsPosCartOpen(false);
+                  }}
+                  className="hidden lg:flex w-10 h-10 bg-white border border-gray-200 rounded-full justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
+                >
+                  ✕
+                </button>
               </div>
 
+              {/* Είδη Καλαθιού */}
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                 {posCart.length === 0 ? (
                   <div className="h-full flex items-center justify-center text-gray-400 font-black uppercase text-sm italic opacity-50">
@@ -1540,7 +1575,8 @@ export default function Dashboard() {
                 )}
               </div>
 
-              <div className="p-4 bg-white border-t border-gray-200 space-y-3 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+              {/* Footer Καλαθιού (Πληρωμή) */}
+              <div className="p-4 bg-white border-t border-gray-200 space-y-3 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] shrink-0">
                 <input
                   type="text"
                   placeholder="ΤΡΑΠΕΖΙ ή ΟΝΟΜΑ (ΠΑΚΕΤΟ)"
@@ -1604,31 +1640,6 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-
-            {/* ΠΛΩΤΟ ΚΟΥΜΠΙ ΚΑΛΑΘΙΟΥ ΓΙΑ ΤΑ ΚΙΝΗΤΑ (Κολλημένο ακριβώς πάνω από το keyboard/bottom) */}
-            {!isPosCartOpen && posCart.length > 0 && (
-              <div className="md:hidden fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 via-white/80 to-transparent backdrop-blur-sm z-[350]">
-                <button
-                  onClick={() => setIsPosCartOpen(true)}
-                  className="w-full bg-blue-600 text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">
-                      {posCart.reduce((s, i) => s + (i.quantity || 1), 0)}
-                    </div>
-                    <span className="font-black uppercase text-xs tracking-widest">
-                      ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ
-                    </span>
-                  </div>
-                  <span className="font-black text-lg">
-                    {posCart
-                      .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
-                      .toFixed(2)}
-                    €
-                  </span>
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -1636,7 +1647,7 @@ export default function Dashboard() {
       {/* --- MODAL ΠΡΟΪΟΝΤΟΣ ΓΙΑ ΤΟ POS (Επιλογές / Σημείωση) --- */}
       {posActiveProduct && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[600] flex items-center justify-center p-4 animate-fade-in"
           onClick={() => {
             setPosActiveProduct(null);
             setEditingCartId(null);
@@ -1662,7 +1673,7 @@ export default function Dashboard() {
                   setPosActiveProduct(null);
                   setEditingCartId(null);
                 }}
-                className="w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600 hover:bg-gray-200 shrink-0"
+                className="w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600 hover:bg-gray-200 shrink-0 transition-colors"
               >
                 ✕
               </button>
