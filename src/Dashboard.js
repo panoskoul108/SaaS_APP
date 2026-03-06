@@ -1381,11 +1381,11 @@ export default function Dashboard() {
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
         <div className="fixed inset-0 bg-gray-100 md:bg-black/80 z-[300] flex items-center justify-center md:p-6 animate-fade-in">
-          {/* Main POS Container: Εδώ το πλάτος γίνεται πολύ μεγαλύτερο και πιάνει όλη την οθόνη σχεδόν */}
-          <div className="bg-gray-100 w-full h-full md:w-[95vw] md:h-[95vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
-            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ -- */}
+          {/* Main POS Container */}
+          <div className="bg-gray-100 w-full h-full md:max-w-[95vw] xl:max-w-[1400px] md:h-[95vh] md:rounded-[2rem] shadow-2xl flex flex-col md:flex-row overflow-hidden relative">
+            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ (55%) -- */}
             <div
-              className={`flex-1 flex flex-col bg-white h-full relative ${
+              className={`w-full md:w-[55%] flex flex-col bg-white h-full relative shrink-0 ${
                 isPosCartOpen ? "hidden md:flex" : "flex"
               }`}
             >
@@ -1473,9 +1473,9 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ (Πάντα ορατή σε Desktop, φαρδύτερη) -- */}
+            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ (45%) -- */}
             <div
-              className={`w-full md:w-[50%] lg:w-[45%] xl:w-[600px] bg-gray-50 flex flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
+              className={`w-full md:w-[45%] bg-gray-50 flex flex-col border-l border-gray-200 z-20 h-full shrink-0 ${
                 isPosCartOpen ? "flex" : "hidden md:flex"
               }`}
             >
@@ -1590,7 +1590,7 @@ export default function Dashboard() {
                   className="w-full bg-gray-50 border border-gray-200 p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
                 <div className="flex flex-col bg-gray-50 p-2 rounded-xl border border-gray-100">
-                  <span className="font-black text-[10px] uppercase text-gray-500 tracking-widest mb-1 text-center">
+                  <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1 text-center">
                     ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ *
                   </span>
                   <div className="flex gap-1 bg-gray-200/50 p-1 rounded-xl">
