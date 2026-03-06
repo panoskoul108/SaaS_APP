@@ -13,6 +13,9 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
+// ΤΟ ΟΡΙΟ ΓΙΑ ΤΟ ΔΩΡΟ (Μπορείς να το αλλάξεις εδώ εύκολα)
+const REWARD_THRESHOLD = 25;
+
 const DICT = {
   gr: {
     requiredTable: "ΑΠΑΙΤΕΙΤΑΙ ΤΡΑΠΕΖΙ",
@@ -50,9 +53,8 @@ const DICT = {
     pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.",
     edit: "ΕΠΕΞΕΡΓΑΣΙΑ",
     save: "ΑΠΟΘΗΚΕΥΣΗ",
-    loyaltyTitle: "LOYALTY ΠΕΛΑΤΗ",
-    loyaltySteps: "Συγκέντρωσε 5 παραγγελίες άνω των 25€ για δώρο!",
-    loyaltyReward: "ΣΥΓΧΑΡΗΤΗΡΙΑ! ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΟ ΜΕ ΑΥΤΗ ΤΗΝ ΠΑΡΑΓΓΕΛΙΑ! 🎁",
+    loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ",
+    loyaltyReward: "ΣΥΓΧΑΡΗΤΗΡΙΑ! ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁",
   },
   en: {
     requiredTable: "TABLE REQUIRED",
@@ -90,9 +92,8 @@ const DICT = {
     pausedCartMsg: "New orders cannot be sent at this time.",
     edit: "EDIT",
     save: "SAVE",
-    loyaltyTitle: "CUSTOMER LOYALTY",
-    loyaltySteps: "Collect 5 orders over 25€ for a free gift!",
-    loyaltyReward: "CONGRATULATIONS! YOU GET A GIFT WITH THIS ORDER! 🎁",
+    loyaltyTitle: "GIFT WITH ORDER",
+    loyaltyReward: "CONGRATULATIONS! YOU GET A FREE TREAT! 🎁",
   },
 };
 
@@ -105,7 +106,6 @@ export default function Menu() {
     new URLSearchParams(window.location.search).get("store") || "1"
   );
 
-  // ΔΙΟΡΘΩΣΗ: Αν ο browser στείλει τη λέξη "null", το μετατρέπουμε σε άδειο.
   const urlTable = new URLSearchParams(window.location.search).get("table");
   const [tableNum, setTableNum] = useState(
     urlTable === "null" ? null : urlTable
@@ -114,7 +114,8 @@ export default function Menu() {
   const [lang, setLang] = useState("gr");
   const t = DICT[lang];
 
-  // --- LOYALTY SYSTEM ---
+  // Το customerId παραμένει (μπορεί να χρειαστεί μελλοντικά),
+  // αλλά οι "πόντοι" έφυγαν!
   const [custId] = useState(() => {
     let id = localStorage.getItem("loyalty_id");
     if (!id) {
@@ -123,7 +124,6 @@ export default function Menu() {
     }
     return id;
   });
-  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -170,31 +170,6 @@ export default function Menu() {
       .eq("store_id", storeId)
       .order("category");
     if (p) setProducts(p);
-
-    // FETCH LOYALTY: Μόνο άνω των 25€
-    const { data: loyaltyOrders } = await supabase
-      .from("orders")
-      .select("is_loyalty_reward, total_price")
-      .eq("store_id", storeId)
-      .eq("customer_id", custId)
-      .eq("status", "completed");
-
-    let earned = 0;
-    let spent = 0;
-
-    if (loyaltyOrders) {
-      loyaltyOrders.forEach((o) => {
-        if (o.is_loyalty_reward) {
-          spent += 1; // Παραγγελίες που καταναλώθηκε το δώρο
-        } else if (o.total_price >= 25) {
-          earned += 1; // Παραγγελίες άνω των 25€ δίνουν πόντο
-        }
-      });
-    }
-
-    // Οι καθαροί διαθέσιμοι πόντοι
-    let currentPoints = earned - spent * 5;
-    setLoyaltyPoints(Math.max(0, currentPoints));
   };
 
   useEffect(() => {
@@ -212,7 +187,7 @@ export default function Menu() {
       clearInterval(interval);
       supabase.removeChannel(channel);
     };
-  }, [storeId, custId]);
+  }, [storeId]);
 
   const hasRecommended = products.some((p) => p.is_recommended);
   const rawCategories = [...new Set(products.map((p) => p.category))];
@@ -393,17 +368,22 @@ export default function Menu() {
     if (newCart.length === 0) setIsCartOpen(false);
   };
 
-  const isRewardOrder = loyaltyPoints >= 5;
-  const stamps = isRewardOrder ? 5 : loyaltyPoints;
+  // --- Η ΝΕΑ ΛΟΓΙΚΗ ΤΟΥ ΔΩΡΟΥ ---
+  const currentCartTotal = cart.reduce(
+    (s, i) => s + i.price * (i.quantity || 1),
+    0
+  );
+  // Το δώρο "ξεκλειδώνει" αν το σύνολο είναι ίσο ή μεγαλύτερο από το όριο
+  const isRewardOrder = currentCartTotal >= REWARD_THRESHOLD;
+  const progressPercent = Math.min(
+    (currentCartTotal / REWARD_THRESHOLD) * 100,
+    100
+  );
+  const remainingAmount = Math.max(REWARD_THRESHOLD - currentCartTotal, 0);
 
   const sendOrder = async () => {
     if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders)
       return;
-
-    const calculatedTotal = cart.reduce(
-      (s, i) => s + i.price * (i.quantity || 1),
-      0
-    );
 
     const { data, error } = await supabase
       .from("orders")
@@ -412,12 +392,12 @@ export default function Menu() {
           store_id: storeId,
           table_number: tableNum,
           items: cart,
-          total_price: calculatedTotal,
+          total_price: currentCartTotal,
           payment_method: paymentMethod,
           status: "pending",
           general_note: generalNote,
           customer_id: custId,
-          is_loyalty_reward: isRewardOrder,
+          is_loyalty_reward: isRewardOrder, // Το στέλνει κανονικά στο σύστημα!
         },
       ])
       .select();
@@ -427,7 +407,7 @@ export default function Menu() {
         id: data[0].id,
         date: new Date().toISOString(),
         items: cart,
-        total: calculatedTotal,
+        total: currentCartTotal,
       };
       const updatedHistory = [newHistoryOrder, ...orderHistory].slice(0, 10);
       setOrderHistory(updatedHistory);
@@ -502,9 +482,6 @@ export default function Menu() {
     );
   }
 
-  const totalPrice = cart
-    .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
-    .toFixed(2);
   const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
 
   const themeColor = store?.theme_color || "#2563EB";
@@ -571,7 +548,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* ΔΙΟΡΘΩΣΗ: Αν δεν υπάρχει τραπέζι, ΕΜΦΑΝΙΖΕΤΑΙ το BACKUP MODE */}
       {(!tableNum || tableNum === "") && backupMode === true && (
         <div
           className={`mx-4 mb-2 p-6 bg-white border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${
@@ -623,23 +599,23 @@ export default function Menu() {
         </div>
       )}
 
-      {/* --- LOYALTY PROGRESS BAR --- */}
+      {/* --- Η ΝΕΑ ΜΠΑΡΑ ΑΜΕΣΗΣ ΕΠΙΒΡΑΒΕΥΣΗΣ (UPSELLING) --- */}
       <div
         className={`px-4 pt-4 pb-2 bg-gray-50 z-20 ${
           tableNum ? (!isAcceptingOrders ? "mt-[110px]" : "mt-[88px]") : ""
         }`}
       >
         <div
-          className={`p-4 rounded-3xl border shadow-sm ${
+          className={`p-4 rounded-3xl border shadow-sm transition-colors duration-500 ${
             isRewardOrder
-              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-purple-400 animate-pulse"
+              ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300 animate-pulse"
               : "bg-white border-gray-200"
           }`}
         >
           {isRewardOrder ? (
             <div className="text-center">
-              <span className="text-2xl block mb-1">🎁</span>
-              <h3 className="font-black text-xs uppercase tracking-widest">
+              <span className="text-2xl block mb-1">🎉</span>
+              <h3 className="font-black text-sm uppercase tracking-widest drop-shadow-sm">
                 {t.loyaltyReward}
               </h3>
             </div>
@@ -647,26 +623,27 @@ export default function Menu() {
             <>
               <div className="flex justify-between items-center mb-2">
                 <span className="font-black text-[10px] uppercase tracking-widest text-gray-500">
-                  🌟 {t.loyaltyTitle}
+                  🎁 {t.loyaltyTitle}
                 </span>
-                <span
-                  className="font-black text-sm"
-                  style={{ color: themeColor }}
-                >
-                  {stamps} / 5
+                <span className="font-black text-xs px-2 py-0.5 bg-gray-100 rounded-lg text-gray-600">
+                  {currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€
                 </span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
                 <div
-                  className="h-2.5 rounded-full transition-all duration-1000"
+                  className="h-3 rounded-full transition-all duration-1000 ease-out"
                   style={{
-                    width: `${(stamps / 5) * 100}%`,
+                    width: `${progressPercent}%`,
                     backgroundColor: themeColor,
                   }}
                 ></div>
               </div>
-              <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">
-                {t.loyaltySteps}
+              <p className="text-[10px] font-bold text-gray-400 mt-2 text-center uppercase">
+                {lang === "gr"
+                  ? `Πρόσθεσε ${remainingAmount.toFixed(
+                      2
+                    )}€ ακόμα για δωρεάν κέρασμα!`
+                  : `Add ${remainingAmount.toFixed(2)}€ more for a free treat!`}
               </p>
             </>
           )}
@@ -1113,7 +1090,9 @@ export default function Menu() {
                 {t.viewCart}
               </span>
             </div>
-            <span className="font-black text-lg">{totalPrice}€</span>
+            <span className="font-black text-lg">
+              {currentCartTotal.toFixed(2)}€
+            </span>
           </button>
         </div>
       )}
@@ -1271,7 +1250,7 @@ export default function Menu() {
                     ? t.send
                     : t.selPay}
                 </span>
-                <span className="text-xl">{totalPrice}€</span>
+                <span className="text-xl">{currentCartTotal.toFixed(2)}€</span>
               </button>
             )}
           </div>
