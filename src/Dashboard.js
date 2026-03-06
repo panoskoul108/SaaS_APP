@@ -68,7 +68,9 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
+  // POS (Ταμείο) State
   const [isPosOpen, setIsPosOpen] = useState(false);
+  const [isPosCartOpen, setIsPosCartOpen] = useState(false); // Για κινητά
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
@@ -78,7 +80,7 @@ export default function Dashboard() {
   const [posAddonSelections, setPosAddonSelections] = useState({});
   const [posQuantity, setPosQuantity] = useState(1);
   const [posCurrentNote, setPosCurrentNote] = useState("");
-  const [editingCartId, setEditingCartId] = useState(null); // Προσθήκη state για επεξεργασία!
+  const [editingCartId, setEditingCartId] = useState(null);
 
   // --- ΛΟΓΙΚΗ ΓΙΑ ΤΗΝ ΩΡΑ (ΓΙΑ ΤΟ ΠΡΩΙΝΟ) ---
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
@@ -132,7 +134,7 @@ export default function Dashboard() {
       .order("name", { ascending: true });
 
     if (data) {
-      // Καθαρίζουμε τους τόνους και εδώ στο POS
+      // Καθαρίζουμε τους τόνους
       const cleanedProducts = data.map((prod) => {
         const cleanedProd = {
           ...prod,
@@ -247,7 +249,7 @@ export default function Dashboard() {
     setTab("orders");
   };
 
-  // POS Φιλτράρισμα Προϊόντων
+  // --- POS ΦΙΛΤΡΑ & ΚΑΤΗΓΟΡΙΕΣ ---
   const posVisibleProducts = products.filter((p) => {
     if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
     return true;
@@ -379,6 +381,8 @@ export default function Dashboard() {
 
   const removeFromPosCart = (cartId) => {
     setPosCart(posCart.filter((item) => item.cartId !== cartId));
+    // Αν αδειάσει το καλάθι στο κινητό, κλείσε το modal του καλαθιού
+    if (posCart.length === 1) setIsPosCartOpen(false);
   };
 
   const submitPosOrder = async () => {
@@ -406,6 +410,7 @@ export default function Dashboard() {
     setPosGeneralNote("");
     setPosPayment("");
     setIsPosOpen(false);
+    setIsPosCartOpen(false);
     fetchData();
   };
 
@@ -1381,16 +1386,21 @@ export default function Dashboard() {
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ) --- */}
       {isPosOpen && (
-        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-4 print:hidden animate-fade-in">
-          <div className="bg-gray-100 w-full max-w-6xl h-[90vh] rounded-[2rem] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-slide-up">
-            <div className="flex-1 flex flex-col bg-white h-1/2 md:h-full">
+        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center md:p-4 print:hidden animate-fade-in">
+          <div className="bg-gray-100 w-full h-full md:max-w-6xl md:h-[90vh] md:rounded-[2rem] flex flex-col md:flex-row overflow-hidden shadow-2xl animate-slide-up relative">
+            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ -- */}
+            <div
+              className={`flex-1 flex-col bg-white h-full ${
+                isPosCartOpen ? "hidden md:flex" : "flex"
+              }`}
+            >
               <div className="p-4 border-b flex justify-between items-center bg-gray-50">
                 <h2 className="font-black text-lg italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
                 <button
                   onClick={() => setIsPosOpen(false)}
-                  className="md:hidden w-8 h-8 bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600"
+                  className="w-10 h-10 bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 hover:bg-gray-300 transition-colors"
                 >
                   ✕
                 </button>
@@ -1422,7 +1432,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50">
+              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 bg-gray-50 pb-28 md:pb-4">
                 {posFilteredProducts.map((p) => (
                   <button
                     key={p.id}
@@ -1440,17 +1450,32 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="w-full md:w-96 bg-gray-50 flex flex-col border-l border-gray-200 shadow-xl z-20 h-1/2 md:h-full">
+            {/* -- ΔΕΞΙΑ ΠΛΕΥΡΑ: ΚΑΛΑΘΙ ΤΑΜΕΙΟΥ -- */}
+            <div
+              className={`w-full md:w-96 bg-gray-50 flex-col border-l border-gray-200 shadow-xl z-20 h-full ${
+                isPosCartOpen ? "flex" : "hidden md:flex"
+              }`}
+            >
               <div className="p-4 border-b border-gray-200 flex justify-between items-center bg-white shadow-sm">
                 <h2 className="font-black text-lg italic uppercase text-gray-800">
                   ΚΑΛΑΘΙ ({posCart.length})
                 </h2>
-                <button
-                  onClick={() => setIsPosOpen(false)}
-                  className="hidden md:flex w-8 h-8 bg-gray-100 hover:bg-gray-200 rounded-full justify-center items-center font-bold text-gray-600 transition-colors"
-                >
-                  ✕
-                </button>
+                <div className="flex gap-2">
+                  {/* Κουμπί για κλείσιμο του καλαθιού στα κινητά */}
+                  <button
+                    onClick={() => setIsPosCartOpen(false)}
+                    className="md:hidden w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex justify-center items-center font-bold text-gray-600 transition-colors"
+                  >
+                    ✕
+                  </button>
+                  {/* Κουμπί για κλείσιμο όλου του POS (μόνο στο Desktop φαίνεται εδώ) */}
+                  <button
+                    onClick={() => setIsPosOpen(false)}
+                    className="hidden md:flex w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full justify-center items-center font-bold text-gray-600 transition-colors"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
@@ -1459,7 +1484,7 @@ export default function Dashboard() {
                     ΤΟ ΚΑΛΑΘΙ ΕΙΝΑΙ ΑΔΕΙΟ
                   </div>
                 ) : (
-                  posCart.map((item, index) => (
+                  posCart.map((item) => (
                     <div
                       key={item.cartId}
                       className="bg-white p-3 rounded-2xl border border-gray-200 shadow-sm relative overflow-hidden"
@@ -1588,10 +1613,36 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+
+            {/* ΠΛΩΤΟ ΚΟΥΜΠΙ ΚΑΛΑΘΙΟΥ ΓΙΑ ΤΑ ΚΙΝΗΤΑ */}
+            {!isPosCartOpen && posCart.length > 0 && (
+              <div className="md:hidden absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 via-white/80 to-transparent backdrop-blur-sm z-40">
+                <button
+                  onClick={() => setIsPosCartOpen(true)}
+                  className="w-full bg-blue-600 text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">
+                      {posCart.reduce((s, i) => s + (i.quantity || 1), 0)}
+                    </div>
+                    <span className="font-black uppercase text-xs tracking-widest">
+                      ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ
+                    </span>
+                  </div>
+                  <span className="font-black text-lg">
+                    {posCart
+                      .reduce((s, i) => s + i.price * (i.quantity || 1), 0)
+                      .toFixed(2)}
+                    €
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
 
+      {/* --- MODAL ΠΡΟΪΟΝΤΟΣ ΓΙΑ ΤΟ POS --- */}
       {posActiveProduct && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
