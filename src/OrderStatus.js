@@ -31,7 +31,7 @@ const DICT = {
     ready: "Ετοιμη",
     bar: "ΜΠΑΡ",
     kitchen: "ΚΟΥΖΙΝΑ",
-    statusSent: "ΕΣΤΑΛΗ 📝", // Προστέθηκε
+    statusSent: "ΕΣΤΑΛΗ 📝",
     statusReady: "ΕΤΟΙΜΑ ✅",
     statusPrep: "ΕΤΟΙΜΑΖΟΝΤΑΙ ⏳",
     statusReceived: "Η ΠΑΡΑΓΓΕΛΙΑ ΕΛΗΦΘΗ!",
@@ -42,7 +42,7 @@ const DICT = {
     summary: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ",
     total: "ΣΥΝΟΛΟ",
     payment: "ΠΛΗΡΩΜΗ",
-    newOrder: "ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ", // Προστέθηκε
+    newOrder: "ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ",
   },
   en: {
     reviewTitle: "How was your experience?",
@@ -65,7 +65,7 @@ const DICT = {
     ready: "Ready",
     bar: "BAR",
     kitchen: "KITCHEN",
-    statusSent: "SENT 📝", // Προστέθηκε
+    statusSent: "SENT 📝",
     statusReady: "READY ✅",
     statusPrep: "PREPARING ⏳",
     statusReceived: "ORDER RECEIVED!",
@@ -76,7 +76,7 @@ const DICT = {
     summary: "ORDER SUMMARY",
     total: "TOTAL",
     payment: "PAYMENT",
-    newOrder: "NEW ORDER", // Προστέθηκε
+    newOrder: "NEW ORDER",
   },
 };
 
@@ -85,6 +85,7 @@ export default function OrderStatus({
   onBack,
   lang = "gr",
   products = [],
+  theme = "light", // <-- ΠΑΙΡΝΟΥΜΕ ΤΟ THEME
 }) {
   const [order, setOrder] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
@@ -96,6 +97,7 @@ export default function OrderStatus({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const t = DICT[lang] || DICT.gr;
+  const isDark = theme === "dark"; // <-- ΕΛΕΓΧΟΣ ΓΙΑ DARK MODE
 
   useEffect(() => {
     if (!orderId) return;
@@ -216,17 +218,34 @@ export default function OrderStatus({
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex justify-center items-center">
+      <div
+        className={`min-h-screen flex justify-center items-center ${
+          isDark ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
         <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
 
+  // --- ΟΘΟΝΗ ΑΞΙΟΛΟΓΗΣΗΣ (REVIEWS) ---
   if (showReview) {
     return (
-      <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center p-6 animate-fade-in font-sans">
-        <div className="bg-white w-full max-w-md p-8 rounded-[2.5rem] shadow-xl text-center border border-gray-100">
-          <h2 className="text-2xl font-black italic uppercase text-gray-800 mb-2 tracking-tighter">
+      <div
+        className={`min-h-screen flex flex-col justify-center items-center p-6 animate-fade-in font-sans ${
+          isDark ? "bg-gray-900" : "bg-gray-50"
+        }`}
+      >
+        <div
+          className={`w-full max-w-md p-8 rounded-[2.5rem] shadow-xl text-center border ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
+          }`}
+        >
+          <h2
+            className={`text-2xl font-black italic uppercase mb-2 tracking-tighter ${
+              isDark ? "text-white" : "text-gray-800"
+            }`}
+          >
             {t.reviewTitle}
           </h2>
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-8">
@@ -241,6 +260,8 @@ export default function OrderStatus({
                 className={`text-5xl transition-all active:scale-90 ${
                   rating >= star
                     ? "text-yellow-400 drop-shadow-md"
+                    : isDark
+                    ? "text-gray-700"
                     : "text-gray-200"
                 }`}
               >
@@ -251,11 +272,25 @@ export default function OrderStatus({
 
           {rating >= 4 && (
             <div className="animate-slide-up">
-              <div className="bg-green-50 border border-green-200 p-4 rounded-2xl mb-6">
-                <p className="font-black text-green-700 text-sm uppercase">
+              <div
+                className={`p-4 rounded-2xl mb-6 border ${
+                  isDark
+                    ? "bg-green-900/20 border-green-800"
+                    : "bg-green-50 border-green-200"
+                }`}
+              >
+                <p
+                  className={`font-black text-sm uppercase ${
+                    isDark ? "text-green-400" : "text-green-700"
+                  }`}
+                >
                   {t.goodReviewTitle}
                 </p>
-                <p className="text-xs font-bold text-green-600 mt-1">
+                <p
+                  className={`text-xs font-bold mt-1 ${
+                    isDark ? "text-green-500" : "text-green-600"
+                  }`}
+                >
                   {t.goodReviewSub}
                 </p>
               </div>
@@ -272,7 +307,11 @@ export default function OrderStatus({
 
               <button
                 onClick={() => onBack(true)}
-                className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
+                className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+                  isDark
+                    ? "text-gray-500 hover:text-gray-300"
+                    : "text-gray-400 hover:text-gray-600"
+                }`}
               >
                 {t.skipReturn}
               </button>
@@ -281,11 +320,25 @@ export default function OrderStatus({
 
           {rating > 0 && rating <= 3 && (
             <div className="animate-slide-up text-left">
-              <div className="bg-orange-50 border border-orange-200 p-4 rounded-2xl mb-4 text-center">
-                <p className="font-black text-orange-700 text-sm uppercase">
+              <div
+                className={`p-4 rounded-2xl mb-4 text-center border ${
+                  isDark
+                    ? "bg-orange-900/20 border-orange-800"
+                    : "bg-orange-50 border-orange-200"
+                }`}
+              >
+                <p
+                  className={`font-black text-sm uppercase ${
+                    isDark ? "text-orange-400" : "text-orange-700"
+                  }`}
+                >
                   {t.badReviewTitle}
                 </p>
-                <p className="text-xs font-bold text-orange-600 mt-1">
+                <p
+                  className={`text-xs font-bold mt-1 ${
+                    isDark ? "text-orange-500" : "text-orange-600"
+                  }`}
+                >
                   {t.badReviewSub}
                 </p>
               </div>
@@ -294,14 +347,20 @@ export default function OrderStatus({
                 placeholder={t.placeholder}
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                className="w-full bg-gray-50 border border-gray-200 rounded-2xl p-4 text-sm focus:outline-none focus:border-orange-400 font-bold resize-none mb-4"
+                className={`w-full border rounded-2xl p-4 text-sm focus:outline-none focus:border-orange-400 font-bold resize-none mb-4 ${
+                  isDark
+                    ? "bg-gray-900 border-gray-700 text-white"
+                    : "bg-gray-50 border-gray-200"
+                }`}
               ></textarea>
               <button
                 onClick={submitFeedback}
                 disabled={feedback.trim() === "" || isSubmitting}
                 className={`w-full py-4 rounded-2xl font-black uppercase text-sm shadow-lg mb-3 transition-colors ${
                   feedback.trim() === ""
-                    ? "bg-gray-200 text-gray-400"
+                    ? isDark
+                      ? "bg-gray-700 text-gray-500"
+                      : "bg-gray-200 text-gray-400"
                     : "bg-orange-500 text-white hover:bg-orange-600"
                 }`}
               >
@@ -310,7 +369,11 @@ export default function OrderStatus({
               <div className="text-center">
                 <button
                   onClick={() => onBack(true)}
-                  className="text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
+                  className={`text-[10px] font-black uppercase tracking-widest transition-colors ${
+                    isDark
+                      ? "text-gray-500 hover:text-gray-300"
+                      : "text-gray-400 hover:text-gray-600"
+                  }`}
                 >
                   {t.skip}
                 </button>
@@ -321,7 +384,11 @@ export default function OrderStatus({
           {rating === 0 && (
             <button
               onClick={() => onBack(true)}
-              className="mt-4 text-[10px] font-black text-gray-400 uppercase tracking-widest hover:text-gray-600"
+              className={`mt-4 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                isDark
+                  ? "text-gray-500 hover:text-gray-300"
+                  : "text-gray-400 hover:text-gray-600"
+              }`}
             >
               {t.returnMenu}
             </button>
@@ -331,6 +398,7 @@ export default function OrderStatus({
     );
   }
 
+  // --- ΟΘΟΝΗ ΑΝΑΜΟΝΗΣ (ORDER STATUS) ---
   const hasKitchen = order.items?.some((i) => i.station === "kitchen");
   const hasBar = order.items?.some((i) => i.station !== "kitchen");
 
@@ -352,20 +420,46 @@ export default function OrderStatus({
   const isReady = overallStatus === "ready";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative pb-28 animate-fade-in">
-      <header className="p-6 bg-white shadow-sm text-center sticky top-0 z-20">
-        <h1 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">
+    <div
+      className={`min-h-screen flex flex-col font-sans relative pb-28 animate-fade-in ${
+        isDark ? "bg-gray-900" : "bg-gray-50"
+      }`}
+    >
+      <header
+        className={`p-6 shadow-sm text-center sticky top-0 z-20 ${
+          isDark
+            ? "bg-gray-900/90 border-b border-gray-800 backdrop-blur-md"
+            : "bg-white"
+        }`}
+      >
+        <h1
+          className={`text-xl font-black italic uppercase tracking-tighter ${
+            isDark ? "text-white" : "text-gray-800"
+          }`}
+        >
           {t.orderTitle}
         </h1>
-        <div className="mt-2 inline-block bg-blue-50 text-blue-600 px-4 py-1 rounded-full text-[10px] font-black uppercase italic tracking-widest">
+        <div
+          className={`mt-2 inline-block px-4 py-1 rounded-full text-[10px] font-black uppercase italic tracking-widest ${
+            isDark ? "bg-blue-900/30 text-blue-400" : "bg-blue-50 text-blue-600"
+          }`}
+        >
           {t.table} {order.table_number}
         </div>
       </header>
 
       <div className="p-6 flex-1 max-w-md mx-auto w-full">
-        <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 mb-6">
+        <div
+          className={`p-8 rounded-[2.5rem] shadow-sm border mb-6 ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
+          }`}
+        >
           <div className="flex justify-between items-center relative mb-8">
-            <div className="absolute top-1/2 left-0 right-0 h-1.5 bg-gray-100 -translate-y-1/2 z-0 rounded-full"></div>
+            <div
+              className={`absolute top-1/2 left-0 right-0 h-1.5 -translate-y-1/2 z-0 rounded-full ${
+                isDark ? "bg-gray-700" : "bg-gray-100"
+              }`}
+            ></div>
             <div
               className="absolute top-1/2 left-0 h-1.5 bg-blue-600 -translate-y-1/2 z-0 rounded-full transition-all duration-700 ease-in-out"
               style={{
@@ -378,6 +472,7 @@ export default function OrderStatus({
               }}
             ></div>
 
+            {/* Step 1: Sent */}
             <div className="relative z-10 flex flex-col items-center gap-3">
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
@@ -399,6 +494,7 @@ export default function OrderStatus({
               </span>
             </div>
 
+            {/* Step 2: Preparing */}
             <div className="relative z-10 flex flex-col items-center gap-3">
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
@@ -406,6 +502,8 @@ export default function OrderStatus({
                     ? overallStatus === "preparing"
                       ? "bg-blue-600 text-white animate-bounce"
                       : "bg-blue-600 text-white"
+                    : isDark
+                    ? "bg-gray-800 border-4 border-gray-700 text-gray-500"
                     : "bg-white border-4 border-gray-100 text-gray-300"
                 }`}
               >
@@ -422,11 +520,14 @@ export default function OrderStatus({
               </span>
             </div>
 
+            {/* Step 3: Ready */}
             <div className="relative z-10 flex flex-col items-center gap-3">
               <div
                 className={`w-12 h-12 rounded-full flex items-center justify-center text-xl shadow-md transition-all duration-500 ${
                   isReady
                     ? "bg-green-500 text-white animate-pulse shadow-green-200"
+                    : isDark
+                    ? "bg-gray-800 border-4 border-gray-700 text-gray-500"
                     : "bg-white border-4 border-gray-100 text-gray-300"
                 }`}
               >
@@ -448,10 +549,16 @@ export default function OrderStatus({
               <div
                 className={`flex-1 p-3 rounded-2xl text-center border-2 ${
                   barStat === "pending"
-                    ? "bg-blue-50 border-blue-200 text-blue-700" // Μπλε όταν είναι Pending
+                    ? isDark
+                      ? "bg-blue-900/20 border-blue-800 text-blue-400"
+                      : "bg-blue-50 border-blue-200 text-blue-700"
                     : barStat === "ready"
-                    ? "bg-green-50 border-green-200 text-green-700" // Πράσινο όταν είναι Ready
-                    : "bg-orange-50 border-orange-200 text-orange-700 animate-pulse" // Πορτοκαλί όταν Preparing
+                    ? isDark
+                      ? "bg-green-900/20 border-green-800 text-green-400"
+                      : "bg-green-50 border-green-200 text-green-700"
+                    : isDark
+                    ? "bg-orange-900/20 border-orange-800 text-orange-400 animate-pulse"
+                    : "bg-orange-50 border-orange-200 text-orange-700 animate-pulse"
                 }`}
               >
                 <div className="text-[9px] font-black uppercase tracking-widest opacity-70 mb-1">
@@ -469,9 +576,15 @@ export default function OrderStatus({
               <div
                 className={`flex-1 p-3 rounded-2xl text-center border-2 ${
                   kitStat === "pending"
-                    ? "bg-blue-50 border-blue-200 text-blue-700"
+                    ? isDark
+                      ? "bg-blue-900/20 border-blue-800 text-blue-400"
+                      : "bg-blue-50 border-blue-200 text-blue-700"
                     : kitStat === "ready"
-                    ? "bg-green-50 border-green-200 text-green-700"
+                    ? isDark
+                      ? "bg-green-900/20 border-green-800 text-green-400"
+                      : "bg-green-50 border-green-200 text-green-700"
+                    : isDark
+                    ? "bg-orange-900/20 border-orange-800 text-orange-400 animate-pulse"
                     : "bg-orange-50 border-orange-200 text-orange-700 animate-pulse"
                 }`}
               >
@@ -489,10 +602,20 @@ export default function OrderStatus({
             </div>
           )}
 
-          <div className="text-center bg-gray-50 p-4 rounded-2xl">
+          <div
+            className={`text-center p-4 rounded-2xl ${
+              isDark ? "bg-gray-900" : "bg-gray-50"
+            }`}
+          >
             <h2
               className={`text-lg font-black uppercase italic tracking-tighter ${
-                isReady ? "text-green-600" : "text-gray-800"
+                isReady
+                  ? isDark
+                    ? "text-green-400"
+                    : "text-green-600"
+                  : isDark
+                  ? "text-white"
+                  : "text-gray-800"
               }`}
             >
               {overallStatus === "pending" && t.statusReceived}
@@ -505,35 +628,62 @@ export default function OrderStatus({
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-gray-100">
-          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 border-b pb-2">
+        {/* SUMMARY ΚΑΡΤΑ */}
+        <div
+          className={`p-6 rounded-[2.5rem] shadow-sm border ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
+          }`}
+        >
+          <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-4 border-b pb-2 border-gray-200 dark:border-gray-700">
             {t.summary}
           </h3>
           <div className="space-y-3 mb-6">
             {order.items?.map((item, index) => (
               <div key={index} className="flex justify-between items-start">
                 <div className="flex-1">
-                  <span className="font-black uppercase text-sm text-gray-800">
+                  <span
+                    className={`font-black uppercase text-sm ${
+                      isDark ? "text-white" : "text-gray-800"
+                    }`}
+                  >
                     {item.quantity > 1 ? `${item.quantity}x ` : ""}
                     {getItemDisplayName(item)}
                   </span>
                   {item.note && (
-                    <p className="text-[10px] bg-yellow-50 text-yellow-700 px-2 py-1 rounded-lg mt-1 font-bold inline-block italic">
+                    <p
+                      className={`text-[10px] px-2 py-1 rounded-lg mt-1 font-bold inline-block italic ${
+                        isDark
+                          ? "bg-yellow-900/30 text-yellow-400"
+                          : "bg-yellow-50 text-yellow-700"
+                      }`}
+                    >
                       📝 {item.note}
                     </p>
                   )}
                 </div>
-                <span className="font-black text-blue-600">
+                <span
+                  className={`font-black ${
+                    isDark ? "text-blue-400" : "text-blue-600"
+                  }`}
+                >
                   {(item.price * (item.quantity || 1))?.toFixed(2)}€
                 </span>
               </div>
             ))}
           </div>
-          <div className="flex justify-between items-center pt-4 border-t border-dashed border-gray-200">
+          <div
+            className={`flex justify-between items-center pt-4 border-t border-dashed ${
+              isDark ? "border-gray-700" : "border-gray-200"
+            }`}
+          >
             <span className="font-black text-gray-400 text-xs uppercase tracking-widest">
               {t.total}
             </span>
-            <span className="font-black text-2xl italic tracking-tighter text-gray-900">
+            <span
+              className={`font-black text-2xl italic tracking-tighter ${
+                isDark ? "text-white" : "text-gray-900"
+              }`}
+            >
               {order.total_price?.toFixed(2)}€
             </span>
           </div>
@@ -550,11 +700,21 @@ export default function OrderStatus({
         </div>
       </div>
 
-      {/* ΚΟΥΜΠΙ ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ (ΠΑΝΤΑ ΟΡΑΤΟ ΣΤΟ ΚΑΤΩ ΜΕΡΟΣ) */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 z-30">
+      {/* ΚΟΥΜΠΙ ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ */}
+      <div
+        className={`fixed bottom-0 left-0 right-0 p-4 backdrop-blur-md border-t z-30 ${
+          isDark
+            ? "bg-gray-900/90 border-gray-800"
+            : "bg-white/90 border-gray-100"
+        }`}
+      >
         <button
           onClick={() => onBack(false)}
-          className="w-full bg-blue-50 text-blue-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors shadow-sm border border-blue-100"
+          className={`w-full py-4 rounded-2xl font-black uppercase text-xs tracking-widest transition-colors shadow-sm border ${
+            isDark
+              ? "bg-blue-900/30 text-blue-400 border-blue-900/50 hover:bg-blue-900/50"
+              : "bg-blue-50 text-blue-600 border-blue-100 hover:bg-blue-100"
+          }`}
         >
           {t.newOrder}
         </button>

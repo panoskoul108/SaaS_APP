@@ -522,12 +522,14 @@ export default function Menu() {
       : baseName;
   };
 
+  // --- ΕΔΩ ΠΕΡΝΑΜΕ ΤΟ THEME ΣΤΟ ORDER STATUS ---
   if (lastOrderId && lastOrderId !== "null") {
     return (
       <OrderStatus
         orderId={lastOrderId}
         lang={lang}
         products={products}
+        theme={theme}
         onBack={(clearTable) => {
           setLastOrderId(null);
           localStorage.removeItem("lastOrderId");
