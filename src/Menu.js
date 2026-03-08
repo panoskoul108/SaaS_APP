@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 import OrderStatus from "./OrderStatus";
 import CartModal from "./CartModal";
-import ProductModal from "./ProductModal"; // <-- ΝΕΟ IMPORT
+import ProductModal from "./ProductModal";
 
 const SUPABASE_URL = "https://vgyzevaxkayyobopznyr.supabase.co";
 const SUPABASE_ANON_KEY =
@@ -15,11 +15,21 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
-const REWARD_THRESHOLD = 40;
+const REWARD_THRESHOLD = 25;
 
 const removeAccents = (str) => {
   if (!str) return str;
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+};
+
+// ΕΙΔΙΚΗ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΤΗΝ ΑΝΑΖΗΤΗΣΗ (Αγνοεί τόνους, κεφαλαία και το τελικό ς)
+const normalizeForSearch = (str) => {
+  if (!str) return "";
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Βγάζει τόνους
+    .toLowerCase() // Τα κάνει όλα μικρά
+    .replace(/ς/g, "σ"); // Κάνει το τελικό ς -> σ για να μη μπερδεύεται
 };
 
 const CATEGORY_ORDER = [
@@ -571,12 +581,13 @@ export default function Menu() {
   const placeholderImg =
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 
+  // --- ΕΔΩ ΕΦΑΡΜΟΖΕΤΑΙ Η ΝΕΑ ΛΟΓΙΚΗ ΑΝΑΖΗΤΗΣΗΣ ---
   const filteredProducts = searchQuery
     ? visibleProducts.filter((p) => {
-        const searchLow = removeAccents(searchQuery.toLowerCase());
-        const matchGr = p.name.toLowerCase().includes(searchLow);
+        const searchNorm = normalizeForSearch(searchQuery);
+        const matchGr = normalizeForSearch(p.name).includes(searchNorm);
         const matchEn = p.name_en
-          ? p.name_en.toLowerCase().includes(searchLow)
+          ? normalizeForSearch(p.name_en).includes(searchNorm)
           : false;
         return matchGr || matchEn;
       })
@@ -1013,7 +1024,6 @@ export default function Menu() {
         )}
       </div>
 
-      {/* ΕΙΣΑΓΩΓΗ ΤΟΥ ΝΕΟΥ PRODUCT MODAL */}
       <ProductModal
         activeProduct={activeProduct}
         lang={lang}
@@ -1030,7 +1040,6 @@ export default function Menu() {
         confirmAddons={confirmAddons}
       />
 
-      {/* ΚΟΥΜΠΙ ΠΡΟΒΟΛΗΣ ΚΑΛΑΘΙΟΥ */}
       {cart.length > 0 && !isCartOpen && !activeProduct && (
         <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 via-white/80 to-transparent backdrop-blur-sm z-40">
           <button
@@ -1055,7 +1064,6 @@ export default function Menu() {
         </div>
       )}
 
-      {/* ΕΙΣΑΓΩΓΗ ΤΟΥ CART MODAL */}
       <CartModal
         isCartOpen={isCartOpen}
         setIsCartOpen={setIsCartOpen}
