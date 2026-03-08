@@ -63,12 +63,12 @@ export default function Dashboard() {
 
   const [isPrinting, setIsPrinting] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
-  const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
   // --- POS STATE ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
+  const [posSearch, setPosSearch] = useState(""); // <-- ΝΕΟ: Για αναζήτηση προϊόντων
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
   const [posPayment, setPosPayment] = useState("");
@@ -216,7 +216,7 @@ export default function Dashboard() {
     setIsAcceptingOrders(newStatus);
   };
 
-  // --- ΔΙΟΡΘΩΜΕΝΗ ΛΕΙΤΟΥΡΓΙΑ ΛΗΨΗΣ QR ΜΕ PROXY ---
+  // --- ΑΣΦΑΛΗΣ ΛΗΨΗ QR CODE ---
   const downloadQR = async (tableNumber) => {
     try {
       const qrData = encodeURIComponent(
@@ -224,7 +224,6 @@ export default function Dashboard() {
       );
       const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
 
-      // Χρησιμοποιούμε έναν proxy για να παρακάμψουμε το CORS του Browser
       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
         url
       )}`;
@@ -241,7 +240,6 @@ export default function Dashboard() {
       document.body.removeChild(link);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      // Αν αποτύχει ο proxy, το ανοίγουμε σε νέα καρτέλα!
       const qrData = encodeURIComponent(
         `${window.location.origin}/?store=${storeId}&table=${tableNumber}`
       );
@@ -263,20 +261,24 @@ export default function Dashboard() {
     return true;
   });
 
-  const posCategories = [
-    ...new Set(posVisibleProducts.map((p) => p.category)),
-  ].sort((a, b) => {
-    let idxA = CATEGORY_ORDER.indexOf(a);
-    let idxB = CATEGORY_ORDER.indexOf(b);
-    if (idxA === -1) idxA = 999;
-    if (idxB === -1) idxB = 999;
-    return idxA - idxB;
-  });
+  const posCategories = [...new Set(posVisibleProducts.map((p) => p.category))]
+    .filter(Boolean)
+    .sort((a, b) => {
+      let idxA = CATEGORY_ORDER.indexOf(a);
+      let idxB = CATEGORY_ORDER.indexOf(b);
+      if (idxA === -1) idxA = 999;
+      if (idxB === -1) idxB = 999;
+      return idxA - idxB;
+    });
 
-  const posFilteredProducts =
-    posCategory === "ΟΛΑ"
-      ? posVisibleProducts
-      : posVisibleProducts.filter((p) => p.category === posCategory);
+  // ΕΔΩ ΕΙΝΑΙ ΤΟ ΦΙΛΤΡΟ (Κατηγορία + Μπάρα Αναζήτησης)
+  const posFilteredProducts = posVisibleProducts.filter((p) => {
+    const matchesCategory = posCategory === "ΟΛΑ" || p.category === posCategory;
+    const matchesSearch = p.name
+      .toLowerCase()
+      .includes(posSearch.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const handlePosProductClick = (product) => {
     const initialSels = {};
@@ -1358,7 +1360,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* --- ΕΔΩ ΕΠΑΝΑΦΕΡΑΜΕ ΤΑ ΤΡΑΠΕΖΙΑ ΟΠΩΣ ΗΤΑΝ! (Με click ανοίγει το Modal) --- */}
+        {/* --- ΣΕΛΙΔΑ ΜΕ ΤΑ ΤΡΑΠΕΖΙΑ --- */}
         {tab === "tables" && userRole === "admin" && (
           <div className="max-w-6xl mx-auto pb-20">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -1410,24 +1412,38 @@ export default function Dashboard() {
                 isPosCartOpen ? "hidden lg:flex" : "flex"
               }`}
             >
-              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+              {/* Header Καταλόγου & ΜΠΑΡΑ ΑΝΑΖΗΤΗΣΗΣ (ΝΕΟ) */}
+              <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 shrink-0 gap-3">
                 <h2 className="font-black text-xl italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
-                <button
-                  onClick={() => setIsPosOpen(false)}
-                  className="lg:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
-                >
-                  ✕
-                </button>
+                <div className="flex w-full sm:w-auto gap-2 items-center">
+                  <input
+                    type="text"
+                    placeholder="🔍 Αναζήτηση..."
+                    value={posSearch}
+                    onChange={(e) => setPosSearch(e.target.value)}
+                    className="flex-1 sm:w-64 px-4 py-2 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:border-blue-500 shadow-inner"
+                  />
+                  <button
+                    onClick={() => setIsPosOpen(false)}
+                    className="lg:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors shrink-0"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
-              <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0">
+              {/* Φίλτρα Κατηγοριών (ΕΜΦΑΝΗ ΠΑΝΤΑ) */}
+              <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0 bg-white shadow-sm z-10">
                 <button
-                  onClick={() => setPosCategory("ΟΛΑ")}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                  onClick={() => {
+                    setPosCategory("ΟΛΑ");
+                    setPosSearch("");
+                  }}
+                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all ${
                     posCategory === "ΟΛΑ"
-                      ? "bg-blue-600 text-white shadow-md"
+                      ? "bg-blue-600 text-white shadow-md scale-105"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -1436,10 +1452,13 @@ export default function Dashboard() {
                 {posCategories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setPosCategory(cat)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
+                    onClick={() => {
+                      setPosCategory(cat);
+                      setPosSearch("");
+                    }}
+                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all ${
                       posCategory === cat
-                        ? "bg-blue-600 text-white shadow-md"
+                        ? "bg-blue-600 text-white shadow-md scale-105"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
@@ -1465,7 +1484,6 @@ export default function Dashboard() {
                 ))}
               </div>
 
-              {/* Πλωτό κουμπί μόνο για κινητά */}
               {!isPosCartOpen && posCart.length > 0 && (
                 <div className="lg:hidden absolute bottom-4 left-4 right-4 z-50">
                   <button
@@ -1811,7 +1829,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* --- MODAL ΓΙΑ ΤΟ QR CODE ΤΩΝ ΤΡΑΠΕΖΙΩΝ (Όταν πατάς ένα τραπέζι) --- */}
+      {/* --- MODAL ΛΗΨΗΣ QR CODE ΟΤΑΝ ΠΑΤΑΣ ΕΝΑ ΤΡΑΠΕΖΙ --- */}
       {selectedTableForQR && userRole === "admin" && (
         <div
           className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 print:bg-white print:p-0 animate-fade-in"
