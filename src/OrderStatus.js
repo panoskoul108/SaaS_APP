@@ -31,6 +31,7 @@ const DICT = {
     ready: "Ετοιμη",
     bar: "ΜΠΑΡ",
     kitchen: "ΚΟΥΖΙΝΑ",
+    statusSent: "ΕΣΤΑΛΗ 📝", // Προστέθηκε
     statusReady: "ΕΤΟΙΜΑ ✅",
     statusPrep: "ΕΤΟΙΜΑΖΟΝΤΑΙ ⏳",
     statusReceived: "Η ΠΑΡΑΓΓΕΛΙΑ ΕΛΗΦΘΗ!",
@@ -41,6 +42,7 @@ const DICT = {
     summary: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ",
     total: "ΣΥΝΟΛΟ",
     payment: "ΠΛΗΡΩΜΗ",
+    newOrder: "ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ", // Προστέθηκε
   },
   en: {
     reviewTitle: "How was your experience?",
@@ -63,6 +65,7 @@ const DICT = {
     ready: "Ready",
     bar: "BAR",
     kitchen: "KITCHEN",
+    statusSent: "SENT 📝", // Προστέθηκε
     statusReady: "READY ✅",
     statusPrep: "PREPARING ⏳",
     statusReceived: "ORDER RECEIVED!",
@@ -73,6 +76,7 @@ const DICT = {
     summary: "ORDER SUMMARY",
     total: "TOTAL",
     payment: "PAYMENT",
+    newOrder: "NEW ORDER", // Προστέθηκε
   },
 };
 
@@ -106,7 +110,7 @@ export default function OrderStatus({
         .single();
 
       if (data && isMounted) {
-        setOrder(data); // <--- ΑΥΤΟ ΕΛΕΙΠΕ ΚΑΙ ΕΚΑΝΕ ΤΗΝ ΑΞΙΟΛΟΓΗΣΗ ΝΑ ΜΗΝ ΦΑΙΝΕΤΑΙ
+        setOrder(data);
 
         const { data: storeData } = await supabase
           .from("stores")
@@ -133,7 +137,7 @@ export default function OrderStatus({
         .single();
 
       if (data && isMounted) {
-        setOrder(data); // ΠΑΝΤΑ ΕΝΗΜΕΡΩΝΟΥΜΕ ΤΑ ΔΕΔΟΜΕΝΑ
+        setOrder(data);
 
         if (data.status === "completed") {
           clearInterval(interval);
@@ -210,7 +214,6 @@ export default function OrderStatus({
       : baseName;
   };
 
-  // Προστασία αν δεν έχει φορτώσει ακόμα η παραγγελία
   if (!order) {
     return (
       <div className="min-h-screen bg-gray-50 flex justify-center items-center">
@@ -349,7 +352,7 @@ export default function OrderStatus({
   const isReady = overallStatus === "ready";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative pb-20 animate-fade-in">
+    <div className="min-h-screen bg-gray-50 flex flex-col font-sans relative pb-28 animate-fade-in">
       <header className="p-6 bg-white shadow-sm text-center sticky top-0 z-20">
         <h1 className="text-xl font-black italic uppercase tracking-tighter text-gray-800">
           {t.orderTitle}
@@ -439,35 +442,48 @@ export default function OrderStatus({
             </div>
           </div>
 
-          {/* ΕΔΩ ΕΜΦΑΝΙΖΕΤΑΙ ΤΟ ΚΟΥΖΙΝΑ/ΜΠΑΡ ΞΕΧΩΡΙΣΤΑ */}
+          {/* ΠΛΑΙΣΙΑ BAR ΚΑΙ ΚΟΥΖΙΝΑΣ */}
           {hasKitchen && hasBar && !isReady && (
             <div className="flex gap-3 mb-6">
               <div
                 className={`flex-1 p-3 rounded-2xl text-center border-2 ${
-                  barStat === "ready"
-                    ? "bg-green-50 border-green-200 text-green-700"
-                    : "bg-orange-50 border-orange-200 text-orange-700"
+                  barStat === "pending"
+                    ? "bg-blue-50 border-blue-200 text-blue-700" // Μπλε όταν είναι Pending
+                    : barStat === "ready"
+                    ? "bg-green-50 border-green-200 text-green-700" // Πράσινο όταν είναι Ready
+                    : "bg-orange-50 border-orange-200 text-orange-700 animate-pulse" // Πορτοκαλί όταν Preparing
                 }`}
               >
                 <div className="text-[9px] font-black uppercase tracking-widest opacity-70 mb-1">
                   🍹 {t.bar}
                 </div>
                 <div className="text-xs font-black">
-                  {barStat === "ready" ? t.statusReady : t.statusPrep}
+                  {barStat === "pending"
+                    ? t.statusSent
+                    : barStat === "ready"
+                    ? t.statusReady
+                    : t.statusPrep}
                 </div>
               </div>
+
               <div
                 className={`flex-1 p-3 rounded-2xl text-center border-2 ${
-                  kitStat === "ready"
+                  kitStat === "pending"
+                    ? "bg-blue-50 border-blue-200 text-blue-700"
+                    : kitStat === "ready"
                     ? "bg-green-50 border-green-200 text-green-700"
-                    : "bg-orange-50 border-orange-200 text-orange-700"
+                    : "bg-orange-50 border-orange-200 text-orange-700 animate-pulse"
                 }`}
               >
                 <div className="text-[9px] font-black uppercase tracking-widest opacity-70 mb-1">
                   🍳 {t.kitchen}
                 </div>
                 <div className="text-xs font-black">
-                  {kitStat === "ready" ? t.statusReady : t.statusPrep}
+                  {kitStat === "pending"
+                    ? t.statusSent
+                    : kitStat === "ready"
+                    ? t.statusReady
+                    : t.statusPrep}
                 </div>
               </div>
             </div>
@@ -532,6 +548,16 @@ export default function OrderStatus({
             </span>
           </div>
         </div>
+      </div>
+
+      {/* ΚΟΥΜΠΙ ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ (ΠΑΝΤΑ ΟΡΑΤΟ ΣΤΟ ΚΑΤΩ ΜΕΡΟΣ) */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-100 z-30">
+        <button
+          onClick={() => onBack(false)}
+          className="w-full bg-blue-50 text-blue-600 py-4 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-100 transition-colors shadow-sm border border-blue-100"
+        >
+          {t.newOrder}
+        </button>
       </div>
     </div>
   );
