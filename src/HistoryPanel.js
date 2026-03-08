@@ -68,15 +68,15 @@ export default function HistoryPanel({
               setSpecificDate(e.target.value);
               if (e.target.value) setDateRange("specific");
             }}
-            className={`ml-2 px-3 py-2 rounded-xl text-xs font-bold uppercase ${
+            className={`ml-2 px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all shadow-sm cursor-pointer outline-none border border-transparent ${
               isKitchen ? "bg-gray-700 text-white" : "bg-white"
             } ${dateRange === "specific" ? "ring-2 ring-blue-500" : ""}`}
           />
         </div>
         <input
           type="text"
-          placeholder="Αναζήτηση..."
-          className={`px-4 py-3 rounded-2xl text-sm font-bold ${
+          placeholder="Αναζήτηση Τράπεζας..."
+          className={`px-4 py-3 rounded-2xl text-sm font-bold shadow-inner ${
             isKitchen ? "bg-gray-900 text-white" : "bg-gray-50"
           }`}
           value={historySearch}
@@ -84,24 +84,46 @@ export default function HistoryPanel({
         />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-white font-black italic">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           className={`${
             isKitchen ? "bg-orange-600" : "bg-blue-600"
-          } p-6 rounded-[2rem] shadow-lg`}
+          } text-white p-6 rounded-[2rem] shadow-lg flex flex-col justify-between`}
         >
-          <span className="text-[10px] uppercase opacity-80">Τζίρος</span>
-          <p className="text-4xl mt-2">{totalRevenue.toFixed(2)}€</p>
+          <span className="text-[10px] font-black uppercase tracking-widest opacity-80">
+            Συνολικός Τζίρος
+          </span>
+          <span className="text-4xl font-black italic mt-2">
+            {totalRevenue.toFixed(2)}€
+          </span>
         </div>
-        <div className="bg-gray-800 p-6 rounded-[2rem] shadow-sm">
-          <span className="text-[10px] uppercase text-gray-400">
+        <div
+          className={`${
+            isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+          } p-6 rounded-[2rem] shadow-sm flex flex-col justify-between border ${
+            isKitchen ? "border-gray-700" : "border-gray-100"
+          }`}
+        >
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
             Παραγγελίες
           </span>
-          <p className="text-4xl mt-2">{totalOrdersCount}</p>
+          <span className="text-4xl font-black italic mt-2">
+            {totalOrdersCount}
+          </span>
         </div>
-        <div className="bg-gray-800 p-6 rounded-[2rem] shadow-sm">
-          <span className="text-[10px] uppercase text-gray-400">Μέση Αξία</span>
-          <p className="text-4xl mt-2">{avgOrderValue.toFixed(2)}€</p>
+        <div
+          className={`${
+            isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-800"
+          } p-6 rounded-[2rem] shadow-sm flex flex-col justify-between border ${
+            isKitchen ? "border-gray-700" : "border-gray-100"
+          }`}
+        >
+          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+            Μέση Αξία / Παρ.
+          </span>
+          <span className="text-4xl font-black italic mt-2">
+            {avgOrderValue.toFixed(2)}€
+          </span>
         </div>
       </div>
 
@@ -162,7 +184,7 @@ export default function HistoryPanel({
                   }`}
                 >
                   <div
-                    className={`h-full rounded-xl ${
+                    className={`h-full rounded-xl transition-all duration-1000 ${
                       isKitchen ? "bg-orange-900" : "bg-blue-100"
                     }`}
                     style={{ width: `${(count / maxProductCount) * 100}%` }}
@@ -199,7 +221,7 @@ export default function HistoryPanel({
                   }`}
                 >
                   <div
-                    className={`h-full rounded-xl ${
+                    className={`h-full rounded-xl transition-all duration-1000 ${
                       isKitchen ? "bg-orange-900" : "bg-orange-100"
                     }`}
                     style={{ width: `${(count / maxHourCount) * 100}%` }}
@@ -214,7 +236,7 @@ export default function HistoryPanel({
       <div className="pt-4">
         <div className="flex justify-between items-center mb-4 px-2">
           <h3
-            className={`text-lg font-black italic uppercase ${
+            className={`text-lg font-black italic uppercase tracking-tighter ${
               isKitchen ? "text-white" : "text-gray-800"
             }`}
           >
@@ -230,7 +252,7 @@ export default function HistoryPanel({
                   : "bg-gray-100 text-gray-300"
               }`}
             >
-              ΔΙΑΓΡΑΦΗ ΕΠΙΛΕΓΜΕΝΩΝ
+              ΔΙΑΓΡΑΦΗ ΕΠΙΛΕΓΜΕΝΩΝ ({selectedOrderIds.length})
             </button>
           )}
         </div>
@@ -268,7 +290,7 @@ export default function HistoryPanel({
                 </p>
               </div>
               <span
-                className={`font-black text-lg ${
+                className={`font-black text-lg tracking-tighter ${
                   isKitchen ? "text-white" : "text-gray-800"
                 }`}
               >

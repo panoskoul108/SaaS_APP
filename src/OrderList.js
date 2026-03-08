@@ -38,6 +38,9 @@ export default function OrderList({
             <span className="font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2">
               🎁 ΠΕΛΑΤΗΣ LOYALTY
             </span>
+            <p className="text-xs font-bold mt-1">
+              Δικαιούται δώρο με αυτή την παραγγελία!
+            </p>
           </div>
         )}
 
@@ -75,6 +78,9 @@ export default function OrderList({
                 : "bg-blue-50 border-blue-100 text-blue-800"
             }`}
           >
+            <span className="font-black text-[9px] uppercase tracking-widest">
+              ΣΗΜΕΙΩΣΗ:
+            </span>
             <p className="text-xs font-bold italic">{order.general_note}</p>
           </div>
         )}
@@ -202,6 +208,12 @@ export default function OrderList({
           return stat === s;
         });
 
+        const labelMap = {
+          pending: "ΝΕΕΣ",
+          preparing: "ΕΤΟΙΜΑΖΟΝΤΑΙ",
+          ready: "ΕΤΟΙΜΕΣ",
+        };
+
         return (
           <div
             key={s}
@@ -226,13 +238,7 @@ export default function OrderList({
                   : "text-green-700"
               }`}
             >
-              {idx + 1}.{" "}
-              {s === "pending"
-                ? "ΝΕΕΣ"
-                : s === "preparing"
-                ? "ΕΤΟΙΜΑΖΟΝΤΑΙ"
-                : "ΕΤΟΙΜΕΣ"}{" "}
-              ({columnOrders.length})
+              {idx + 1}. {labelMap[s]} ({columnOrders.length})
             </h2>
             {columnOrders.map((o) => (
               <OrderCard key={o.id} order={o} />

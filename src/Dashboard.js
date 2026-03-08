@@ -75,7 +75,16 @@ export default function Dashboard() {
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
 
-  const currentHour = new Date().getHours();
+  // Ρολόι για το πρωινό
+  const [currentHour, setCurrentHour] = useState(new Date().getHours());
+  useEffect(() => {
+    const interval = setInterval(
+      () => setCurrentHour(new Date().getHours()),
+      60000
+    );
+    return () => clearInterval(interval);
+  }, []);
+
   const isMorning = currentHour >= 6 && currentHour < 14;
   const isKitchen = userRole === "kitchen";
 
@@ -113,14 +122,29 @@ export default function Dashboard() {
       .eq("store_id", storeId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
-    if (data)
-      setProducts(
-        data.map((p) => ({
-          ...p,
-          name: removeAccents(p.name),
-          category: removeAccents(p.category),
-        }))
-      );
+    if (data) {
+      const cleanedProducts = data.map((prod) => {
+        const cleanedProd = {
+          ...prod,
+          name: removeAccents(prod.name),
+          name_en: removeAccents(prod.name_en),
+          description: removeAccents(prod.description),
+          category: removeAccents(prod.category),
+        };
+        if (cleanedProd.addons) {
+          cleanedProd.addons = cleanedProd.addons.map((g) => ({
+            ...g,
+            name: removeAccents(g.name),
+            options: g.options.map((opt) => ({
+              ...opt,
+              name: removeAccents(opt.name),
+            })),
+          }));
+        }
+        return cleanedProd;
+      });
+      setProducts(cleanedProducts);
+    }
   };
 
   useEffect(() => {
@@ -202,17 +226,27 @@ export default function Dashboard() {
     }
   };
 
-  // POS LOGIC
-  const posVisibleProducts = products.filter((p) =>
-    p.category === "ΠΡΩΙΝΟ" ? isMorning : true
-  );
+  // ----- OI ΜΕΤΑΒΛΗΤΕΣ ΠΟΥ ΕΛΕΙΠΑΝ -----
+  const posVisibleProducts = products.filter((p) => {
+    if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
+    return true;
+  });
+
   const posCategories = [
     ...new Set(posVisibleProducts.map((p) => p.category)),
-  ].sort((a, b) => CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b));
+  ].sort((a, b) => {
+    let idxA = CATEGORY_ORDER.indexOf(a);
+    let idxB = CATEGORY_ORDER.indexOf(b);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
+  });
+
   const posFilteredProducts =
     posCategory === "ΟΛΑ"
       ? posVisibleProducts
       : posVisibleProducts.filter((p) => p.category === posCategory);
+  // --------------------------------------
 
   const handlePosProductClick = (p) => {
     const initial = {};
@@ -348,8 +382,7 @@ export default function Dashboard() {
     URL.revokeObjectURL(url);
   };
 
-  // HISTORY CALCULATIONS
-  const historyOrders = orders.filter((o) => {
+  const historyOrdersList = orders.filter((o) => {
     if (o.status !== "completed") return false;
     const date = new Date(o.created_at);
     const table = String(o.table_number || "").toLowerCase();
@@ -373,7 +406,7 @@ export default function Dashboard() {
     );
   });
 
-  const totalRevenue = historyOrders.reduce(
+  const totalRevenue = historyOrdersList.reduce(
     (sum, o) =>
       sum +
       (isKitchen
@@ -383,9 +416,9 @@ export default function Dashboard() {
         : o.total_price),
     0
   );
-  const totalOrdersCount = historyOrders.length;
+  const totalOrdersCount = historyOrdersList.length;
   const avgOrderValue = totalOrdersCount ? totalRevenue / totalOrdersCount : 0;
-  const cashTotal = historyOrders
+  const cashTotal = historyOrdersList
     .filter((o) => o.payment_method === "ΜΕΤΡΗΤΑ")
     .reduce(
       (sum, o) =>
@@ -405,7 +438,7 @@ export default function Dashboard() {
   ];
 
   const productCounts = {};
-  historyOrders.forEach((o) =>
+  historyOrdersList.forEach((o) =>
     o.items?.forEach((it) => {
       if (!isKitchen || it.station === "kitchen")
         productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity;
@@ -415,7 +448,7 @@ export default function Dashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
   const hourCounts = {};
-  historyOrders.forEach((o) => {
+  historyOrdersList.forEach((o) => {
     const h = new Date(o.created_at).getHours() + ":00";
     hourCounts[h] = (hourCounts[h] || 0) + 1;
   });
@@ -459,7 +492,7 @@ export default function Dashboard() {
           >
             {storeName?.toUpperCase()}{" "}
             <span className={isKitchen ? "text-orange-500" : "text-blue-600"}>
-              {userRole?.toUpperCase()}
+              {isKitchen ? "ΚΟΥΖΙΝΑ" : userRole === "admin" ? "ADMIN" : "ΜΠΑΡ"}
             </span>
           </h1>
           <div className="flex gap-2 items-center">
@@ -483,7 +516,6 @@ export default function Dashboard() {
                 {isAcceptingOrders ? "🟢 ON" : "🔴 OFF"}
               </button>
             )}
-
             {userRole === "admin" && (
               <button
                 onClick={toggleBackupMode}
@@ -496,7 +528,6 @@ export default function Dashboard() {
                 Backup: {backupMode ? "ON" : "OFF"}
               </button>
             )}
-
             <button onClick={() => setIsMuted(!isMuted)} className="text-lg">
               {isMuted ? "🔇" : "🔊"}
             </button>
@@ -508,7 +539,6 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
-
         <div
           className={`flex border-b px-4 py-2 gap-2 sticky top-[65px] z-20 shadow-sm ${
             isKitchen ? "bg-gray-900 border-gray-800" : "bg-white"
@@ -521,6 +551,14 @@ export default function Dashboard() {
               (t === "tables" || t === "products" || t === "reviews")
             )
               return null;
+            if (t === "reviews" && userRole !== "admin") return null;
+            const labelMap = {
+              orders: "ΠΑΡΑΓΓΕΛΙΕΣ",
+              tables: "ΤΡΑΠΕΖΙΑ",
+              reviews: "ΚΡΙΤΙΚΕΣ",
+              history: "ΙΣΤΟΡΙΚΟ",
+              products: "ΚΑΤΑΛΟΓΟΣ",
+            };
             return (
               <button
                 key={t}
@@ -529,7 +567,7 @@ export default function Dashboard() {
                   tab === t ? "bg-black text-white" : "bg-gray-50 text-gray-400"
                 }`}
               >
-                {t.toUpperCase()}
+                {labelMap[t]}
               </button>
             );
           })}
@@ -549,7 +587,6 @@ export default function Dashboard() {
             setIsPrinting={setIsPrinting}
           />
         )}
-
         {tab === "history" && (
           <HistoryPanel
             isKitchen={isKitchen}
@@ -567,14 +604,55 @@ export default function Dashboard() {
             cardTotal={cardTotal}
             topProducts={topProducts}
             peakHours={peakHours}
-            historyOrders={historyOrders}
+            historyOrders={historyOrdersList}
             selectedOrderIds={selectedOrderIds}
             setSelectedOrderIds={setSelectedOrderIds}
             deleteOrders={deleteOrders}
             downloadReportFile={downloadReportFile}
           />
         )}
-
+        {tab === "reviews" && userRole === "admin" && (
+          <div className="max-w-6xl mx-auto space-y-6 pb-20">
+            <h2 className="font-black text-2xl uppercase italic tracking-tighter text-gray-800 border-b pb-4">
+              Εσωτερικές Κριτικές
+            </h2>
+            {reviews.length === 0 ? (
+              <p className="text-center text-gray-400 font-bold uppercase text-sm">
+                Δεν υπάρχουν κριτικές!
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {reviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 flex flex-col gap-3"
+                  >
+                    <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+                      <div className="text-xl">
+                        {Array.from({ length: rev.rating }).map((_, i) => (
+                          <span key={i} className="text-orange-400">
+                            ★
+                          </span>
+                        ))}
+                        {Array.from({ length: 5 - rev.rating }).map((_, i) => (
+                          <span key={i} className="text-gray-200">
+                            ★
+                          </span>
+                        ))}
+                      </div>
+                      <span className="text-[9px] font-black text-gray-400 uppercase">
+                        {new Date(rev.created_at).toLocaleDateString("el-GR")}
+                      </span>
+                    </div>
+                    <p className="text-sm font-bold text-gray-700 italic">
+                      "{rev.comment}"
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
         {tab === "tables" && userRole === "admin" && (
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
             {TABLES_LIST.map((t) => (
@@ -592,7 +670,6 @@ export default function Dashboard() {
             ))}
           </div>
         )}
-
         {tab === "products" && userRole === "admin" && (
           <AdminProducts storeId={storeId} />
         )}
@@ -628,7 +705,7 @@ export default function Dashboard() {
                 </h2>
                 <button
                   onClick={() => setIsPosOpen(false)}
-                  className="w-10 h-10 rounded-full border font-black"
+                  className="w-10 h-10 rounded-full border font-black bg-white hover:bg-red-50 hover:text-red-500"
                 >
                   ✕
                 </button>
@@ -750,7 +827,7 @@ export default function Dashboard() {
                   placeholder="Γενική Σημείωση..."
                   value={posGeneralNote}
                   onChange={(e) => setPosGeneralNote(e.target.value)}
-                  className="w-full bg-gray-50 border p-4 rounded-xl font-bold italic text-sm resize-none"
+                  className="w-full bg-gray-50 border p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none focus:border-blue-500"
                 ></textarea>
                 <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                   {["ΜΕΤΡΗΤΑ", "ΚΑΡΤΑ"].map((m) => (
@@ -824,6 +901,93 @@ export default function Dashboard() {
               className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg"
             >
               ΛΗΨΗ ΕΙΚΟΝΑΣ
+            </button>
+          </div>
+        </div>
+      )}
+
+      {viewingOrder && (
+        <div
+          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
+          onClick={() => setViewingOrder(null)}
+        >
+          <div
+            className={`${
+              isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+            } w-full max-w-md rounded-[3rem] p-8 shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">
+              ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}
+            </h2>
+            {viewingOrder.general_note && (
+              <div
+                className={`mb-6 p-4 rounded-2xl ${
+                  isKitchen
+                    ? "bg-orange-900/50 text-orange-200"
+                    : "bg-blue-50 text-blue-800"
+                }`}
+              >
+                <p className="text-sm font-bold italic">
+                  {viewingOrder.general_note}
+                </p>
+              </div>
+            )}
+            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+              {(isKitchen
+                ? viewingOrder.items?.filter((i) => i.station === "kitchen")
+                : viewingOrder.items
+              )?.map((item, i) => (
+                <div
+                  key={i}
+                  className={`border-b pb-3 ${
+                    isKitchen ? "border-gray-700" : "border-gray-100"
+                  }`}
+                >
+                  <div className="flex justify-between font-black uppercase italic">
+                    <span>
+                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                      {item.name}
+                    </span>
+                    <span>
+                      {(item.price * (item.quantity || 1)).toFixed(2)}€
+                    </span>
+                  </div>
+                  {item.note && (
+                    <div
+                      className={`p-3 rounded-xl mt-2 text-xs font-bold italic ${
+                        isKitchen
+                          ? "bg-gray-700 text-yellow-400"
+                          : "bg-yellow-50 text-yellow-800"
+                      }`}
+                    >
+                      📝 {item.note}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div
+              className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
+                isKitchen ? "border-gray-700" : "border-gray-100"
+              }`}
+            >
+              <span>ΣΥΝΟΛΟ:</span>
+              <span>
+                {(isKitchen
+                  ? viewingOrder.items
+                      ?.filter((i) => i.station === "kitchen")
+                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
+                  : viewingOrder.total_price
+                )?.toFixed(2)}
+                €
+              </span>
+            </div>
+            <button
+              onClick={() => setViewingOrder(null)}
+              className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs"
+            >
+              ΚΛΕΙΣΙΜΟ
             </button>
           </div>
         </div>
