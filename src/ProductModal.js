@@ -14,6 +14,7 @@ export default function ProductModal({
   currentProductNote,
   setCurrentProductNote,
   confirmAddons,
+  theme, // <-- ΝΕΟ PROP ΓΙΑ ΤΟ ΘΕΜΑ
 }) {
   if (!activeProduct) return null;
 
@@ -21,6 +22,7 @@ export default function ProductModal({
     lang === "en" && activeProduct.description_en
       ? activeProduct.description_en
       : activeProduct.description;
+  const isDark = theme === "dark";
 
   return (
     <div
@@ -28,12 +30,22 @@ export default function ProductModal({
       onClick={closeProductModal}
     >
       <div
-        className="bg-white w-full rounded-t-[2.5rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] flex flex-col"
+        className={`${
+          isDark ? "bg-gray-800" : "bg-white"
+        } w-full rounded-t-[2.5rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] flex flex-col`}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex justify-between items-start mb-4 border-b border-gray-100 pb-4">
+        <div
+          className={`flex justify-between items-start mb-4 border-b pb-4 ${
+            isDark ? "border-gray-700" : "border-gray-100"
+          }`}
+        >
           <div className="flex flex-col pr-4">
-            <h2 className="font-black text-xl uppercase italic text-gray-900">
+            <h2
+              className={`font-black text-xl uppercase italic ${
+                isDark ? "text-white" : "text-gray-900"
+              }`}
+            >
               {lang === "en" && activeProduct.name_en
                 ? activeProduct.name_en
                 : activeProduct.name}
@@ -51,27 +63,44 @@ export default function ProductModal({
           </div>
           <button
             onClick={closeProductModal}
-            className="bg-gray-100 w-10 h-10 rounded-full font-black flex items-center justify-center text-gray-600 hover:bg-gray-200 shrink-0"
+            className={`w-10 h-10 rounded-full font-black flex items-center justify-center shrink-0 transition-colors ${
+              isDark
+                ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
           >
             ✕
           </button>
         </div>
 
         <div className="overflow-y-auto flex-1 space-y-6 pb-6 no-scrollbar">
-          {/* ΕΠΙΛΟΓΕΣ (ADDONS) */}
           {(activeProduct.addons || []).map((group) => {
             const groupDispName =
               lang === "en" && group.name_en ? group.name_en : group.name;
             return (
               <div
                 key={group.id}
-                className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100"
+                className={`p-4 rounded-3xl border ${
+                  isDark
+                    ? "bg-gray-900/50 border-gray-700"
+                    : "bg-gray-50/50 border-gray-100"
+                }`}
               >
                 <div className="flex justify-between items-end mb-3">
-                  <h3 className="font-black text-gray-800 uppercase text-sm">
+                  <h3
+                    className={`font-black uppercase text-sm ${
+                      isDark ? "text-gray-100" : "text-gray-800"
+                    }`}
+                  >
                     {groupDispName}
                   </h3>
-                  <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest bg-white px-2 py-1 rounded-lg shadow-sm border border-gray-100">
+                  <span
+                    className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg shadow-sm border ${
+                      isDark
+                        ? "bg-gray-800 border-gray-700 text-gray-400"
+                        : "bg-white border-gray-100 text-gray-400"
+                    }`}
+                  >
                     {group.isRequired ? t.req : t.opt}{" "}
                     {group.maxSelections > 1
                       ? `(${t.upTo} ${group.maxSelections})`
@@ -93,7 +122,11 @@ export default function ProductModal({
                         }
                         className={`flex justify-between items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${
                           isSelected
-                            ? "bg-blue-50/50"
+                            ? isDark
+                              ? "bg-blue-900/30"
+                              : "bg-blue-50/50"
+                            : isDark
+                            ? "border-gray-700 bg-gray-800 hover:border-gray-600"
                             : "border-gray-200/50 bg-white hover:border-gray-300"
                         }`}
                         style={isSelected ? { borderColor: themeColor } : {}}
@@ -101,7 +134,11 @@ export default function ProductModal({
                         <div className="flex items-center gap-3">
                           <div
                             className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                              isSelected ? "" : "border-gray-300"
+                              isSelected
+                                ? ""
+                                : isDark
+                                ? "border-gray-500"
+                                : "border-gray-300"
                             }`}
                             style={
                               isSelected
@@ -118,7 +155,13 @@ export default function ProductModal({
                           </div>
                           <span
                             className={`font-bold uppercase text-xs ${
-                              isSelected ? "text-gray-900" : "text-gray-600"
+                              isSelected
+                                ? isDark
+                                  ? "text-white"
+                                  : "text-gray-900"
+                                : isDark
+                                ? "text-gray-300"
+                                : "text-gray-600"
                             }`}
                           >
                             {optDispName}
@@ -132,9 +175,7 @@ export default function ProductModal({
                               : { color: "#9CA3AF" }
                           }
                         >
-                          {opt.price > 0
-                            ? `+${opt.price.toFixed(2)}€`
-                            : t.free}
+                          {opt.price > 0 ? `+${opt.price.toFixed(2)}€` : t.free}
                         </span>
                       </div>
                     );
@@ -144,14 +185,30 @@ export default function ProductModal({
             );
           })}
 
-          <div className="flex items-center justify-between bg-gray-50/50 p-5 rounded-3xl border border-gray-100">
-            <span className="font-black text-gray-800 uppercase text-sm">
+          <div
+            className={`flex items-center justify-between p-5 rounded-3xl border ${
+              isDark
+                ? "bg-gray-900/50 border-gray-700"
+                : "bg-gray-50/50 border-gray-100"
+            }`}
+          >
+            <span
+              className={`font-black uppercase text-sm ${
+                isDark ? "text-gray-100" : "text-gray-800"
+              }`}
+            >
               {t.qty}
             </span>
-            <div className="flex items-center gap-4 bg-white px-2 py-1 rounded-2xl border border-gray-200 shadow-sm">
+            <div
+              className={`flex items-center gap-4 px-2 py-1 rounded-2xl border shadow-sm ${
+                isDark
+                  ? "bg-gray-800 border-gray-700 text-white"
+                  : "bg-white border-gray-200 text-gray-900"
+              }`}
+            >
               <button
                 onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-400 transition-colors"
               >
                 −
               </button>
@@ -160,7 +217,7 @@ export default function ProductModal({
               </span>
               <button
                 onClick={() => setQuantity(quantity + 1)}
-                className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-800 transition-colors"
+                className="w-10 h-10 flex items-center justify-center text-2xl font-bold hover:opacity-80 transition-colors"
                 style={{ color: themeColor }}
               >
                 +
@@ -168,8 +225,18 @@ export default function ProductModal({
             </div>
           </div>
 
-          <div className="bg-gray-50/50 p-4 rounded-3xl border border-gray-100">
-            <span className="font-black text-gray-800 uppercase text-sm mb-2 block tracking-tight">
+          <div
+            className={`p-4 rounded-3xl border ${
+              isDark
+                ? "bg-gray-900/50 border-gray-700"
+                : "bg-gray-50/50 border-gray-100"
+            }`}
+          >
+            <span
+              className={`font-black uppercase text-sm mb-2 block tracking-tight ${
+                isDark ? "text-gray-100" : "text-gray-800"
+              }`}
+            >
               {t.note}
             </span>
             <textarea
@@ -177,7 +244,11 @@ export default function ProductModal({
               placeholder={t.itemNotePlaceholder}
               value={currentProductNote}
               onChange={(e) => setCurrentProductNote(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-blue-400 font-bold resize-none shadow-sm"
+              className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none font-bold resize-none shadow-sm ${
+                isDark
+                  ? "bg-gray-800 border-gray-600 text-white focus:border-blue-400"
+                  : "bg-white border-gray-200 focus:border-blue-400"
+              }`}
             ></textarea>
           </div>
         </div>
@@ -188,9 +259,7 @@ export default function ProductModal({
           style={{ backgroundColor: themeColor }}
         >
           <span>{editingCartId ? t.save : t.addToCart}</span>
-          <span>
-            {!editingCartId && quantity > 1 ? `x${quantity}` : ""}
-          </span>
+          <span>{!editingCartId && quantity > 1 ? `x${quantity}` : ""}</span>
         </button>
       </div>
     </div>

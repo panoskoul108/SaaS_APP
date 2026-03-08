@@ -22,14 +22,13 @@ const removeAccents = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
 };
 
-// ΕΙΔΙΚΗ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΤΗΝ ΑΝΑΖΗΤΗΣΗ (Αγνοεί τόνους, κεφαλαία και το τελικό ς)
 const normalizeForSearch = (str) => {
   if (!str) return "";
   return str
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Βγάζει τόνους
-    .toLowerCase() // Τα κάνει όλα μικρά
-    .replace(/ς/g, "σ"); // Κάνει το τελικό ς -> σ για να μη μπερδεύεται
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/ς/g, "σ");
 };
 
 const CATEGORY_ORDER = [
@@ -138,15 +137,12 @@ export default function Menu() {
   const [storeId] = useState(
     new URLSearchParams(window.location.search).get("store") || "1"
   );
-
   const urlTable = new URLSearchParams(window.location.search).get("table");
   const [tableNum, setTableNum] = useState(
     urlTable === "null" ? null : urlTable
   );
-
   const [lang, setLang] = useState("gr");
   const t = DICT[lang];
-
   const [custId] = useState(() => {
     let id = localStorage.getItem("loyalty_id");
     if (!id) {
@@ -156,13 +152,22 @@ export default function Menu() {
     return id;
   });
 
+  // --- DARK MODE STATE ---
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("app_theme") || "light"
+  );
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("app_theme", newTheme);
+  };
+  const isDark = theme === "dark";
+
   const [searchQuery, setSearchQuery] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [cartBounce, setCartBounce] = useState(false);
-
   const [backupMode, setBackupMode] = useState(false);
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
-
   const [showTablePicker, setShowTablePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [lastOrderId, setLastOrderId] = useState(
@@ -170,20 +175,16 @@ export default function Menu() {
   );
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [generalNote, setGeneralNote] = useState("");
-
   const [activeProduct, setActiveProduct] = useState(null);
   const [addonSelections, setAddonSelections] = useState({});
   const [currentProductNote, setCurrentProductNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
-
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [orderHistory, setOrderHistory] = useState(() => {
     const saved = localStorage.getItem(`status_order_history_${storeId}`);
     return saved ? JSON.parse(saved) : [];
   });
-
   const categoryNavRef = useRef(null);
-
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
   useEffect(() => {
@@ -193,7 +194,6 @@ export default function Menu() {
     );
     return () => clearInterval(interval);
   }, []);
-
   const isMorning = currentHour >= 6 && currentHour < 14;
 
   const fetchData = async () => {
@@ -207,39 +207,38 @@ export default function Menu() {
       setBackupMode(s.backup_mode);
       setIsAcceptingOrders(s.is_accepting_orders !== false);
     }
-
     const { data: p } = await supabase
       .from("products")
       .select("*")
       .eq("store_id", storeId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true });
-
     if (p) {
-      const cleanedProducts = p.map((prod) => {
-        const cleanedProd = {
-          ...prod,
-          name: removeAccents(prod.name),
-          name_en: removeAccents(prod.name_en),
-          description: removeAccents(prod.description),
-          description_en: removeAccents(prod.description_en),
-          category: removeAccents(prod.category),
-        };
-        if (cleanedProd.addons) {
-          cleanedProd.addons = cleanedProd.addons.map((g) => ({
-            ...g,
-            name: removeAccents(g.name),
-            name_en: removeAccents(g.name_en),
-            options: g.options.map((opt) => ({
-              ...opt,
-              name: removeAccents(opt.name),
-              name_en: removeAccents(opt.name_en),
-            })),
-          }));
-        }
-        return cleanedProd;
-      });
-      setProducts(cleanedProducts);
+      setProducts(
+        p.map((prod) => {
+          const cP = {
+            ...prod,
+            name: removeAccents(prod.name),
+            name_en: removeAccents(prod.name_en),
+            description: removeAccents(prod.description),
+            description_en: removeAccents(prod.description_en),
+            category: removeAccents(prod.category),
+          };
+          if (cP.addons) {
+            cP.addons = cP.addons.map((g) => ({
+              ...g,
+              name: removeAccents(g.name),
+              name_en: removeAccents(g.name_en),
+              options: g.options.map((opt) => ({
+                ...opt,
+                name: removeAccents(opt.name),
+                name_en: removeAccents(opt.name_en),
+              })),
+            }));
+          }
+          return cP;
+        })
+      );
     }
   };
 
@@ -260,13 +259,10 @@ export default function Menu() {
     };
   }, [storeId]);
 
-  const visibleProducts = products.filter((p) => {
-    if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
-    return true;
-  });
-
+  const visibleProducts = products.filter((p) =>
+    p.category === "ΠΡΩΙΝΟ" && !isMorning ? false : true
+  );
   const hasRecommended = visibleProducts.some((p) => p.is_recommended);
-
   const rawCategories = [
     ...new Set(visibleProducts.map((p) => p.category)),
   ].sort((a, b) => {
@@ -276,7 +272,6 @@ export default function Menu() {
     if (idxB === -1) idxB = 999;
     return idxA - idxB;
   });
-
   const baseCategories = hasRecommended
     ? ["ΠΡΟΤΕΙΝΟΜΕΝΑ", ...rawCategories]
     : rawCategories;
@@ -327,7 +322,6 @@ export default function Menu() {
       window.scrollTo({ top: y, behavior: "smooth" });
     }
   };
-
   const getCategoryDisplayName = (cat) => {
     if (cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ") return `⭐ ${t.rec}`;
     if (lang === "gr") return cat;
@@ -346,11 +340,9 @@ export default function Menu() {
     setEditingCartId(null);
     setActiveProduct(product);
   };
-
   const handleEditCartItem = (cartItem) => {
     const originalProduct = products.find((p) => p.id === cartItem.id);
     if (!originalProduct) return;
-
     setActiveProduct(originalProduct);
     setAddonSelections(cartItem.rawAddons || {});
     setCurrentProductNote(cartItem.note || "");
@@ -358,7 +350,6 @@ export default function Menu() {
     setEditingCartId(cartItem.cartId);
     setIsCartOpen(false);
   };
-
   const closeProductModal = () => {
     setActiveProduct(null);
     setEditingCartId(null);
@@ -386,7 +377,6 @@ export default function Menu() {
     let extraPrice = 0;
     let addonTexts = [];
     let isValid = true;
-
     (activeProduct.addons || []).forEach((g) => {
       const sels = addonSelections[g.id] || [];
       if (g.isRequired && sels.length === 0) isValid = false;
@@ -396,7 +386,6 @@ export default function Menu() {
         sels.forEach((idx) => (extraPrice += g.options[idx].price));
       }
     });
-
     if (!isValid) {
       return alert(
         lang === "gr"
@@ -404,43 +393,30 @@ export default function Menu() {
           : "Please fill all required options!"
       );
     }
-
-    const baseName = activeProduct.name;
     const finalName =
       addonTexts.length > 0
-        ? `${baseName} (${addonTexts.join(" | ")})`
-        : baseName;
+        ? `${activeProduct.name} (${addonTexts.join(" | ")})`
+        : activeProduct.name;
     const finalPrice = activeProduct.price + extraPrice;
-
+    const newItem = {
+      ...activeProduct,
+      cartId: editingCartId || Date.now() + Math.random(),
+      name: finalName,
+      price: finalPrice,
+      note: removeAccents(currentProductNote),
+      rawAddons: addonSelections,
+      quantity: quantity,
+    };
     if (editingCartId) {
-      const updatedItem = {
-        ...activeProduct,
-        cartId: editingCartId,
-        name: finalName,
-        price: finalPrice,
-        note: removeAccents(currentProductNote),
-        rawAddons: addonSelections,
-        quantity: quantity,
-      };
       setCart(
-        cart.map((item) => (item.cartId === editingCartId ? updatedItem : item))
+        cart.map((item) => (item.cartId === editingCartId ? newItem : item))
       );
       setIsCartOpen(true);
     } else {
-      const newItem = {
-        ...activeProduct,
-        cartId: Date.now() + Math.random(),
-        name: finalName,
-        price: finalPrice,
-        note: removeAccents(currentProductNote),
-        rawAddons: addonSelections,
-        quantity: quantity,
-      };
       setCart([...cart, newItem]);
       setCartBounce(true);
       setTimeout(() => setCartBounce(false), 300);
     }
-
     setActiveProduct(null);
     setEditingCartId(null);
     setCurrentProductNote("");
@@ -448,16 +424,13 @@ export default function Menu() {
 
   const updateCartItemQuantity = (cartId, delta) => {
     setCart(
-      cart.map((item) => {
-        if (item.cartId === cartId) {
-          const newQ = Math.max(1, (item.quantity || 1) + delta);
-          return { ...item, quantity: newQ };
-        }
-        return item;
-      })
+      cart.map((item) =>
+        item.cartId === cartId
+          ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) }
+          : item
+      )
     );
   };
-
   const removeFromCart = (cartId) => {
     const newCart = cart.filter((item) => item.cartId !== cartId);
     setCart(newCart);
@@ -478,7 +451,6 @@ export default function Menu() {
   const sendOrder = async () => {
     if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders)
       return;
-
     const { data, error } = await supabase
       .from("orders")
       .insert([
@@ -495,7 +467,6 @@ export default function Menu() {
         },
       ])
       .select();
-
     if (!error && data) {
       const newHistoryOrder = {
         id: data[0].id,
@@ -530,11 +501,9 @@ export default function Menu() {
     setIsHistoryOpen(false);
     setIsCartOpen(true);
   };
-
   const getItemDisplayName = (item) => {
     const orig = products.find((p) => p.id === item.id);
     if (!orig) return item.name;
-
     const baseName = lang === "en" && orig.name_en ? orig.name_en : orig.name;
     let addonTexts = [];
     (orig.addons || []).forEach((g) => {
@@ -581,7 +550,6 @@ export default function Menu() {
   const placeholderImg =
     "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 
-  // --- ΕΔΩ ΕΦΑΡΜΟΖΕΤΑΙ Η ΝΕΑ ΛΟΓΙΚΗ ΑΝΑΖΗΤΗΣΗΣ ---
   const filteredProducts = searchQuery
     ? visibleProducts.filter((p) => {
         const searchNorm = normalizeForSearch(searchQuery);
@@ -594,14 +562,28 @@ export default function Menu() {
     : [];
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-32 font-sans relative">
-      <header className="fixed top-0 left-0 right-0 p-4 bg-white/80 backdrop-blur-md shadow-sm z-30 flex justify-between items-center transition-all duration-300">
-        <button
-          onClick={() => setIsHistoryOpen(true)}
-          className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center text-xl shadow-sm border border-gray-100/50 hover:bg-gray-100 transition-colors"
-        >
-          🕒
-        </button>
+    <div
+      className={`min-h-screen pb-32 font-sans relative ${
+        isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
+    >
+      <header
+        className={`fixed top-0 left-0 right-0 p-4 backdrop-blur-md shadow-sm z-30 flex justify-between items-center transition-all duration-300 ${
+          isDark ? "bg-gray-900/90 border-b border-gray-800" : "bg-white/80"
+        }`}
+      >
+        <div className="flex gap-2">
+          <button
+            onClick={() => setIsHistoryOpen(true)}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm border transition-colors ${
+              isDark
+                ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
+                : "bg-white/50 border-gray-100/50 hover:bg-gray-100"
+            }`}
+          >
+            🕒
+          </button>
+        </div>
         <div className="flex flex-col items-center">
           {store?.logo_url ? (
             <img
@@ -624,12 +606,28 @@ export default function Menu() {
             {tableNum ? `${t.table} ${tableNum}` : t.requiredTable}
           </div>
         </div>
-        <button
-          onClick={() => setLang(lang === "gr" ? "en" : "gr")}
-          className="w-10 h-10 bg-white/50 rounded-full flex items-center justify-center text-sm shadow-sm border border-gray-100/50 font-bold hover:bg-gray-100 transition-colors"
-        >
-          {lang === "gr" ? "🇬🇧" : "🇬🇷"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={toggleTheme}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-sm border font-bold transition-colors ${
+              isDark
+                ? "bg-gray-800 border-gray-700 hover:bg-gray-700 text-yellow-400"
+                : "bg-white/50 border-gray-100/50 hover:bg-gray-100 text-blue-500"
+            }`}
+          >
+            {isDark ? "☀️" : "🌙"}
+          </button>
+          <button
+            onClick={() => setLang(lang === "gr" ? "en" : "gr")}
+            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-sm border font-bold transition-colors ${
+              isDark
+                ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
+                : "bg-white/50 border-gray-100/50 hover:bg-gray-100"
+            }`}
+          >
+            {lang === "gr" ? "🇬🇧" : "🇬🇷"}
+          </button>
+        </div>
       </header>
 
       {!isAcceptingOrders && (
@@ -640,9 +638,9 @@ export default function Menu() {
 
       {(!tableNum || tableNum === "") && backupMode === true && (
         <div
-          className={`mx-4 mb-2 p-6 bg-white border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${
+          className={`mx-4 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${
             !isAcceptingOrders ? "mt-[120px]" : "mt-[88px]"
-          }`}
+          } ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`}
           style={{ borderColor: themeColor }}
         >
           <p
@@ -690,14 +688,16 @@ export default function Menu() {
       )}
 
       <div
-        className={`px-4 pt-4 pb-2 bg-gray-50 z-20 ${
+        className={`px-4 pt-4 pb-2 z-20 ${
           tableNum ? (!isAcceptingOrders ? "mt-[120px]" : "mt-[88px]") : ""
-        }`}
+        } ${isDark ? "bg-gray-900" : "bg-gray-50"}`}
       >
         <div
           className={`p-4 rounded-3xl border shadow-sm transition-colors duration-500 ${
             isRewardOrder
               ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300 animate-pulse"
+              : isDark
+              ? "bg-gray-800 border-gray-700"
               : "bg-white border-gray-200"
           }`}
         >
@@ -714,11 +714,21 @@ export default function Menu() {
                 <span className="font-black text-[10px] uppercase tracking-widest text-gray-500">
                   🎁 {t.loyaltyTitle}
                 </span>
-                <span className="font-black text-xs px-2 py-0.5 bg-gray-100 rounded-lg text-gray-600">
+                <span
+                  className={`font-black text-xs px-2 py-0.5 rounded-lg ${
+                    isDark
+                      ? "bg-gray-700 text-gray-300"
+                      : "bg-gray-100 text-gray-600"
+                  }`}
+                >
                   {currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€
                 </span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden shadow-inner">
+              <div
+                className={`w-full rounded-full h-3 overflow-hidden shadow-inner ${
+                  isDark ? "bg-gray-700" : "bg-gray-100"
+                }`}
+              >
                 <div
                   className="h-3 rounded-full transition-all duration-1000 ease-out"
                   style={{
@@ -740,9 +750,9 @@ export default function Menu() {
       </div>
 
       <div
-        className={`px-4 py-2 sticky z-20 bg-gray-50/90 backdrop-blur-md transition-all ${
+        className={`px-4 py-2 sticky z-20 backdrop-blur-md transition-all ${
           !isAcceptingOrders ? "top-[120px]" : "top-[88px]"
-        }`}
+        } ${isDark ? "bg-gray-900/90" : "bg-gray-50/90"}`}
       >
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">
@@ -753,7 +763,11 @@ export default function Menu() {
             placeholder={t.search}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-gray-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all"
+            className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${
+              isDark
+                ? "bg-gray-800 border-gray-700 text-white"
+                : "bg-white border-gray-200 text-gray-900"
+            }`}
             style={{ focusRingColor: themeColor }}
           />
         </div>
@@ -762,8 +776,12 @@ export default function Menu() {
       {!searchQuery && (
         <div
           ref={categoryNavRef}
-          className={`flex overflow-x-auto py-3 px-4 gap-3 bg-gray-50/90 backdrop-blur-md sticky z-20 no-scrollbar border-b border-gray-200/50 transition-all ${
+          className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${
             !isAcceptingOrders ? "top-[180px]" : "top-[148px]"
+          } ${
+            isDark
+              ? "bg-gray-900/90 border-gray-800"
+              : "bg-gray-50/90 border-gray-200/50"
           }`}
         >
           {baseCategories.map((cat) => (
@@ -773,7 +791,9 @@ export default function Menu() {
               onClick={() => scrollToCategory(cat)}
               className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${
                 selectedCategory !== cat
-                  ? "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100"
+                  ? isDark
+                    ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700"
+                    : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100"
                   : "scale-105"
               }`}
               style={
@@ -807,10 +827,14 @@ export default function Menu() {
                   <div
                     key={p.id}
                     onClick={() => p.is_available && handleProductClick(p)}
-                    className={`flex bg-white rounded-2xl shadow-sm border border-gray-100/50 p-3 gap-4 transition-all cursor-pointer ${
+                    className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${
                       !p.is_available
                         ? "opacity-50 grayscale"
-                        : "hover:shadow-md hover:border-gray-200"
+                        : "hover:shadow-md"
+                    } ${
+                      isDark
+                        ? "bg-gray-800 border-gray-700"
+                        : "bg-white border-gray-100/50"
                     }`}
                   >
                     <div
@@ -823,7 +847,11 @@ export default function Menu() {
                     ></div>
                     <div className="flex-1 flex flex-col justify-between py-1">
                       <div>
-                        <h3 className="font-black text-gray-900 text-sm leading-tight uppercase">
+                        <h3
+                          className={`font-black text-sm leading-tight uppercase ${
+                            isDark ? "text-white" : "text-gray-900"
+                          }`}
+                        >
                           {dispName}
                         </h3>
                         {dispDesc && (
@@ -870,17 +898,19 @@ export default function Menu() {
                 ? visibleProducts.filter((p) => p.is_recommended)
                 : visibleProducts.filter((p) => p.category === cat);
             if (sectionProducts.length === 0) return null;
-
             return (
               <div
                 key={cat}
                 id={`category-${cat}`}
                 className="scroll-mt-[220px]"
               >
-                <h2 className="font-black italic text-2xl mb-4 text-gray-800 tracking-tighter pl-1">
+                <h2
+                  className={`font-black italic text-2xl mb-4 tracking-tighter pl-1 ${
+                    isDark ? "text-gray-100" : "text-gray-800"
+                  }`}
+                >
                   {getCategoryDisplayName(cat)}
                 </h2>
-
                 {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
                   <div className="grid grid-cols-2 gap-4">
                     {sectionProducts.map((p) => {
@@ -896,10 +926,14 @@ export default function Menu() {
                           onClick={() =>
                             p.is_available && handleProductClick(p)
                           }
-                          className={`bg-white rounded-3xl shadow-sm border border-gray-100/50 overflow-hidden flex flex-col transition-all cursor-pointer ${
+                          className={`rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all cursor-pointer ${
                             !p.is_available
                               ? "opacity-50 grayscale"
                               : "hover:shadow-md hover:scale-[1.02]"
+                          } ${
+                            isDark
+                              ? "bg-gray-800 border-gray-700"
+                              : "bg-white border-gray-100/50"
                           }`}
                         >
                           <div
@@ -912,7 +946,11 @@ export default function Menu() {
                           ></div>
                           <div className="p-3 flex flex-col flex-1 justify-between">
                             <div>
-                              <h3 className="font-black text-gray-900 text-[13px] uppercase leading-tight line-clamp-2">
+                              <h3
+                                className={`font-black text-[13px] uppercase leading-tight line-clamp-2 ${
+                                  isDark ? "text-white" : "text-gray-900"
+                                }`}
+                              >
                                 {dispName}
                               </h3>
                               {dispDesc && (
@@ -962,10 +1000,14 @@ export default function Menu() {
                           onClick={() =>
                             p.is_available && handleProductClick(p)
                           }
-                          className={`flex bg-white rounded-2xl shadow-sm border border-gray-100/50 p-3 gap-4 transition-all cursor-pointer ${
+                          className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${
                             !p.is_available
                               ? "opacity-50 grayscale"
-                              : "hover:shadow-md hover:border-gray-200"
+                              : "hover:shadow-md"
+                          } ${
+                            isDark
+                              ? "bg-gray-800 border-gray-700"
+                              : "bg-white border-gray-100/50"
                           }`}
                         >
                           <div
@@ -978,7 +1020,11 @@ export default function Menu() {
                           ></div>
                           <div className="flex-1 flex flex-col justify-between py-1">
                             <div>
-                              <h3 className="font-black text-gray-900 text-sm leading-tight uppercase">
+                              <h3
+                                className={`font-black text-sm leading-tight uppercase ${
+                                  isDark ? "text-white" : "text-gray-900"
+                                }`}
+                              >
                                 {dispName}
                               </h3>
                               {dispDesc && (
@@ -1025,6 +1071,7 @@ export default function Menu() {
       </div>
 
       <ProductModal
+        theme={theme}
         activeProduct={activeProduct}
         lang={lang}
         t={t}
@@ -1041,7 +1088,13 @@ export default function Menu() {
       />
 
       {cart.length > 0 && !isCartOpen && !activeProduct && (
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white/90 via-white/80 to-transparent backdrop-blur-sm z-40">
+        <div
+          className={`fixed bottom-0 left-0 right-0 p-4 backdrop-blur-sm z-40 ${
+            isDark
+              ? "bg-gradient-to-t from-gray-900/90 via-gray-900/80 to-transparent"
+              : "bg-gradient-to-t from-white/90 via-white/80 to-transparent"
+          }`}
+        >
           <button
             onClick={() => setIsCartOpen(true)}
             className={`w-full text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300 ${
@@ -1065,6 +1118,7 @@ export default function Menu() {
       )}
 
       <CartModal
+        theme={theme}
         isCartOpen={isCartOpen}
         setIsCartOpen={setIsCartOpen}
         cart={cart}
@@ -1085,14 +1139,32 @@ export default function Menu() {
       />
 
       {isHistoryOpen && (
-        <div className="fixed inset-0 bg-gray-50 z-[200] flex flex-col animate-slide-up">
-          <div className="bg-white p-4 flex justify-between items-center shadow-sm border-b">
-            <h2 className="font-black uppercase text-lg text-gray-800">
+        <div
+          className={`fixed inset-0 z-[200] flex flex-col animate-slide-up ${
+            isDark ? "bg-gray-900" : "bg-gray-50"
+          }`}
+        >
+          <div
+            className={`p-4 flex justify-between items-center shadow-sm border-b ${
+              isDark
+                ? "bg-gray-800 border-gray-700"
+                : "bg-white border-gray-100"
+            }`}
+          >
+            <h2
+              className={`font-black uppercase text-lg ${
+                isDark ? "text-white" : "text-gray-800"
+              }`}
+            >
               {t.history}
             </h2>
             <button
               onClick={() => setIsHistoryOpen(false)}
-              className="bg-gray-100 w-10 h-10 rounded-full flex items-center justify-center font-black text-gray-600"
+              className={`w-10 h-10 rounded-full flex items-center justify-center font-black transition-colors ${
+                isDark
+                  ? "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
             >
               ✕
             </button>
@@ -1106,9 +1178,17 @@ export default function Menu() {
               orderHistory.map((order) => (
                 <div
                   key={order.id}
-                  className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100/50"
+                  className={`p-5 rounded-3xl shadow-sm border ${
+                    isDark
+                      ? "bg-gray-800 border-gray-700"
+                      : "bg-white border-gray-100/50"
+                  }`}
                 >
-                  <div className="flex justify-between items-center mb-3 border-b border-gray-100 pb-3">
+                  <div
+                    className={`flex justify-between items-center mb-3 border-b pb-3 ${
+                      isDark ? "border-gray-700" : "border-gray-100"
+                    }`}
+                  >
                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
                       {new Date(order.date).toLocaleString("el-GR")}
                     </span>
@@ -1123,7 +1203,9 @@ export default function Menu() {
                     {order.items.map((it, i) => (
                       <li
                         key={i}
-                        className="text-xs font-bold text-gray-700 uppercase"
+                        className={`text-xs font-bold uppercase ${
+                          isDark ? "text-gray-300" : "text-gray-700"
+                        }`}
                       >
                         {it.quantity > 1 ? (
                           <span className="text-blue-500 mr-1">
