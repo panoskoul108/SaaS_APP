@@ -64,11 +64,14 @@ export default function Dashboard() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
 
+  // Η γραμμή που έλειπε και προκάλεσε το σφάλμα στο Vercel:
+  const [selectedTableForQR, setSelectedTableForQR] = useState(null);
+
   // --- POS STATE ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
-  const [posSearch, setPosSearch] = useState(""); // <-- ΝΕΟ: Για αναζήτηση προϊόντων
+  const [posSearch, setPosSearch] = useState("");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
   const [posPayment, setPosPayment] = useState("");
@@ -1394,6 +1397,100 @@ export default function Dashboard() {
           <AdminProducts storeId={storeId} />
         )}
       </main>
+
+      {/* Modal Λεπτομερειών Παραγγελίας */}
+      {viewingOrder && (
+        <div
+          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 print:hidden"
+          onClick={() => setViewingOrder(null)}
+        >
+          <div
+            className={`${
+              isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-900"
+            } w-full max-w-md rounded-[3rem] p-8 shadow-2xl`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">
+              ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}
+            </h2>
+            {viewingOrder.general_note && (
+              <div
+                className={`mb-6 p-4 rounded-2xl ${
+                  isKitchen
+                    ? "bg-orange-900/50 text-orange-200"
+                    : "bg-blue-50 text-blue-800"
+                }`}
+              >
+                <p className="text-sm font-bold italic">
+                  {viewingOrder.general_note}
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
+              {(isKitchen
+                ? viewingOrder.items?.filter((i) => i.station === "kitchen")
+                : viewingOrder.items
+              )?.map((item, i) => (
+                <div
+                  key={i}
+                  className={`border-b pb-3 ${
+                    isKitchen ? "border-gray-700" : "border-gray-100"
+                  }`}
+                >
+                  <div className="flex justify-between font-black uppercase italic">
+                    <span>
+                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
+                      {item.name}
+                    </span>
+                    <span
+                      className={isKitchen ? "text-white" : "text-blue-600"}
+                    >
+                      {(item.price * (item.quantity || 1)).toFixed(2)}€
+                    </span>
+                  </div>
+                  {item.note && (
+                    <div
+                      className={`p-3 rounded-xl mt-2 text-xs font-bold italic ${
+                        isKitchen
+                          ? "bg-gray-700 text-yellow-400"
+                          : "bg-yellow-50 text-yellow-800"
+                      }`}
+                    >
+                      📝 {item.note}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* ΕΠΑΝΑΦΟΡΑ ΣΥΝΟΛΟΥ */}
+            <div
+              className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
+                isKitchen ? "border-gray-700" : "border-gray-100"
+              }`}
+            >
+              <span>ΣΥΝΟΛΟ:</span>
+              <span className={isKitchen ? "text-white" : "text-gray-900"}>
+                {(isKitchen
+                  ? viewingOrder.items
+                      ?.filter((i) => i.station === "kitchen")
+                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
+                  : viewingOrder.total_price
+                )?.toFixed(2)}
+                €
+              </span>
+            </div>
+
+            <button
+              onClick={() => setViewingOrder(null)}
+              className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs hover:bg-blue-700"
+            >
+              ΚΛΕΙΣΙΜΟ
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
