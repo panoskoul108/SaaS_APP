@@ -75,16 +75,7 @@ export default function Dashboard() {
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
 
-  // Ρολόι για το πρωινό
-  const [currentHour, setCurrentHour] = useState(new Date().getHours());
-  useEffect(() => {
-    const interval = setInterval(
-      () => setCurrentHour(new Date().getHours()),
-      60000
-    );
-    return () => clearInterval(interval);
-  }, []);
-
+  const currentHour = new Date().getHours();
   const isMorning = currentHour >= 6 && currentHour < 14;
   const isKitchen = userRole === "kitchen";
 
@@ -201,32 +192,34 @@ export default function Dashboard() {
     setIsAcceptingOrders(s);
   };
 
+  // ----- ΝΕΑ ΓΡΗΓΟΡΗ ΛΕΙΤΟΥΡΓΙΑ ΛΗΨΗΣ QR -----
   const downloadQR = async (table) => {
     try {
       const qrData = encodeURIComponent(
         `${window.location.origin}/?store=${storeId}&table=${table}`
       );
-      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
-        `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`
-      )}`;
-      const res = await fetch(proxyUrl);
+      const url = `https://quickchart.io/qr?size=500&text=${qrData}`;
+
+      const res = await fetch(url);
       const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
+      const blobUrl = URL.createObjectURL(blob);
+
       const a = document.createElement("a");
-      a.href = url;
-      a.download = `QR_${table}.png`;
+      a.href = blobUrl;
+      a.download = `QR_Table_${table}.png`;
+      document.body.appendChild(a);
       a.click();
-    } catch {
-      window.open(
-        `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
-          window.location.origin + "/?store=" + storeId + "&table=" + table
-        )}`,
-        "_blank"
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch (error) {
+      // Μόνο σε περίπτωση απρόσμενου σφάλματος θα ανοίξει σε νέα καρτέλα
+      const qrData = encodeURIComponent(
+        `${window.location.origin}/?store=${storeId}&table=${table}`
       );
+      window.open(`https://quickchart.io/qr?size=500&text=${qrData}`, "_blank");
     }
   };
 
-  // ----- OI ΜΕΤΑΒΛΗΤΕΣ ΠΟΥ ΕΛΕΙΠΑΝ -----
   const posVisibleProducts = products.filter((p) => {
     if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
     return true;
@@ -246,7 +239,6 @@ export default function Dashboard() {
     posCategory === "ΟΛΑ"
       ? posVisibleProducts
       : posVisibleProducts.filter((p) => p.category === posCategory);
-  // --------------------------------------
 
   const handlePosProductClick = (p) => {
     const initial = {};
@@ -885,8 +877,9 @@ export default function Dashboard() {
             <h2 className="text-3xl font-black italic uppercase mb-6 text-gray-800">
               ΤΡΑΠΕΖΙ {selectedTableForQR}
             </h2>
+            {/* ΝΕΟ IMAGE SRC ME QUICKCHART */}
             <img
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
+              src={`https://quickchart.io/qr?size=500&text=${encodeURIComponent(
                 window.location.origin +
                   "/?store=" +
                   storeId +
