@@ -483,6 +483,20 @@ export default function Dashboard() {
                 {isAcceptingOrders ? "🟢 ON" : "🔴 OFF"}
               </button>
             )}
+
+            {userRole === "admin" && (
+              <button
+                onClick={toggleBackupMode}
+                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase ${
+                  backupMode
+                    ? "bg-orange-500 text-white shadow-lg"
+                    : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                Backup: {backupMode ? "ON" : "OFF"}
+              </button>
+            )}
+
             <button onClick={() => setIsMuted(!isMuted)} className="text-lg">
               {isMuted ? "🔇" : "🔊"}
             </button>
@@ -731,6 +745,13 @@ export default function Dashboard() {
                   onChange={(e) => setPosTable(e.target.value)}
                   className="w-full border-2 p-4 rounded-xl font-black uppercase"
                 />
+                <textarea
+                  rows="1"
+                  placeholder="Γενική Σημείωση..."
+                  value={posGeneralNote}
+                  onChange={(e) => setPosGeneralNote(e.target.value)}
+                  className="w-full bg-gray-50 border p-4 rounded-xl font-bold italic text-sm resize-none"
+                ></textarea>
                 <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
                   {["ΜΕΤΡΗΤΑ", "ΚΑΡΤΑ"].map((m) => (
                     <button
