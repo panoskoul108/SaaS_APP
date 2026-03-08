@@ -63,15 +63,12 @@ export default function Dashboard() {
 
   const [isPrinting, setIsPrinting] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
-
-  // Η γραμμή που έλειπε και προκάλεσε το σφάλμα στο Vercel:
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
   // --- POS STATE ---
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
-  const [posSearch, setPosSearch] = useState("");
   const [posCart, setPosCart] = useState([]);
   const [posTable, setPosTable] = useState("ΠΑΚΕΤΟ");
   const [posPayment, setPosPayment] = useState("");
@@ -219,7 +216,6 @@ export default function Dashboard() {
     setIsAcceptingOrders(newStatus);
   };
 
-  // --- ΑΣΦΑΛΗΣ ΛΗΨΗ QR CODE ---
   const downloadQR = async (tableNumber) => {
     try {
       const qrData = encodeURIComponent(
@@ -227,6 +223,7 @@ export default function Dashboard() {
       );
       const url = `https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${qrData}`;
 
+      // Proxy για να μην το μπλοκάρει το Vercel
       const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(
         url
       )}`;
@@ -264,24 +261,20 @@ export default function Dashboard() {
     return true;
   });
 
-  const posCategories = [...new Set(posVisibleProducts.map((p) => p.category))]
-    .filter(Boolean)
-    .sort((a, b) => {
-      let idxA = CATEGORY_ORDER.indexOf(a);
-      let idxB = CATEGORY_ORDER.indexOf(b);
-      if (idxA === -1) idxA = 999;
-      if (idxB === -1) idxB = 999;
-      return idxA - idxB;
-    });
-
-  // ΕΔΩ ΕΙΝΑΙ ΤΟ ΦΙΛΤΡΟ (Κατηγορία + Μπάρα Αναζήτησης)
-  const posFilteredProducts = posVisibleProducts.filter((p) => {
-    const matchesCategory = posCategory === "ΟΛΑ" || p.category === posCategory;
-    const matchesSearch = p.name
-      .toLowerCase()
-      .includes(posSearch.toLowerCase());
-    return matchesCategory && matchesSearch;
+  const posCategories = [
+    ...new Set(posVisibleProducts.map((p) => p.category)),
+  ].sort((a, b) => {
+    let idxA = CATEGORY_ORDER.indexOf(a);
+    let idxB = CATEGORY_ORDER.indexOf(b);
+    if (idxA === -1) idxA = 999;
+    if (idxB === -1) idxB = 999;
+    return idxA - idxB;
   });
+
+  const posFilteredProducts =
+    posCategory === "ΟΛΑ"
+      ? posVisibleProducts
+      : posVisibleProducts.filter((p) => p.category === posCategory);
 
   const handlePosProductClick = (product) => {
     const initialSels = {};
@@ -1363,7 +1356,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* --- ΣΕΛΙΔΑ ΜΕ ΤΑ ΤΡΑΠΕΖΙΑ --- */}
+        {/* --- ΣΕΛΙΔΑ ΤΡΑΠΕΖΙΑ --- */}
         {tab === "tables" && userRole === "admin" && (
           <div className="max-w-6xl mx-auto pb-20">
             <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
@@ -1393,104 +1386,11 @@ export default function Dashboard() {
           </div>
         )}
 
+        {/* --- ΣΕΛΙΔΑ ΚΑΤΑΛΟΓΟΣ --- */}
         {tab === "products" && userRole === "admin" && (
           <AdminProducts storeId={storeId} />
         )}
       </main>
-
-      {/* Modal Λεπτομερειών Παραγγελίας */}
-      {viewingOrder && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 print:hidden"
-          onClick={() => setViewingOrder(null)}
-        >
-          <div
-            className={`${
-              isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-            } w-full max-w-md rounded-[3rem] p-8 shadow-2xl`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">
-              ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}
-            </h2>
-            {viewingOrder.general_note && (
-              <div
-                className={`mb-6 p-4 rounded-2xl ${
-                  isKitchen
-                    ? "bg-orange-900/50 text-orange-200"
-                    : "bg-blue-50 text-blue-800"
-                }`}
-              >
-                <p className="text-sm font-bold italic">
-                  {viewingOrder.general_note}
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-              {(isKitchen
-                ? viewingOrder.items?.filter((i) => i.station === "kitchen")
-                : viewingOrder.items
-              )?.map((item, i) => (
-                <div
-                  key={i}
-                  className={`border-b pb-3 ${
-                    isKitchen ? "border-gray-700" : "border-gray-100"
-                  }`}
-                >
-                  <div className="flex justify-between font-black uppercase italic">
-                    <span>
-                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                      {item.name}
-                    </span>
-                    <span
-                      className={isKitchen ? "text-white" : "text-blue-600"}
-                    >
-                      {(item.price * (item.quantity || 1)).toFixed(2)}€
-                    </span>
-                  </div>
-                  {item.note && (
-                    <div
-                      className={`p-3 rounded-xl mt-2 text-xs font-bold italic ${
-                        isKitchen
-                          ? "bg-gray-700 text-yellow-400"
-                          : "bg-yellow-50 text-yellow-800"
-                      }`}
-                    >
-                      📝 {item.note}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {/* ΕΠΑΝΑΦΟΡΑ ΣΥΝΟΛΟΥ */}
-            <div
-              className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
-                isKitchen ? "border-gray-700" : "border-gray-100"
-              }`}
-            >
-              <span>ΣΥΝΟΛΟ:</span>
-              <span className={isKitchen ? "text-white" : "text-gray-900"}>
-                {(isKitchen
-                  ? viewingOrder.items
-                      ?.filter((i) => i.station === "kitchen")
-                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
-                  : viewingOrder.total_price
-                )?.toFixed(2)}
-                €
-              </span>
-            </div>
-
-            <button
-              onClick={() => setViewingOrder(null)}
-              className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs hover:bg-blue-700"
-            >
-              ΚΛΕΙΣΙΜΟ
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* --- ΠΑΡΑΘΥΡΟ QUICK POS (ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ ΤΑΜΕΙΟΥ) --- */}
       {isPosOpen && (
@@ -1502,45 +1402,31 @@ export default function Dashboard() {
             }}
             className="bg-gray-100 lg:rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden relative"
           >
-            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ (55%) -- */}
+            {/* -- ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ: ΠΡΟΪΟΝΤΑ ΚΑΤΑΛΟΓΟΥ (55%) -- */}
             <div
               style={{ width: window.innerWidth >= 1024 ? "55%" : "100%" }}
               className={`flex-col bg-white h-full relative border-r border-gray-200 ${
                 isPosCartOpen ? "hidden lg:flex" : "flex"
               }`}
             >
-              {/* Header Καταλόγου & ΜΠΑΡΑ ΑΝΑΖΗΤΗΣΗΣ (ΝΕΟ) */}
-              <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center bg-gray-50 shrink-0 gap-3">
+              <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
                 <h2 className="font-black text-xl italic uppercase text-gray-800">
                   ΚΑΤΑΛΟΓΟΣ TAMEIOY
                 </h2>
-                <div className="flex w-full sm:w-auto gap-2 items-center">
-                  <input
-                    type="text"
-                    placeholder="🔍 Αναζήτηση..."
-                    value={posSearch}
-                    onChange={(e) => setPosSearch(e.target.value)}
-                    className="flex-1 sm:w-64 px-4 py-2 rounded-xl border border-gray-200 text-sm font-bold focus:outline-none focus:border-blue-500 shadow-inner"
-                  />
-                  <button
-                    onClick={() => setIsPosOpen(false)}
-                    className="lg:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors shrink-0"
-                  >
-                    ✕
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsPosOpen(false)}
+                  className="lg:hidden w-10 h-10 bg-white border border-gray-200 rounded-full flex justify-center items-center font-black text-gray-600 hover:bg-red-50 hover:text-red-500 shadow-sm transition-colors"
+                >
+                  ✕
+                </button>
               </div>
 
-              {/* Φίλτρα Κατηγοριών (ΕΜΦΑΝΗ ΠΑΝΤΑ) */}
-              <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0 bg-white shadow-sm z-10">
+              <div className="flex overflow-x-auto gap-2 p-3 border-b border-gray-100 no-scrollbar shrink-0">
                 <button
-                  onClick={() => {
-                    setPosCategory("ΟΛΑ");
-                    setPosSearch("");
-                  }}
-                  className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all ${
+                  onClick={() => setPosCategory("ΟΛΑ")}
+                  className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
                     posCategory === "ΟΛΑ"
-                      ? "bg-blue-600 text-white shadow-md scale-105"
+                      ? "bg-blue-600 text-white shadow-md"
                       : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
@@ -1549,13 +1435,10 @@ export default function Dashboard() {
                 {posCategories.map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => {
-                      setPosCategory(cat);
-                      setPosSearch("");
-                    }}
-                    className={`px-5 py-2.5 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-all ${
+                    onClick={() => setPosCategory(cat)}
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-all ${
                       posCategory === cat
-                        ? "bg-blue-600 text-white shadow-md scale-105"
+                        ? "bg-blue-600 text-white shadow-md"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
@@ -1581,6 +1464,7 @@ export default function Dashboard() {
                 ))}
               </div>
 
+              {/* Πλωτό κουμπί μόνο για κινητά */}
               {!isPosCartOpen && posCart.length > 0 && (
                 <div className="lg:hidden absolute bottom-4 left-4 right-4 z-50">
                   <button

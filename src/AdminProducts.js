@@ -6,9 +6,27 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZneXpldmF4a2F5eW9ib3B6bnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNjI2MDksImV4cCI6MjA4NjYzODYwOX0.u-kO33BloFq4MU3sZsxN8QVcNTjOOZtsDT4srhbdsCw";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+const CATEGORY_ORDER = [
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ",
+  "ΚΑΦΕΔΕΣ",
+  "ΑΝΑΨΥΚΤΙΚΑ",
+  "ΡΟΦΗΜΑΤΑ",
+  "ΠΡΩΙΝΟ",
+  "ΜΠΥΡΕΣ",
+  "ΣΝΑΚΣ",
+  "ΣΥΝΟΔΕΥΤΙΚΑ",
+  "ΣΑΛΑΤΕΣ",
+  "ΖΥΜΑΡΙΚΑ",
+  "ΠΙΤΣΕΣ",
+  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ",
+  "ΓΛΥΚΕΣ ΚΡΕΠΕΣ",
+  "ΓΛΥΚΑ",
+];
+
 export default function AdminProducts({ storeId }) {
   const [products, setProducts] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [activeCategory, setActiveCategory] = useState("ΟΛΑ"); // State για το φίλτρο
 
   const [editForm, setEditForm] = useState({
     name: "",
@@ -90,7 +108,6 @@ export default function AdminProducts({ storeId }) {
     setIsUploading(false);
   };
 
-  // ΝΕΟ: Τα νέα Addons παίρνουν αυτόματα και το name_en (κενό στην αρχή)
   const addAddonGroup = () =>
     setEditForm({
       ...editForm,
@@ -172,9 +189,26 @@ export default function AdminProducts({ storeId }) {
     }
   };
 
+  // Δημιουργία των κατηγοριών για τα φίλτρα
+  const categories = [...new Set(products.map((p) => p.category))]
+    .filter(Boolean)
+    .sort((a, b) => {
+      let idxA = CATEGORY_ORDER.indexOf(a);
+      let idxB = CATEGORY_ORDER.indexOf(b);
+      if (idxA === -1) idxA = 999;
+      if (idxB === -1) idxB = 999;
+      return idxA - idxB;
+    });
+
+  // Φιλτράρισμα των προϊόντων βάσει της επιλεγμένης κατηγορίας
+  const filteredProducts =
+    activeCategory === "ΟΛΑ"
+      ? products
+      : products.filter((p) => p.category === activeCategory);
+
   return (
     <div className="max-w-4xl mx-auto pb-24 px-2">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-black italic uppercase tracking-tighter text-blue-600">
           Κατάλογος
         </h2>
@@ -198,6 +232,33 @@ export default function AdminProducts({ storeId }) {
         >
           + Προσθήκη
         </button>
+      </div>
+
+      {/* --- ΦΙΛΤΡΑ ΚΑΤΗΓΟΡΙΩΝ --- */}
+      <div className="flex overflow-x-auto gap-2 pb-4 mb-4 border-b border-gray-200 no-scrollbar">
+        <button
+          onClick={() => setActiveCategory("ΟΛΑ")}
+          className={`px-4 py-2 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-colors ${
+            activeCategory === "ΟΛΑ"
+              ? "bg-black text-white"
+              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+          }`}
+        >
+          ΟΛΑ
+        </button>
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setActiveCategory(cat)}
+            className={`px-4 py-2 rounded-xl text-xs font-black uppercase whitespace-nowrap transition-colors ${
+              activeCategory === cat
+                ? "bg-black text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
       </div>
 
       {(isAdding || editingId) && (
@@ -310,7 +371,6 @@ export default function AdminProducts({ storeId }) {
                   key={group.id}
                   className="bg-gray-50 p-5 rounded-2xl border border-gray-200"
                 >
-                  {/* ΔΙΓΛΩΣΣΗ ΟΜΑΔΑ */}
                   <div className="flex justify-between items-start mb-4 gap-2">
                     <input
                       type="text"
@@ -373,7 +433,6 @@ export default function AdminProducts({ storeId }) {
                   </div>
                   <div className="space-y-2 mb-3 pl-4 border-l-2 border-blue-200">
                     {group.options.map((opt, oIndex) => (
-                      // ΔΙΓΛΩΣΣΗ ΕΠΙΛΟΓΗ
                       <div key={oIndex} className="flex gap-2 items-center">
                         <input
                           type="text"
@@ -477,8 +536,9 @@ export default function AdminProducts({ storeId }) {
         </div>
       )}
 
+      {/* --- ΕΜΦΑΝΙΣΗ ΛΙΣΤΑΣ ΠΡΟΪΟΝΤΩΝ ΜΕ ΤΟ ΦΙΛΤΡΟ --- */}
       <div className="space-y-3">
-        {products.map((p) => (
+        {filteredProducts.map((p) => (
           <div
             key={p.id}
             className={`bg-white border p-3 rounded-[2rem] flex justify-between items-center shadow-sm transition-all ${
