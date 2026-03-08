@@ -15,7 +15,7 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
-const REWARD_THRESHOLD = 25;
+const REWARD_THRESHOLD = 40;
 
 const removeAccents = (str) => {
   if (!str) return str;
