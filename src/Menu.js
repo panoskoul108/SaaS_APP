@@ -13,14 +13,11 @@ const CATEGORY_ORDER_FALLBACK = [
   "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ"
 ];
 
-const DEFAULT_TABLES = [
-  ...Array.from({ length: 20 }, (_, i) => `A${i + 1}`),
-  ...Array.from({ length: 6 }, (_, i) => `Γ${i + 1}`),
-  ...Array.from({ length: 20 }, (_, i) => `Δ${i + 1}`),
-  "ΠΑΚΕΤΟ",
-];
+const DEFAULT_TABLES = [...Array.from({ length: 20 }, (_, i) => `A${i + 1}`), ...Array.from({ length: 6 }, (_, i) => `Γ${i + 1}`), ...Array.from({ length: 20 }, (_, i) => `Δ${i + 1}`), "ΠΑΚΕΤΟ"];
 
 const REWARD_THRESHOLD = 40;
+
+const normalizeStr = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; 
@@ -28,9 +25,7 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   const f2 = (lat2 * Math.PI) / 180;
   const df = ((lat2 - lat1) * Math.PI) / 180;
   const dl = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(df / 2) * Math.sin(df / 2) +
-    Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+  const a = Math.sin(df / 2) * Math.sin(df / 2) + Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) * Math.sin(dl / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
@@ -327,21 +322,20 @@ export default function Menu() {
   };
 
   const confirmAddons = () => {
-    let extraPrice = 0; 
-    let addonTexts = []; 
-    let isValid = true;
+    let extraPrice = 0; let addonTexts = []; let isValid = true;
     
     let isSketosSelected = false;
     (activeProduct.addons || []).forEach((g) => {
       const sels = addonSelections[g.id] || [];
       sels.forEach((idx) => {
-        const optName = g.options[idx]?.name?.toUpperCase() || "";
-        if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) isSketosSelected = true;
+        const optName = normalizeStr(g.options[idx]?.name);
+        if (optName.includes("ΣΚΕΤ") || optName.includes("ΧΩΡΙΣ")) isSketosSelected = true;
       });
     });
 
     (activeProduct.addons || []).forEach((g) => {
-      const isSugarType = g.name.toUpperCase().includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ");
+      const groupNameUpper = normalizeStr(g.name);
+      const isSugarType = groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ");
       if (isSketosSelected && isSugarType) return;
 
       const sels = addonSelections[g.id] || [];
@@ -357,28 +351,11 @@ export default function Menu() {
     
     const finalName = addonTexts.length > 0 ? `${activeProduct.name} (${addonTexts.join(" | ")})` : activeProduct.name;
     const finalPrice = activeProduct.price + extraPrice;
-    const newItem = { 
-      ...activeProduct, 
-      cartId: editingCartId || Date.now() + Math.random(), 
-      name: finalName, 
-      price: finalPrice, 
-      note: removeAccents(currentProductNote), 
-      rawAddons: addonSelections, 
-      quantity: quantity 
-    };
+    const newItem = { ...activeProduct, cartId: editingCartId || Date.now() + Math.random(), name: finalName, price: finalPrice, note: removeAccents(currentProductNote), rawAddons: addonSelections, quantity: quantity };
     
-    if (editingCartId) { 
-      setCart(cart.map((item) => (item.cartId === editingCartId ? newItem : item))); 
-      setIsCartOpen(true); 
-    } else { 
-      setCart([...cart, newItem]); 
-      setCartBounce(true); 
-      setTimeout(() => setCartBounce(false), 300); 
-    }
-    
-    setActiveProduct(null); 
-    setEditingCartId(null); 
-    setCurrentProductNote("");
+    if (editingCartId) { setCart(cart.map((item) => (item.cartId === editingCartId ? newItem : item))); setIsCartOpen(true); } 
+    else { setCart([...cart, newItem]); setCartBounce(true); setTimeout(() => setCartBounce(false), 300); }
+    setActiveProduct(null); setEditingCartId(null); setCurrentProductNote("");
   };
 
   const updateCartItemQuantity = (cartId, delta) => {
