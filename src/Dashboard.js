@@ -9,20 +9,13 @@ import HistoryPanel from "./HistoryPanel";
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const NOTIFICATION_SOUND =
-  "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const TABLES_LIST = [
-  ...Array.from({ length: 20 }, (_, i) => `A${i + 1}`),
-  ...Array.from({ length: 6 }, (_, i) => `Γ${i + 1}`),
-  ...Array.from({ length: 20 }, (_, i) => `Δ${i + 1}`),
-  "ΠΑΚΕΤΟ",
-];
 
-const removeAccents = (str) =>
-  str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
-const CATEGORY_ORDER = [
-  "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ", "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ",
+const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
+
+const CATEGORY_ORDER_FALLBACK = [
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ", "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ"
 ];
 
 export default function Dashboard() {
@@ -31,6 +24,9 @@ export default function Dashboard() {
   const [storeId, setStoreId] = useState(null);
   const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState(null);
+  const [storeTables, setStoreTables] = useState(["ΠΑΚΕΤΟ"]);
+  const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
+  
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -48,10 +44,8 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // THEME STATE
   const [theme, setTheme] = useState(() => localStorage.getItem("dashboard_theme") || "light");
 
-  // POS STATE
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
   const [posCategory, setPosCategory] = useState("ΟΛΑ");
@@ -90,15 +84,18 @@ export default function Dashboard() {
     if (!isAuthenticated || !storeId) return;
     const { data: ordersData } = await supabase.from("orders").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
+    
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
     
-    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url").eq("id", storeId).single();
+    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order").eq("id", storeId).single();
     if (storeData) {
       setBackupMode(storeData.backup_mode);
       setStoreName(storeData.name);
       setStoreLogo(storeData.logo_url);
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
+      if (storeData.tables) setStoreTables(storeData.tables);
+      if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
   };
 
@@ -196,7 +193,8 @@ export default function Dashboard() {
   });
 
   const posCategories = [...new Set(posVisibleProducts.map((p) => p.category))].sort((a, b) => {
-    let idxA = CATEGORY_ORDER.indexOf(a); let idxB = CATEGORY_ORDER.indexOf(b);
+    const orderArr = storeCategoryOrder.length > 0 ? storeCategoryOrder : CATEGORY_ORDER_FALLBACK;
+    let idxA = orderArr.indexOf(a); let idxB = orderArr.indexOf(b);
     if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999; return idxA - idxB;
   });
 
@@ -383,7 +381,7 @@ export default function Dashboard() {
         )}
         {tab === "tables" && userRole === "admin" && (
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-            {TABLES_LIST.map((t) => (
+            {storeTables.map((t) => (
               <div
                 key={t}
                 onClick={() => setSelectedTableForQR(t)}
@@ -467,7 +465,6 @@ export default function Dashboard() {
               </div>
               <div className={`p-5 border-t space-y-3 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
                 <input type="text" placeholder="ΕΙΣΑΓΩΓΗ PAGER Ή ΟΝΟΜΑ..." value={posTable} onChange={(e) => setPosTable(e.target.value)} className={`w-full border-2 outline-none p-4 rounded-xl font-black uppercase ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500"}`} />
-                {/* Η ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΔΩ: setPosGeneralNote */}
                 <textarea rows="1" placeholder="Γενική Σημείωση..." value={posGeneralNote} onChange={(e) => setPosGeneralNote(e.target.value)} className={`w-full border p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"}`}></textarea>
                 <div className={`flex gap-1 p-1 rounded-xl ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                   {["ΜΕΤΡΗΤΑ", "ΚΑΡΤΑ"].map((m) => (
@@ -488,7 +485,6 @@ export default function Dashboard() {
           <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
             <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
-            {/* ΕΜΦΑΝΙΣΗ QR ΜΕ ΛΟΓΟΤΥΠΟ */}
             <img src={getQrUrl(selectedTableForQR)} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl bg-white p-2" />
             <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
           </div>
