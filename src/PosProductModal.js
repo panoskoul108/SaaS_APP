@@ -37,10 +37,7 @@ export default function PosProductModal({
   });
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
-      onClick={() => { setPosActiveProduct(null); setEditingCartId(null); }}
-    >
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => { setPosActiveProduct(null); setEditingCartId(null); }}>
       <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start mb-4 border-b pb-4">
           <div className="flex flex-col pr-4">
