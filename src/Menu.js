@@ -16,9 +16,7 @@ const TABLES_LIST = [
 
 const REWARD_THRESHOLD = 40;
 
-const TARGET_LAT = 38.3659639856658;
-const TARGET_LNG = 26.140604568410055;
-const ALLOWED_RADIUS_METERS = 100;
+// Αφαιρέθηκαν οι σταθερές (καρφωτές) συντεταγμένες από εδώ
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; 
@@ -298,15 +296,25 @@ export default function Menu() {
   const progressPercent = Math.min((currentCartTotal / REWARD_THRESHOLD) * 100, 100);
   const remainingAmount = Math.max(REWARD_THRESHOLD - currentCartTotal, 0);
 
+  // --- ΔΥΝΑΜΙΚΟΣ ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ ---
   const handleSendOrderClick = () => {
+    // Αν το μαγαζί ΔΕΝ έχει ορίσει συντεταγμένες στη βάση, προσπέρνα τον έλεγχο!
+    if (!store?.lat || !store?.lng) {
+      sendOrder();
+      return;
+    }
+
+    // Διαφορετικά, έλεγξε την τοποθεσία βάσει του μαγαζιού
     if (!navigator.geolocation) return alert(t.locErrorSupport);
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const dist = getDistance(latitude, longitude, TARGET_LAT, TARGET_LNG);
+        const radius = store.radius || 100; // Αν δεν έχει βάλει radius, βάλε 100m by default
+        const dist = getDistance(latitude, longitude, store.lat, store.lng);
         setIsLocating(false);
-        if (dist <= ALLOWED_RADIUS_METERS) sendOrder();
+        
+        if (dist <= radius) sendOrder();
         else alert(t.locErrorFar);
       },
       (error) => { setIsLocating(false); alert(t.locErrorDenied); },
@@ -418,7 +426,6 @@ export default function Menu() {
           </div>
         )}
 
-        {/* --- ΝΕΑ ΜΙΚΡΗ, STICKY ΜΠΑΡΑ LOYALTY --- */}
         <div className={`px-4 py-2 sticky z-30 transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90 backdrop-blur-md" : "bg-gray-50/90 backdrop-blur-md"}`}>
           <div className={`p-2.5 rounded-xl border shadow-sm transition-colors duration-500 ${isRewardOrder ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300" : isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
             {isRewardOrder ? (
@@ -437,14 +444,12 @@ export default function Menu() {
           </div>
         </div>
 
-        {/* ΚΡΥΒΟΥΜΕ ΤΗΝ ΑΝΑΖΗΤΗΣΗ ΣΤΟ BACKUP MODE ΚΑΙ ΤΗΝ ΚΑΝΟΥΜΕ RELATIVE ΓΙΑ ΝΑ ΣΚΡΟΛΑΡΕΙ ΜΑΖΙ ΜΕ ΤΗ ΣΕΛΙΔΑ */}
         {!backupMode && (
           <div className={`px-4 py-2 relative z-20 transition-all ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
             <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span><input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} style={{ focusRingColor: themeColor }} /></div>
           </div>
         )}
 
-        {/* ΟΙ ΚΑΤΗΓΟΡΙΕΣ ΕΙΝΑΙ STICKY ΚΑΤΩ ΑΠΟ ΤΟ LOYALTY BAR */}
         {!searchQuery && (
           <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[180px]" : "top-[148px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (<button key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${selectedCategory !== cat ? isDark ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700" : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100" : "scale-105"}`} style={selectedCategory === cat ? { backgroundColor: themeColor, color: "#ffffff" } : {}}>{getCategoryDisplayName(cat)}</button>))}
@@ -561,4 +566,3 @@ export default function Menu() {
     </div>
   );
 }
-
