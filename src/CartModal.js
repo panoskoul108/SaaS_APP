@@ -16,9 +16,9 @@ export default function CartModal({
   setPaymentMethod,
   isAcceptingOrders,
   tableNum,
-  handleSendOrderClick, // ΝΕΟ
-  isLocating,           // ΝΕΟ
-  openPrivacy,          // ΝΕΟ
+  handleSendOrderClick,
+  isLocating,          
+  openPrivacy,          
   currentCartTotal,
   theme,
 }) {
@@ -113,7 +113,7 @@ export default function CartModal({
       </div>
 
       <div className={`p-6 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
-        <div className="mb-6">
+        <div className="mb-4">
           <p className="font-black text-[10px] uppercase text-gray-400 mb-2 tracking-widest">{t.genNoteTitle}</p>
           <textarea
             rows="1"
@@ -126,14 +126,15 @@ export default function CartModal({
           ></textarea>
         </div>
 
-        <div className={`flex flex-col mb-4 p-3 rounded-2xl border ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
-          <span className="font-black text-[10px] uppercase text-gray-500 tracking-widest mb-2 text-center">
+        {/* --- ΜΙΚΡΟΤΕΡΗ ΕΠΙΛΟΓΗ ΠΛΗΡΩΜΗΣ --- */}
+        <div className={`flex flex-col mb-4 p-2.5 rounded-2xl border ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
+          <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1.5 text-center">
             {t.payMethod} <span className="text-red-500">*</span>
           </span>
           <div className={`flex p-1 rounded-xl shadow-inner ${isDark ? "bg-gray-800" : "bg-gray-200/50"}`}>
             <button
               onClick={() => setPaymentMethod("ΜΕΤΡΗΤΑ")}
-              className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+              className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
                 paymentMethod === "ΜΕΤΡΗΤΑ"
                   ? isDark
                     ? "bg-gray-700 text-white shadow-sm scale-105"
@@ -146,7 +147,7 @@ export default function CartModal({
             </button>
             <button
               onClick={() => setPaymentMethod("ΚΑΡΤΑ")}
-              className={`flex-1 py-3 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+              className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
                 paymentMethod === "ΚΑΡΤΑ"
                   ? isDark
                     ? "bg-gray-700 text-white shadow-sm scale-105"
@@ -160,27 +161,15 @@ export default function CartModal({
           </div>
         </div>
 
-        {/* --- LINK ΠΟΛΙΤΙΚΗΣ ΑΠΟΡΡΗΤΟΥ --- */}
-        <div className="text-center mb-3">
-          <button 
-            onClick={openPrivacy} 
-            className={`text-[9px] font-black uppercase tracking-widest underline transition-colors ${
-              isDark ? "text-gray-400 hover:text-gray-300" : "text-gray-500 hover:text-gray-700"
-            }`}
-          >
-            {t.privacyLink}
-          </button>
-        </div>
-
         {!isAcceptingOrders ? (
-          <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-black text-center text-xs uppercase border-2 border-red-200">
+          <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-black text-center text-xs uppercase border-2 border-red-200 mb-2">
             ⚠️ {t.pausedCartMsg}
           </div>
         ) : (
           <button
             onClick={handleSendOrderClick}
             disabled={!paymentMethod || !tableNum || isLocating}
-            className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 ${
+            className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 mb-2 ${
               paymentMethod && tableNum && !isLocating
                 ? "text-white shadow-xl hover:opacity-90"
                 : isDark
@@ -197,6 +186,19 @@ export default function CartModal({
             <span className="text-xl">{currentCartTotal.toFixed(2)}€</span>
           </button>
         )}
+
+        {/* --- LINK ΠΟΛΙΤΙΚΗΣ ΑΠΟΡΡΗΤΟΥ ΚΡΥΜΜΕΝΟ ΚΑΤΩ ΑΠΟ ΤΟ ΚΟΥΜΠΙ --- */}
+        <div className="text-center mt-1">
+          <button 
+            onClick={openPrivacy} 
+            className={`text-[8px] font-bold uppercase tracking-widest transition-colors ${
+              isDark ? "text-gray-600 hover:text-gray-400" : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            {t.privacyLink}
+          </button>
+        </div>
+
       </div>
     </div>
   );
