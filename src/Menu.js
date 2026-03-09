@@ -40,7 +40,7 @@ const getSmartImage = (product) => {
   if (name.includes("FANTA") || name.includes("SPRITE") || name.includes("7UP")) return "https://images.unsplash.com/photo-1624517452488-04869289c4ca?auto=format&fit=crop&w=400&q=80";
   if (name.includes("ΝΕΡΟ") || name.includes("WATER") || name.includes("ΑΥΡΑ") || name.includes("ΖΑΓΟΡΙ")) return "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=400&q=80";
   if (name.includes("FREDDO") || name.includes("ΦΡΕΝΤΟ") || name.includes("ICE") || name.includes("FRAPPE") || name.includes("ΦΡΑΠΕ")) return "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=400&q=80";
-  if (name.includes("CLUB") || name.includes("SANDWICH") || name.includes("ΣΑΝΤΟΥΙΤΣ") || name.includes("ΤΟΑΣΤ")) return "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("CLUB") || name.includes("SANDWICH") || name.includes("ΤΟΑΣΤ")) return "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=400&q=80";
   if (name.includes("ΒΑΦΛ") || name.includes("WAFFLE")) return "https://images.unsplash.com/photo-1562376552-0d160a2f9fa4?auto=format&fit=crop&w=400&q=80";
   if (name.includes("ΣΟΚΟΛΑΤ") || name.includes("BUENO") || name.includes("NUTELLA") || cat.includes("ΓΛΥΚΕΣ ΚΡΕΠ")) return "https://images.unsplash.com/photo-1554522723-b2a47cb105e3?auto=format&fit=crop&w=400&q=80";
   if (cat.includes("ΚΡΕΠ") || name.includes("ΚΡΕΠ")) return "https://images.unsplash.com/photo-1613769049987-b31b641f25b1?auto=format&fit=crop&w=400&q=80";
@@ -336,10 +336,13 @@ export default function Menu() {
     (activeProduct.addons || []).forEach((g) => {
       const groupNameUpper = normalizeStr(g.name);
       const isSugarType = groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ");
-      if (isSketosSelected && isSugarType) return;
+      
+      let required = g.isRequired;
+      if (isSketosSelected && isSugarType) required = false; // Γίνεται προαιρετικό
 
       const sels = addonSelections[g.id] || [];
-      if (g.isRequired && sels.length === 0) isValid = false;
+      if (required && sels.length === 0) isValid = false;
+      
       if (sels.length > 0) {
         const names = sels.map((idx) => lang === "en" && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
         addonTexts.push(`${names.join(", ")}`);
@@ -351,11 +354,28 @@ export default function Menu() {
     
     const finalName = addonTexts.length > 0 ? `${activeProduct.name} (${addonTexts.join(" | ")})` : activeProduct.name;
     const finalPrice = activeProduct.price + extraPrice;
-    const newItem = { ...activeProduct, cartId: editingCartId || Date.now() + Math.random(), name: finalName, price: finalPrice, note: removeAccents(currentProductNote), rawAddons: addonSelections, quantity: quantity };
+    const newItem = { 
+      ...activeProduct, 
+      cartId: editingCartId || Date.now() + Math.random(), 
+      name: finalName, 
+      price: finalPrice, 
+      note: removeAccents(currentProductNote), 
+      rawAddons: addonSelections, 
+      quantity: quantity 
+    };
     
-    if (editingCartId) { setCart(cart.map((item) => (item.cartId === editingCartId ? newItem : item))); setIsCartOpen(true); } 
-    else { setCart([...cart, newItem]); setCartBounce(true); setTimeout(() => setCartBounce(false), 300); }
-    setActiveProduct(null); setEditingCartId(null); setCurrentProductNote("");
+    if (editingCartId) { 
+      setCart(cart.map((item) => (item.cartId === editingCartId ? newItem : item))); 
+      setIsCartOpen(true); 
+    } else { 
+      setCart([...cart, newItem]); 
+      setCartBounce(true); 
+      setTimeout(() => setCartBounce(false), 300); 
+    }
+    
+    setActiveProduct(null); 
+    setEditingCartId(null); 
+    setCurrentProductNote("");
   };
 
   const updateCartItemQuantity = (cartId, delta) => {
