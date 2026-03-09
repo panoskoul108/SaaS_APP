@@ -15,9 +15,9 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
+// --- ΑΝΑΒΑΘΜΙΣΜΕΝΟ ΟΡΙΟ ΟΠΩΣ ΖΗΤΗΣΕΣ ---
 const REWARD_THRESHOLD = 40;
 
-// --- ΣΥΝΤΕΤΑΓΜΕΝΕΣ ΚΑΙ ΑΚΤΙΝΑ (Σπίτι) ---
 const TARGET_LAT = 38.3659639856658;
 const TARGET_LNG = 26.140604568410055;
 const ALLOWED_RADIUS_METERS = 100;
@@ -35,25 +35,37 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// --- ΝΕΟ: ΕΞΥΠΝΕΣ ΦΩΤΟΓΡΑΦΙΕΣ ΒΑΣΕΙ ΟΝΟΜΑΤΟΣ/ΚΑΤΗΓΟΡΙΑΣ ---
+// --- ΥΠΕΡ-ΕΞΥΠΝΕΣ ΦΩΤΟΓΡΑΦΙΕΣ (ΑΝΑΒΑΘΜΙΣΜΕΝΟ) ---
 const getSmartImage = (product) => {
-  if (product.image_url) return product.image_url; // Αν έχεις βάλει δική σου, την κρατάει
+  if (product.image_url) return product.image_url;
 
   const name = (product.name || "").toUpperCase();
   const cat = (product.category || "").toUpperCase();
 
-  if (name.includes("RED BULL") || name.includes("REDBULL")) return "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?auto=format&fit=crop&w=400&q=80";
-  if (name.includes("COCA") || name.includes("COLA")) return "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΚΡΕΠ") || name.includes("ΚΡΕΠ")) return "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΠΙΤΣ") || name.includes("ΠΙΤΣ")) return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΚΑΦΕ") || cat.includes("ΡΟΦΗΜ") || name.includes("ESPRESSO") || name.includes("CAPPUCCINO")) return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΜΠΥΡ") || name.includes("BEER")) return "https://images.unsplash.com/photo-1614316315579-335368a52cb4?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΣΑΛΑΤ")) return "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΑΝΑΨΥΚΤΙΚ")) return "https://images.unsplash.com/photo-1624517452488-04869289c4ca?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΓΛΥΚ") || cat.includes("ΠΑΓΩΤ")) return "https://images.unsplash.com/photo-1551024506-0cb4a1cb1cce?auto=format&fit=crop&w=400&q=80";
-  if (cat.includes("ΖΥΜΑΡΙΚ")) return "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=400&q=80";
+  // 1. ΕΙΔΙΚΑ BRANDS / ΠΡΟΪΟΝΤΑ
+  if (name.includes("RED BULL") || name.includes("REDBULL")) return "https://images.unsplash.com/photo-1632168925528-9821ce705cc8?auto=format&fit=crop&w=400&q=80"; 
+  if (name.includes("MONSTER")) return "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?auto=format&fit=crop&w=400&q=80"; 
+  if (name.includes("COCA COLA") || name.includes("COLA") || name.includes("ΚΟΚΑ ΚΟΛΑ")) return "https://images.unsplash.com/photo-1554866585-cd94860890b7?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("FANTA") || name.includes("SPRITE") || name.includes("7UP")) return "https://images.unsplash.com/photo-1624517452488-04869289c4ca?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("ΝΕΡΟ") || name.includes("WATER") || name.includes("ΑΥΡΑ") || name.includes("ΖΑΓΟΡΙ")) return "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("FREDDO") || name.includes("ΦΡΕΝΤΟ") || name.includes("ICE") || name.includes("FRAPPE") || name.includes("ΦΡΑΠΕ")) return "https://images.unsplash.com/photo-1517701604599-bb29b565090c?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("CLUB") || name.includes("SANDWICH") || name.includes("ΣΑΝΤΟΥΙΤΣ") || name.includes("ΤΟΑΣΤ")) return "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("ΒΑΦΛ") || name.includes("WAFFLE")) return "https://images.unsplash.com/photo-1562376552-0d160a2f9fa4?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("ΣΟΚΟΛΑΤ") || name.includes("BUENO") || name.includes("NUTELLA") || cat.includes("ΓΛΥΚΕΣ ΚΡΕΠ")) return "https://images.unsplash.com/photo-1554522723-b2a47cb105e3?auto=format&fit=crop&w=400&q=80";
 
-  // Default ωραία φωτογραφία πιάτου/cafe
+  // 2. ΚΑΤΗΓΟΡΙΕΣ
+  if (cat.includes("ΚΡΕΠ") || name.includes("ΚΡΕΠ")) return "https://images.unsplash.com/photo-1613769049987-b31b641f25b1?auto=format&fit=crop&w=400&q=80"; // Savory Crepe
+  if (cat.includes("ΠΙΤΣ") || name.includes("ΠΙΤΣ") || name.includes("PIZZA")) return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΚΑΦΕ") || cat.includes("ΡΟΦΗΜ") || name.includes("ESPRESSO") || name.includes("CAPPUCCINO")) return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΜΠΥΡ") || name.includes("BEER") || name.includes("ΑΛΚΟΟΛ")) return "https://images.unsplash.com/photo-1586993451228-09818016e34b?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΣΑΛΑΤ") || name.includes("SALAD")) return "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΑΝΑΨΥΚΤΙΚ") || name.includes("ΧΥΜΟ")) return "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΓΛΥΚ") || cat.includes("ΠΑΓΩΤ") || name.includes("SWEET")) return "https://images.unsplash.com/photo-1551024506-0cb4a1cb1cce?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΖΥΜΑΡΙΚ") || name.includes("ΜΑΚΑΡΟΝ") || name.includes("PASTA")) return "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΣΝΑΚ") || cat.includes("ΠΡΩΙΝΟ") || name.includes("CROISSANT")) return "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΠΟΤΑ") || cat.includes("ΚΟΚΤΕΙΛ") || name.includes("COCKTAIL") || name.includes("DRINK")) return "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&w=400&q=80";
+
+  // 3. ΠΡΟΕΠΙΛΟΓΗ
   return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 };
 
@@ -213,6 +225,11 @@ export default function Menu() {
     localStorage.setItem("app_theme", newTheme);
   };
   const isDark = theme === "dark";
+
+  // --- ΝΕΟ: ΔΙΟΡΘΩΣΗ ΤΟΥ ΛΕΥΚΟΥ ΚΕΝΟΥ (BROWSERS OVERSCROLL) ---
+  useEffect(() => {
+    document.body.style.backgroundColor = isDark ? '#111827' : '#f9fafb';
+  }, [isDark]);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [quantity, setQuantity] = useState(1);
@@ -664,196 +681,175 @@ export default function Menu() {
     : [];
 
   return (
-    <div className={`min-h-screen pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
+    <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       
-      {/* --- ΝΕΟ HEADER: Minimal & Σικ --- */}
       <header className={`fixed top-0 left-0 right-0 pt-4 pb-2 px-4 backdrop-blur-md shadow-sm z-30 transition-all duration-300 ${isDark ? "bg-gray-900/95 border-b border-gray-800" : "bg-white/95"}`}>
         <div className="flex justify-between items-center relative h-12">
-          
-          {/* ΑΡΙΣΤΕΡΑ: Κουμπί Ιστορικού */}
           <div className="flex-1 flex justify-start">
-            <button 
-              onClick={() => setIsHistoryOpen(true)} 
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}
-            >
-              🕒
-            </button>
+            <button onClick={() => setIsHistoryOpen(true)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}>🕒</button>
           </div>
           
-          {/* ΚΕΝΤΡΟ: Λογότυπο & Τραπέζι */}
           <div className="flex-[2] flex flex-col items-center justify-center text-center">
             {store?.logo_url ? (
               <img src={store.logo_url} alt={store?.name} className="h-9 object-contain drop-shadow-sm mb-1" />
             ) : (
-              <h1 className="text-xl font-black uppercase tracking-widest" style={{ color: isDark ? '#fff' : '#111' }}>
-                {store?.name || "MENU"}
-              </h1>
+              <h1 className="text-xl font-black uppercase tracking-widest" style={{ color: isDark ? '#fff' : '#111' }}>{store?.name || "MENU"}</h1>
             )}
-            
-            {/* Λεπτή Γραμμή & Κείμενο */}
             <div className={`w-8 h-[2px] rounded-full my-1 ${isDark ? "bg-gray-700" : "bg-gray-200"}`}></div>
             <div className={`text-[10px] font-bold tracking-widest uppercase ${!tableNum ? 'text-red-500 animate-pulse' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
               {tableNum ? `${t.table} ${tableNum}` : t.requiredTable}
             </div>
           </div>
 
-          {/* ΔΕΞΙΑ: Theme & Language */}
           <div className="flex-1 flex justify-end gap-1">
-            <button 
-              onClick={toggleTheme} 
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-yellow-400 hover:bg-gray-800" : "text-blue-500 hover:bg-gray-100"}`}
-            >
-              {isDark ? "☀️" : "🌙"}
-            </button>
-            <button 
-              onClick={() => setLang(lang === "gr" ? "en" : "gr")} 
-              className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}
-            >
-              {lang === "gr" ? "🇬🇧" : "🇬🇷"}
-            </button>
+            <button onClick={toggleTheme} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-yellow-400 hover:bg-gray-800" : "text-blue-500 hover:bg-gray-100"}`}>{isDark ? "☀️" : "🌙"}</button>
+            <button onClick={() => setLang(lang === "gr" ? "en" : "gr")} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}>{lang === "gr" ? "🇬🇧" : "🇬🇷"}</button>
           </div>
-
         </div>
       </header>
 
       {!isAcceptingOrders && <div className="fixed top-[88px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">⚠️ {t.pausedBanner}</div>}
 
-      {(!tableNum || tableNum === "") && backupMode === true && (
-        <div className={`mx-4 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${!isAcceptingOrders ? "mt-[120px]" : "mt-[88px]"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
-          <p className="text-xs font-black uppercase mb-3" style={{ color: themeColor }}>{t.selectManual}</p>
-          <button onClick={() => setShowTablePicker(true)} className="w-full text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform" style={{ backgroundColor: themeColor }}>{t.btnSelectTable}</button>
-        </div>
-      )}
-
-      {showTablePicker && (
-        <div className="fixed inset-0 bg-black/90 z-[200] p-6 overflow-y-auto flex flex-col items-center justify-start pt-20">
-          <div className="flex justify-between items-center mb-8 text-white font-black italic uppercase text-lg w-full max-w-md">{t.btnSelectTable} <button onClick={() => setShowTablePicker(false)} className="text-3xl">✕</button></div>
-          <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
-            {TABLES_LIST.map((table) => (<button key={table} onClick={() => { setTableNum(table); setShowTablePicker(false); }} className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform">{table}</button>))}
+      {/* --- ΔΙΟΡΘΩΣΗ ΤΟΥ ΚΕΝΟΥ: ΑΛΛΑΞΑ ΤΟ mt ΣΕ pt --- */}
+      <div className={`flex-1 ${!isAcceptingOrders ? "pt-[120px]" : "pt-[88px]"}`}>
+        
+        {(!tableNum || tableNum === "") && backupMode === true && (
+          <div className={`mx-4 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
+            <p className="text-xs font-black uppercase mb-3" style={{ color: themeColor }}>{t.selectManual}</p>
+            <button onClick={() => setShowTablePicker(true)} className="w-full text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform" style={{ backgroundColor: themeColor }}>{t.btnSelectTable}</button>
           </div>
-        </div>
-      )}
+        )}
 
-      <div className={`px-4 pt-4 pb-2 z-20 ${tableNum ? (!isAcceptingOrders ? "mt-[120px]" : "mt-[88px]") : ""} ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-        <div className={`p-4 rounded-3xl border shadow-sm transition-colors duration-500 ${isRewardOrder ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300 animate-pulse" : isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
-          {isRewardOrder ? (
-            <div className="text-center"><span className="text-2xl block mb-1">🎉</span><h3 className="font-black text-sm uppercase tracking-widest drop-shadow-sm">{t.loyaltyReward}</h3></div>
-          ) : (
-            <>
-              <div className="flex justify-between items-center mb-2"><span className="font-black text-[10px] uppercase tracking-widest text-gray-500">🎁 {t.loyaltyTitle}</span><span className={`font-black text-xs px-2 py-0.5 rounded-lg ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€</span></div>
-              <div className={`w-full rounded-full h-3 overflow-hidden shadow-inner ${isDark ? "bg-gray-700" : "bg-gray-100"}`}><div className="h-3 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%`, backgroundColor: themeColor }}></div></div>
-              <p className="text-[10px] font-bold text-gray-400 mt-2 text-center uppercase">{lang === "gr" ? `Πρόσθεσε ${remainingAmount.toFixed(2)}€ ακόμα για δωρεάν κέρασμα!` : `Add ${remainingAmount.toFixed(2)}€ more for a free treat!`}</p>
-            </>
-          )}
-        </div>
-      </div>
+        {showTablePicker && (
+          <div className="fixed inset-0 bg-black/90 z-[200] p-6 overflow-y-auto flex flex-col items-center justify-start pt-20">
+            <div className="flex justify-between items-center mb-8 text-white font-black italic uppercase text-lg w-full max-w-md">{t.btnSelectTable} <button onClick={() => setShowTablePicker(false)} className="text-3xl">✕</button></div>
+            <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
+              {TABLES_LIST.map((table) => (<button key={table} onClick={() => { setTableNum(table); setShowTablePicker(false); }} className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform">{table}</button>))}
+            </div>
+          </div>
+        )}
 
-      <div className={`px-4 py-2 sticky z-20 backdrop-blur-md transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90" : "bg-gray-50/90"}`}>
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
-          <input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} style={{ focusRingColor: themeColor }} />
-        </div>
-      </div>
-
-      {!searchQuery && (
-        <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[180px]" : "top-[148px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
-          {baseCategories.map((cat) => (
-            <button key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${selectedCategory !== cat ? isDark ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700" : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100" : "scale-105"}`} style={selectedCategory === cat ? { backgroundColor: themeColor, color: "#ffffff" } : {}}>{getCategoryDisplayName(cat)}</button>
-          ))}
-        </div>
-      )}
-
-      <div className="p-4 space-y-8 animate-fade-in">
-        {searchQuery ? (
-          <div className="space-y-3">
-            {filteredProducts.length === 0 ? <p className="text-center text-gray-400 font-bold uppercase mt-10">{t.noResults}</p> : (
-              filteredProducts.map((p) => {
-                const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
-                const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
-                return (
-                  <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
-                    <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${getSmartImage(p)})` }}></div>
-                    <div className="flex-1 flex flex-col justify-between py-1">
-                      <div>
-                        <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                        {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                        {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
-                      </div>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
-                        {p.is_available ? <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div> : <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
+        <div className={`px-4 pt-4 pb-2 z-20 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+          <div className={`p-4 rounded-3xl border shadow-sm transition-colors duration-500 ${isRewardOrder ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300 animate-pulse" : isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+            {isRewardOrder ? (
+              <div className="text-center"><span className="text-2xl block mb-1">🎉</span><h3 className="font-black text-sm uppercase tracking-widest drop-shadow-sm">{t.loyaltyReward}</h3></div>
+            ) : (
+              <>
+                <div className="flex justify-between items-center mb-2"><span className="font-black text-[10px] uppercase tracking-widest text-gray-500">🎁 {t.loyaltyTitle}</span><span className={`font-black text-xs px-2 py-0.5 rounded-lg ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€</span></div>
+                <div className={`w-full rounded-full h-3 overflow-hidden shadow-inner ${isDark ? "bg-gray-700" : "bg-gray-100"}`}><div className="h-3 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%`, backgroundColor: themeColor }}></div></div>
+                <p className="text-[10px] font-bold text-gray-400 mt-2 text-center uppercase">{lang === "gr" ? `Πρόσθεσε ${remainingAmount.toFixed(2)}€ ακόμα για δωρεάν κέρασμα!` : `Add ${remainingAmount.toFixed(2)}€ more for a free treat!`}</p>
+              </>
             )}
           </div>
-        ) : (
-          baseCategories.map((cat) => {
-            const sectionProducts = cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? visibleProducts.filter((p) => p.is_recommended) : visibleProducts.filter((p) => p.category === cat);
-            if (sectionProducts.length === 0) return null;
-            return (
-              <div key={cat} id={`category-${cat}`} className="scroll-mt-[220px]">
-                <h2 className={`font-black italic text-2xl mb-4 tracking-tighter pl-1 ${isDark ? "text-gray-100" : "text-gray-800"}`}>{getCategoryDisplayName(cat)}</h2>
-                {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
-                  <div ref={carouselRef} className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory no-scrollbar">
-                    {sectionProducts.map((p) => {
-                      const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
-                      const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
-                      return (
-                        <div 
-                          key={p.id} 
-                          onClick={() => p.is_available && handleProductClick(p)} 
-                          className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-lg hover:-translate-y-1"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
-                        >
-                          <div className="h-44 w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${getSmartImage(p)})` }}>
-                            <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
-                              ⭐ {t.rec}
-                            </div>
-                          </div>
-                          <div className="p-4 flex flex-col flex-1 justify-between">
-                            <div>
-                              <h3 className={`font-black text-[14px] uppercase leading-tight line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                              {dispDesc && <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed line-clamp-2 font-medium">{dispDesc}</p>}
-                              {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">{t.hasOptions}</p>}
-                            </div>
-                            <div className="flex justify-between items-center mt-4">
-                              <p className="font-black text-xl" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>
-                              {p.is_available ? (
-                                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black shadow-md transition-transform active:scale-95" style={{ backgroundColor: themeColor }}>+</div>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {sectionProducts.map((p) => {
-                      const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
-                      const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
-                      return (
-                        <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
-                          <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${getSmartImage(p)})` }}></div>
-                          <div className="flex-1 flex flex-col justify-between py-1">
-                            <div>
-                              <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                              {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                              {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
-                            </div>
-                            <div className="flex justify-between items-center mt-2"><span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>{p.is_available ? <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div> : <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            );
-          })
+        </div>
+
+        <div className={`px-4 py-2 sticky z-20 backdrop-blur-md transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90" : "bg-gray-50/90"}`}>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+            <input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} style={{ focusRingColor: themeColor }} />
+          </div>
+        </div>
+
+        {!searchQuery && (
+          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[180px]" : "top-[148px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
+            {baseCategories.map((cat) => (
+              <button key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${selectedCategory !== cat ? isDark ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700" : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100" : "scale-105"}`} style={selectedCategory === cat ? { backgroundColor: themeColor, color: "#ffffff" } : {}}>{getCategoryDisplayName(cat)}</button>
+            ))}
+          </div>
         )}
+
+        <div className="p-4 space-y-8 animate-fade-in">
+          {searchQuery ? (
+            <div className="space-y-3">
+              {filteredProducts.length === 0 ? <p className="text-center text-gray-400 font-bold uppercase mt-10">{t.noResults}</p> : (
+                filteredProducts.map((p) => {
+                  const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
+                  const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
+                  return (
+                    <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
+                      <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${getSmartImage(p)})` }}></div>
+                      <div className="flex-1 flex flex-col justify-between py-1">
+                        <div>
+                          <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
+                          {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
+                          {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+                        </div>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
+                          {p.is_available ? <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div> : <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          ) : (
+            baseCategories.map((cat) => {
+              const sectionProducts = cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? visibleProducts.filter((p) => p.is_recommended) : visibleProducts.filter((p) => p.category === cat);
+              if (sectionProducts.length === 0) return null;
+              return (
+                <div key={cat} id={`category-${cat}`} className="scroll-mt-[220px]">
+                  <h2 className={`font-black italic text-2xl mb-4 tracking-tighter pl-1 ${isDark ? "text-gray-100" : "text-gray-800"}`}>{getCategoryDisplayName(cat)}</h2>
+                  {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
+                    <div ref={carouselRef} className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory no-scrollbar">
+                      {sectionProducts.map((p) => {
+                        const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
+                        const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
+                        return (
+                          <div 
+                            key={p.id} 
+                            onClick={() => p.is_available && handleProductClick(p)} 
+                            className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-lg hover:-translate-y-1"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
+                          >
+                            <div className="h-44 w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${getSmartImage(p)})` }}>
+                              <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
+                                ⭐ {t.rec}
+                              </div>
+                            </div>
+                            <div className="p-4 flex flex-col flex-1 justify-between">
+                              <div>
+                                <h3 className={`font-black text-[14px] uppercase leading-tight line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
+                                {dispDesc && <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed line-clamp-2 font-medium">{dispDesc}</p>}
+                                {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">{t.hasOptions}</p>}
+                              </div>
+                              <div className="flex justify-between items-center mt-4">
+                                <p className="font-black text-xl" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>
+                                {p.is_available ? (
+                                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black shadow-md transition-transform active:scale-95" style={{ backgroundColor: themeColor }}>+</div>
+                                ) : null}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {sectionProducts.map((p) => {
+                        const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
+                        const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
+                        return (
+                          <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
+                            <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${getSmartImage(p)})` }}></div>
+                            <div className="flex-1 flex flex-col justify-between py-1">
+                              <div>
+                                <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
+                                {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
+                                {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+                              </div>
+                              <div className="flex justify-between items-center mt-2"><span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>{p.is_available ? <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div> : <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>}</div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
 
       <ProductModal theme={theme} activeProduct={activeProduct} lang={lang} t={t} editingCartId={editingCartId} closeProductModal={closeProductModal} addonSelections={addonSelections} toggleAddon={toggleAddon} themeColor={themeColor} quantity={quantity} setQuantity={setQuantity} currentProductNote={currentProductNote} setCurrentProductNote={setCurrentProductNote} confirmAddons={confirmAddons} />
@@ -908,4 +904,3 @@ export default function Menu() {
     </div>
   );
 }
-
