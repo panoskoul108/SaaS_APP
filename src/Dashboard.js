@@ -48,7 +48,7 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
-  // --- ΝΕΟ: THEME STATE ---
+  // THEME STATE
   const [theme, setTheme] = useState(() => localStorage.getItem("dashboard_theme") || "light");
 
   // POS STATE
@@ -302,7 +302,7 @@ export default function Dashboard() {
               </button>
             )}
             
-            {/* ΝΕΟ: ΚΟΥΜΠΙ THEME (ΗΛΙΟΣ/ΦΕΓΓΑΡΙ) */}
+            {/* ΚΟΥΜΠΙ THEME (ΗΛΙΟΣ/ΦΕΓΓΑΡΙ) */}
             <button onClick={toggleTheme} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "bg-gray-800 text-yellow-400 border border-gray-700" : "bg-gray-100 text-blue-600 border border-gray-200"}`}>
               {isDark ? "☀️" : "🌙"}
             </button>
@@ -326,6 +326,7 @@ export default function Dashboard() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
+                // --- ΑΛΛΑΓΗ ΧΡΩΜΑΤΩΝ ΓΙΑ ΤΑ TABS ΣΕ DARK MODE ---
                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-colors ${
                   tab === t 
                     ? (isDark ? "bg-white text-black shadow-md" : "bg-black text-white shadow-md") 
@@ -351,7 +352,7 @@ export default function Dashboard() {
             setActivePrintOrder={setActivePrintOrder}
             setIsPrinting={setIsPrinting}
             toggleReceipt={toggleReceipt}
-            theme={theme} // ΠΕΡΝΑΜΕ ΤΟ THEME
+            theme={theme}
           />
         )}
         {tab === "history" && (
