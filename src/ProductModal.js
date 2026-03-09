@@ -1,6 +1,5 @@
 import React from "react";
 
-// Βοηθητική συνάρτηση που αφαιρεί τους τόνους και τα κάνει όλα κεφαλαία
 const normalizeStr = (str) => 
   str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
 
@@ -39,20 +38,13 @@ export default function ProductModal({
 
   const visibleAddons = (activeProduct.addons || []).filter(group => {
     const groupNameUpper = normalizeStr(group.name);
-    // Κρύβει ό,τι έχει ΖΑΧΑΡ ή ΓΛΥΚΑΝΤΙΚ
     if (isSketosSelected && (groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ"))) return false;
     return true;
   });
 
   return (
-    <div
-      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex flex-col justify-end animate-fade-in"
-      onClick={closeProductModal}
-    >
-      <div
-        className={`${isDark ? "bg-gray-800" : "bg-white"} w-full rounded-t-[2.5rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] flex flex-col`}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex flex-col justify-end animate-fade-in" onClick={closeProductModal}>
+      <div className={`${isDark ? "bg-gray-800" : "bg-white"} w-full rounded-t-[2.5rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
         <div className={`flex justify-between items-start mb-4 border-b pb-4 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
           <div className="flex flex-col pr-4">
             <h2 className={`font-black text-xl uppercase italic ${isDark ? "text-white" : "text-gray-900"}`}>
@@ -65,10 +57,7 @@ export default function ProductModal({
               <span className="text-[10px] text-blue-500 mt-1 font-black uppercase">{t.edit}</span>
             )}
           </div>
-          <button
-            onClick={closeProductModal}
-            className={`w-10 h-10 rounded-full font-black flex items-center justify-center shrink-0 transition-colors ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-          >✕</button>
+          <button onClick={closeProductModal} className={`w-10 h-10 rounded-full font-black flex items-center justify-center shrink-0 transition-colors ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>✕</button>
         </div>
 
         <div className="overflow-y-auto flex-1 space-y-6 pb-6 no-scrollbar">
@@ -87,12 +76,7 @@ export default function ProductModal({
                     const isSelected = (addonSelections[group.id] || []).includes(i);
                     const optDispName = lang === "en" && opt.name_en ? opt.name_en : opt.name;
                     return (
-                      <div
-                        key={i}
-                        onClick={() => toggleAddon(group.id, i, group.maxSelections)}
-                        className={`flex justify-between items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${isSelected ? isDark ? "bg-blue-900/30" : "bg-blue-50/50" : isDark ? "border-gray-700 bg-gray-800 hover:border-gray-600" : "border-gray-200/50 bg-white hover:border-gray-300"}`}
-                        style={isSelected ? { borderColor: themeColor } : {}}
-                      >
+                      <div key={i} onClick={() => toggleAddon(group.id, i, group.maxSelections)} className={`flex justify-between items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${isSelected ? isDark ? "bg-blue-900/30" : "bg-blue-50/50" : isDark ? "border-gray-700 bg-gray-800 hover:border-gray-600" : "border-gray-200/50 bg-white hover:border-gray-300"}`} style={isSelected ? { borderColor: themeColor } : {}}>
                         <div className="flex items-center gap-3">
                           <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "" : isDark ? "border-gray-500" : "border-gray-300"}`} style={isSelected ? { borderColor: themeColor, backgroundColor: themeColor } : {}}>
                             {isSelected && <div className="w-2 h-2 bg-white rounded-full"></div>}
