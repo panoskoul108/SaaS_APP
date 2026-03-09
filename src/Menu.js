@@ -76,10 +76,10 @@ const CATEGORY_ORDER = [
 
 const DICT = {
   gr: {
-    requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΑΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΣΥΓΧΑΡΗΤΗΡΙΑ! ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
+    requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΑΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
   },
   en: {
-    requiredTable: "SELECT TABLE", table: "TABLE", selectManual: "Manual Table Selection", btnSelectTable: "SELECT TABLE", rec: "RECOMMENDED", outOfStock: "Out of Stock", unavail: "UNAVAILABLE", add: "ADD", req: "REQUIRED", opt: "OPTIONAL", upTo: "UP TO", select1: "SELECT 1", free: "FREE", addToCart: "ADD TO CART", viewCart: "VIEW CART", yourOrder: "YOUR ORDER", note: "NOTE", itemNotePlaceholder: "E.g. No sugar, extra ice...", genNoteTitle: "GENERAL NOTE (OPTIONAL)", payMethod: "PAYMENT METHOD", cash: "CASH", card: "CARD", send: "SEND ORDER", selPay: "SELECT PAYMENT", history: "PREVIOUS ORDERS", noHistory: "You have no previous orders", reorder: "REORDER", hasOptions: "Options available", search: "Search products...", qty: "QUANTITY", noResults: "No products found.", pausedBanner: "ORDERS TEMPORARILY PAUSED DUE TO HIGH VOLUME", pausedCartMsg: "New orders cannot be sent at this time.", edit: "EDIT", save: "SAVE", loyaltyTitle: "GIFT WITH ORDER", loyaltyReward: "CONGRATULATIONS! YOU GET A FREE TREAT! 🎁", privacyTitle: "Privacy Policy & Security", privacyLink: "Privacy Policy (GDPR)", locErrorSupport: "Your device does not support location tracking.", locErrorDenied: "Please allow location access (GPS) to send your order.", locErrorFar: "It seems you are outside the store! Orders can only be sent from within our premises.", locFinding: "CHECKING LOCATION...",
+    requiredTable: "SELECT TABLE", table: "TABLE", selectManual: "Manual Table Selection", btnSelectTable: "SELECT TABLE", rec: "RECOMMENDED", outOfStock: "Out of Stock", unavail: "UNAVAILABLE", add: "ADD", req: "REQUIRED", opt: "OPTIONAL", upTo: "UP TO", select1: "SELECT 1", free: "FREE", addToCart: "ADD TO CART", viewCart: "VIEW CART", yourOrder: "YOUR ORDER", note: "NOTE", itemNotePlaceholder: "E.g. No sugar, extra ice...", genNoteTitle: "GENERAL NOTE (OPTIONAL)", payMethod: "PAYMENT METHOD", cash: "CASH", card: "CARD", send: "SEND ORDER", selPay: "SELECT PAYMENT", history: "PREVIOUS ORDERS", noHistory: "You have no previous orders", reorder: "REORDER", hasOptions: "Options available", search: "Search products...", qty: "QUANTITY", noResults: "No products found.", pausedBanner: "ORDERS TEMPORARILY PAUSED DUE TO HIGH VOLUME", pausedCartMsg: "New orders cannot be sent at this time.", edit: "EDIT", save: "SAVE", loyaltyTitle: "GIFT WITH ORDER", loyaltyReward: "YOU GET A FREE TREAT! 🎁", privacyTitle: "Privacy Policy & Security", privacyLink: "Privacy Policy (GDPR)", locErrorSupport: "Your device does not support location tracking.", locErrorDenied: "Please allow location access (GPS) to send your order.", locErrorFar: "It seems you are outside the store! Orders can only be sent from within our premises.", locFinding: "CHECKING LOCATION...",
   },
 };
 
@@ -214,7 +214,7 @@ export default function Menu() {
         const el = document.getElementById(`category-${cat}`);
         if (el) {
           const rect = el.getBoundingClientRect();
-          if (rect.top <= 220 && rect.bottom >= 220) currentActive = cat;
+          if (rect.top <= 250 && rect.bottom >= 250) currentActive = cat;
         }
       }
       if (currentActive !== selectedCategory) {
@@ -230,7 +230,7 @@ export default function Menu() {
   const scrollToCategory = (cat) => {
     setSelectedCategory(cat);
     const el = document.getElementById(`category-${cat}`);
-    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 200, behavior: "smooth" });
+    if (el) window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY - 230, behavior: "smooth" });
   };
   const getCategoryDisplayName = (cat) => {
     if (cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ") return `⭐ ${t.rec}`;
@@ -365,7 +365,7 @@ export default function Menu() {
 
   return (
     <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
-      <header className={`fixed top-0 left-0 right-0 pt-4 pb-2 px-4 backdrop-blur-md shadow-sm z-30 transition-all duration-300 ${isDark ? "bg-gray-900/95 border-b border-gray-800" : "bg-white/95"}`}>
+      <header className={`fixed top-0 left-0 right-0 pt-4 pb-2 px-4 backdrop-blur-md shadow-sm z-40 transition-all duration-300 ${isDark ? "bg-gray-900/95 border-b border-gray-800" : "bg-white/95"}`}>
         <div className="flex justify-between items-center relative h-12">
           <div className="flex-1 flex justify-start"><button onClick={() => setIsHistoryOpen(true)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}>🕒</button></div>
           <div className="flex-[2] flex flex-col items-center justify-center text-center">
@@ -383,6 +383,7 @@ export default function Menu() {
       {!isAcceptingOrders && <div className="fixed top-[88px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">⚠️ {t.pausedBanner}</div>}
 
       <div className={`flex-1 ${!isAcceptingOrders ? "pt-[120px]" : "pt-[88px]"}`}>
+        
         {(!tableNum || tableNum === "") && backupMode === true && (
           <div className={`mx-4 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
             <p className="text-xs font-black uppercase mb-3" style={{ color: themeColor }}>{t.selectManual}</p>
@@ -401,66 +402,52 @@ export default function Menu() {
               <p className="text-gray-400 text-xs font-bold mb-2 uppercase">Εισαγωγη Pager / Ονοματος:</p>
               <div className="flex gap-2">
                 <input 
-                  type="text" 
-                  id="pagerInput"
-                  placeholder="π.χ. P-12 ή Πακέτο" 
+                  type="text" id="pagerInput" placeholder="π.χ. P-12 ή Πακέτο" 
                   className="flex-1 p-4 rounded-2xl bg-gray-800 text-white font-bold border border-gray-600 focus:outline-none focus:border-blue-500"
-                  onKeyDown={(e) => { 
-                    if(e.key === 'Enter' && e.target.value) { 
-                      setTableNum(e.target.value.toUpperCase()); 
-                      setShowTablePicker(false); 
-                    } 
-                  }}
+                  onKeyDown={(e) => { if(e.key === 'Enter' && e.target.value) { setTableNum(e.target.value.toUpperCase()); setShowTablePicker(false); } }}
                 />
-                <button 
-                  onClick={() => {
-                    const val = document.getElementById("pagerInput").value;
-                    if(val) {
-                      setTableNum(val.toUpperCase());
-                      setShowTablePicker(false);
-                    }
-                  }}
-                  className="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-transform"
-                >
-                  ΟΚ
-                </button>
+                <button onClick={() => { const val = document.getElementById("pagerInput").value; if(val) { setTableNum(val.toUpperCase()); setShowTablePicker(false); } }} className="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-transform">ΟΚ</button>
               </div>
             </div>
 
             <p className="text-gray-500 text-xs font-bold mb-4 uppercase w-full max-w-md">Ή γρηγορη επιλογη:</p>
             <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
               {TABLES_LIST.map((table) => (
-                <button key={table} onClick={() => { setTableNum(table); setShowTablePicker(false); }} className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform">
-                  {table}
-                </button>
+                <button key={table} onClick={() => { setTableNum(table); setShowTablePicker(false); }} className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform">{table}</button>
               ))}
             </div>
           </div>
         )}
 
-        <div className={`px-4 pt-4 pb-2 z-20 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-          <div className={`p-4 rounded-3xl border shadow-sm transition-colors duration-500 ${isRewardOrder ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300 animate-pulse" : isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+        {/* --- ΝΕΑ ΜΙΚΡΗ, STICKY ΜΠΑΡΑ LOYALTY --- */}
+        <div className={`px-4 py-2 sticky z-30 transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90 backdrop-blur-md" : "bg-gray-50/90 backdrop-blur-md"}`}>
+          <div className={`p-2.5 rounded-xl border shadow-sm transition-colors duration-500 ${isRewardOrder ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300" : isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
             {isRewardOrder ? (
-              <div className="text-center"><span className="text-2xl block mb-1">🎉</span><h3 className="font-black text-sm uppercase tracking-widest drop-shadow-sm">{t.loyaltyReward}</h3></div>
+              <div className="flex justify-center items-center gap-2"><span className="text-xl">🎉</span><h3 className="font-black text-[10px] uppercase tracking-widest drop-shadow-sm">{t.loyaltyReward}</h3></div>
             ) : (
-              <>
-                <div className="flex justify-between items-center mb-2"><span className="font-black text-[10px] uppercase tracking-widest text-gray-500">🎁 {t.loyaltyTitle}</span><span className={`font-black text-xs px-2 py-0.5 rounded-lg ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€</span></div>
-                <div className={`w-full rounded-full h-3 overflow-hidden shadow-inner ${isDark ? "bg-gray-700" : "bg-gray-100"}`}><div className="h-3 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%`, backgroundColor: themeColor }}></div></div>
-                <p className="text-[10px] font-bold text-gray-400 mt-2 text-center uppercase">{lang === "gr" ? `Πρόσθεσε ${remainingAmount.toFixed(2)}€ ακόμα για δωρεάν κέρασμα!` : `Add ${remainingAmount.toFixed(2)}€ more for a free treat!`}</p>
-              </>
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <span className="font-black text-[9px] uppercase tracking-widest text-gray-500">🎁 {t.loyaltyTitle}</span>
+                  <span className={`font-black text-[9px] px-1.5 py-0.5 rounded-md ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€</span>
+                </div>
+                <div className={`w-full rounded-full h-1.5 overflow-hidden shadow-inner ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                  <div className="h-1.5 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%`, backgroundColor: themeColor }}></div>
+                </div>
+              </div>
             )}
           </div>
         </div>
 
-        {/* ΚΡΥΒΟΥΜΕ ΤΗΝ ΑΝΑΖΗΤΗΣΗ ΣΤΟ BACKUP MODE */}
+        {/* ΚΡΥΒΟΥΜΕ ΤΗΝ ΑΝΑΖΗΤΗΣΗ ΣΤΟ BACKUP MODE ΚΑΙ ΤΗΝ ΚΑΝΟΥΜΕ RELATIVE ΓΙΑ ΝΑ ΣΚΡΟΛΑΡΕΙ ΜΑΖΙ ΜΕ ΤΗ ΣΕΛΙΔΑ */}
         {!backupMode && (
-          <div className={`px-4 py-2 sticky z-20 backdrop-blur-md transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90" : "bg-gray-50/90"}`}>
+          <div className={`px-4 py-2 relative z-20 transition-all ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
             <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span><input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} style={{ focusRingColor: themeColor }} /></div>
           </div>
         )}
 
+        {/* ΟΙ ΚΑΤΗΓΟΡΙΕΣ ΕΙΝΑΙ STICKY ΚΑΤΩ ΑΠΟ ΤΟ LOYALTY BAR */}
         {!searchQuery && (
-          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? (backupMode ? "top-[120px]" : "top-[180px]") : (backupMode ? "top-[88px]" : "top-[148px]")} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
+          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[180px]" : "top-[148px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (<button key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${selectedCategory !== cat ? isDark ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700" : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100" : "scale-105"}`} style={selectedCategory === cat ? { backgroundColor: themeColor, color: "#ffffff" } : {}}>{getCategoryDisplayName(cat)}</button>))}
           </div>
         )}
