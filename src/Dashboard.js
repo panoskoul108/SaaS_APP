@@ -300,12 +300,9 @@ export default function Dashboard() {
                 Backup: {backupMode ? "ON" : "OFF"}
               </button>
             )}
-            
-            {/* ΚΟΥΜΠΙ THEME (ΗΛΙΟΣ/ΦΕΓΓΑΡΙ) */}
             <button onClick={toggleTheme} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "bg-gray-800 text-yellow-400 border border-gray-700" : "bg-gray-100 text-blue-600 border border-gray-200"}`}>
               {isDark ? "☀️" : "🌙"}
             </button>
-
             <button onClick={() => setIsMuted(!isMuted)} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ${isDark ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200"}`}>
               {isMuted ? "🔇" : "🔊"}
             </button>
@@ -350,7 +347,7 @@ export default function Dashboard() {
             setActivePrintOrder={setActivePrintOrder}
             setIsPrinting={setIsPrinting}
             toggleReceipt={toggleReceipt}
-            theme={theme} // <--- ΕΔΩ ΠΕΡΝΑΕΙ ΤΟ THEME
+            theme={theme}
           />
         )}
         {tab === "history" && (
@@ -375,7 +372,8 @@ export default function Dashboard() {
             setSelectedOrderIds={setSelectedOrderIds}
             deleteOrders={deleteOrders}
             downloadReportFile={downloadReportFile}
-            theme={theme} // <--- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ ΙΣΤΟΡΙΚΟ
+            theme={theme} 
+            setViewingOrder={setViewingOrder} // ΝΕΟ ΠΕΡΑΣΜΑ
           />
         )}
         {tab === "reviews" && userRole === "admin" && (
@@ -421,10 +419,11 @@ export default function Dashboard() {
           </div>
         )}
         {tab === "products" && userRole === "admin" && (
-          <AdminProducts storeId={storeId} theme={theme} /> // <--- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟΝ ΚΑΤΑΛΟΓΟ
+          <AdminProducts storeId={storeId} theme={theme} />
         )}
       </main>
 
+      {/* --- ΥΠΟΛΟΙΠΑ MODALS... --- */}
       <PosProductModal
         posActiveProduct={posActiveProduct}
         setPosActiveProduct={setPosActiveProduct}
@@ -504,21 +503,17 @@ export default function Dashboard() {
         </div>
       )}
 
-      {selectedTableForQR && userRole === "admin" && (
-        <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedTableForQR(null)}>
-          <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
-            <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
-            <img src={`https://quickchart.io/qr?size=500&text=${encodeURIComponent(window.location.origin + "/?store=" + storeId + "&table=" + selectedTableForQR)}`} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl" />
-            <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
-          </div>
-        </div>
-      )}
-
+      {/* --- ΠΡΟΒΟΛΗ ΚΑΙ ΕΠΑΝΕΚΤΥΠΩΣΗ ΠΑΡΑΓΓΕΛΙΑΣ --- */}
       {viewingOrder && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setViewingOrder(null)}>
           <div className={`${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"} w-full max-w-md rounded-[3rem] p-8 shadow-2xl`} onClick={(e) => e.stopPropagation()}>
-            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}</h2>
+            <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200 dark:border-gray-700">
+              <h2 className="font-black italic text-2xl uppercase tracking-tighter">ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}</h2>
+              <p className="text-[10px] font-bold text-gray-400 uppercase text-right">
+                {new Date(viewingOrder.created_at).toLocaleTimeString("el-GR")} <br/> {viewingOrder.payment_method}
+              </p>
+            </div>
+            
             {viewingOrder.general_note && (
               <div className={`mb-6 p-4 rounded-2xl ${isKitchen ? (isDark ? "bg-orange-900/50 text-orange-200" : "bg-orange-50 text-orange-800") : (isDark ? "bg-blue-900/50 text-blue-200" : "bg-blue-50 text-blue-800")}`}>
                 <p className="text-sm font-bold italic">{viewingOrder.general_note}</p>
@@ -528,7 +523,7 @@ export default function Dashboard() {
               {(isKitchen ? viewingOrder.items?.filter((i) => i.station === "kitchen") : viewingOrder.items)?.map((item, i) => (
                 <div key={i} className={`border-b pb-3 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <div className="flex justify-between font-black uppercase italic">
-                    <span>{item.quantity > 1 ? `${item.quantity}x ` : ""}{item.name}</span>
+                    <span>{item.quantity > 1 ? <span className="text-blue-500 mr-1">{item.quantity}x</span> : ""}{item.name}</span>
                     <span>{(item.price * (item.quantity || 1)).toFixed(2)}€</span>
                   </div>
                   {item.note && (
@@ -543,7 +538,34 @@ export default function Dashboard() {
               <span>ΣΥΝΟΛΟ:</span>
               <span>{(isKitchen ? viewingOrder.items?.filter((i) => i.station === "kitchen").reduce((s, it) => s + it.price * (it.quantity || 1), 0) : viewingOrder.total_price)?.toFixed(2)}€</span>
             </div>
-            <button onClick={() => setViewingOrder(null)} className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-lg">ΚΛΕΙΣΙΜΟ</button>
+            
+            <div className="flex gap-2 mt-8">
+              {/* ΚΟΥΜΠΙ ΕΠΑΝΕΚΤΥΠΩΣΗΣ */}
+              <button 
+                onClick={() => {
+                  const orderToPrint = isKitchen 
+                    ? { ...viewingOrder, items: viewingOrder.items.filter(it => it.station === "kitchen") }
+                    : viewingOrder;
+                  setActivePrintOrder(orderToPrint);
+                  setIsPrinting(true);
+                  setTimeout(() => {
+                    window.print();
+                    setIsPrinting(false);
+                    setViewingOrder(null);
+                  }, 500);
+                }} 
+                className={`flex-1 py-5 rounded-2xl font-black uppercase text-xs shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 ${isDark ? "bg-gray-700 text-white" : "bg-gray-100 text-gray-800 border"}`}
+              >
+                <span className="text-lg">🖨️</span> ΕΚΤΥΠΩΣΗ
+              </button>
+              
+              <button 
+                onClick={() => setViewingOrder(null)} 
+                className="flex-1 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-lg transition-transform active:scale-95"
+              >
+                ΚΛΕΙΣΙΜΟ
+              </button>
+            </div>
           </div>
         </div>
       )}
