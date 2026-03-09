@@ -106,7 +106,6 @@ const DICT = {
     save: "ΑΠΟΘΗΚΕΥΣΗ",
     loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ",
     loyaltyReward: "ΣΥΓΧΑΡΗΤΗΡΙΑ! ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁",
-    // --- ΜΕΤΑΦΡΑΣΕΙΣ GPS & ΠΟΛΙΤΙΚΗΣ ---
     privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια",
     privacyLink: "Πολιτική Απορρήτου (GDPR)",
     locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.",
@@ -152,7 +151,6 @@ const DICT = {
     save: "SAVE",
     loyaltyTitle: "GIFT WITH ORDER",
     loyaltyReward: "CONGRATULATIONS! YOU GET A FREE TREAT! 🎁",
-    // --- ΜΕΤΑΦΡΑΣΕΙΣ GPS & ΠΟΛΙΤΙΚΗΣ ---
     privacyTitle: "Privacy Policy & Security",
     privacyLink: "Privacy Policy (GDPR)",
     locErrorSupport: "Your device does not support location tracking.",
@@ -213,7 +211,6 @@ export default function Menu() {
   const [editingCartId, setEditingCartId] = useState(null);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
 
-  // --- STATE ΓΙΑ GPS ΚΑΙ ΠΟΛΙΤΙΚΗ ΑΠΟΡΡΗΤΟΥ ---
   const [isLocating, setIsLocating] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
 
@@ -221,7 +218,10 @@ export default function Menu() {
     const saved = localStorage.getItem(`status_order_history_${storeId}`);
     return saved ? JSON.parse(saved) : [];
   });
+  
   const categoryNavRef = useRef(null);
+  const carouselRef = useRef(null); // --- ΝΕΟ REF ΓΙΑ ΤΟ ΚΑΡΟΥΖΕΛ ---
+  
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
   useEffect(() => {
@@ -295,6 +295,25 @@ export default function Menu() {
       supabase.removeChannel(channel);
     };
   }, [storeId]);
+
+  // --- ΝΕΟ USEEFFECT ΓΙΑ ΤΟ ΑΥΤΟΜΑΤΟ ΚΑΡΟΥΖΕΛ ---
+  useEffect(() => {
+    const autoScrollInterval = setInterval(() => {
+      if (carouselRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
+        const scrollAmount = 260; // Το πλάτος περίπου της κάθε κάρτας
+        
+        // Αν φτάσαμε στο τέλος, γύρνα στην αρχή, αλλιώς πήγαινε στο επόμενο
+        if (scrollLeft + clientWidth >= scrollWidth - 10) {
+          carouselRef.current.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          carouselRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+        }
+      }
+    }, 3000); // Αλλάζει κάθε 3 δευτερόλεπτα
+
+    return () => clearInterval(autoScrollInterval);
+  }, []);
 
   const visibleProducts = products.filter((p) =>
     p.category === "ΠΡΩΙΝΟ" && !isMorning ? false : true
@@ -485,7 +504,6 @@ export default function Menu() {
   );
   const remainingAmount = Math.max(REWARD_THRESHOLD - currentCartTotal, 0);
 
-  // --- ΕΛΕΓΧΟΣ GPS ---
   const handleSendOrderClick = () => {
     if (!navigator.geolocation) {
       alert(t.locErrorSupport);
@@ -537,6 +555,7 @@ export default function Menu() {
         date: new Date().toISOString(),
         items: cart,
         total: currentCartTotal,
+        status: "pending",
       };
       const updatedHistory = [newHistoryOrder, ...orderHistory].slice(0, 10);
       setOrderHistory(updatedHistory);
@@ -730,20 +749,34 @@ export default function Menu() {
               <div key={cat} id={`category-${cat}`} className="scroll-mt-[220px]">
                 <h2 className={`font-black italic text-2xl mb-4 tracking-tighter pl-1 ${isDark ? "text-gray-100" : "text-gray-800"}`}>{getCategoryDisplayName(cat)}</h2>
                 {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
-                  <div className="grid grid-cols-2 gap-4">
+                  /* --- ΚΑΡΟΥΖΕΛ ΜΕ ΤΟ REF --- */
+                  <div ref={carouselRef} className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory no-scrollbar">
                     {sectionProducts.map((p) => {
                       const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
                       const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
                       return (
-                        <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md hover:scale-[1.02]"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
-                          <div className="h-36 w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${p.image_url || placeholderImg})` }}></div>
-                          <div className="p-3 flex flex-col flex-1 justify-between">
-                            <div>
-                              <h3 className={`font-black text-[13px] uppercase leading-tight line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                              {dispDesc && <p className="text-[9px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                              {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+                        <div 
+                          key={p.id} 
+                          onClick={() => p.is_available && handleProductClick(p)} 
+                          className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-lg hover:-translate-y-1"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
+                        >
+                          <div className="h-44 w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${p.image_url || placeholderImg})` }}>
+                            <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
+                              ⭐ {t.rec}
                             </div>
-                            <div className="flex justify-between items-center mt-3"><p className="font-black text-base" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>{p.is_available ? <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-black shadow-md" style={{ backgroundColor: themeColor }}>+</div> : null}</div>
+                          </div>
+                          <div className="p-4 flex flex-col flex-1 justify-between">
+                            <div>
+                              <h3 className={`font-black text-[14px] uppercase leading-tight line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
+                              {dispDesc && <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed line-clamp-2 font-medium">{dispDesc}</p>}
+                              {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">{t.hasOptions}</p>}
+                            </div>
+                            <div className="flex justify-between items-center mt-4">
+                              <p className="font-black text-xl" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>
+                              {p.is_available ? (
+                                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black shadow-md transition-transform active:scale-95" style={{ backgroundColor: themeColor }}>+</div>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                       );
@@ -788,7 +821,6 @@ export default function Menu() {
 
       <CartModal theme={theme} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} cart={cart} updateCartItemQuantity={updateCartItemQuantity} handleEditCartItem={handleEditCartItem} removeFromCart={removeFromCart} getItemDisplayName={getItemDisplayName} themeColor={themeColor} t={t} generalNote={generalNote} setGeneralNote={setGeneralNote} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} isAcceptingOrders={isAcceptingOrders} tableNum={tableNum} handleSendOrderClick={handleSendOrderClick} isLocating={isLocating} openPrivacy={() => setShowPrivacyModal(true)} currentCartTotal={currentCartTotal} />
 
-      {/* MODAL ΠΟΛΙΤΙΚΗΣ ΑΠΟΡΡΗΤΟΥ */}
       {showPrivacyModal && (
         <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowPrivacyModal(false)}>
           <div className={`p-6 rounded-3xl max-w-sm w-full shadow-2xl ${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`} onClick={e => e.stopPropagation()}>
