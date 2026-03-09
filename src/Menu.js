@@ -15,7 +15,7 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
-const REWARD_THRESHOLD = 25;
+const REWARD_THRESHOLD = 40;
 
 // --- ΣΥΝΤΕΤΑΓΜΕΝΕΣ ΚΑΙ ΑΚΤΙΝΑ (Σπίτι) ---
 const TARGET_LAT = 38.3659639856658;
@@ -861,3 +861,4 @@ export default function Menu() {
     </div>
   );
 }
+
