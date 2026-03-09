@@ -24,7 +24,7 @@ export default function ProductModal({
   const activeDispDesc = lang === "en" && activeProduct.description_en ? activeProduct.description_en : activeProduct.description;
   const isDark = theme === "dark";
 
-  // --- ΑΠΟΛΥΤΑ ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ---
+  // --- ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ: Ελέγχει αν έχει πατηθεί το "ΣΚΕΤΟ" ---
   let isSketosSelected = false;
   (activeProduct.addons || []).forEach((group) => {
     const selections = addonSelections[group.id] || [];
@@ -36,10 +36,13 @@ export default function ProductModal({
     });
   });
 
-  const visibleAddons = (activeProduct.addons || []).filter(group => {
+  // Μετατρέπει την Ζάχαρη σε "ΠΡΟΑΙΡΕΤΙΚΟ" (αντί να την κρύψει)
+  const displayAddons = (activeProduct.addons || []).map(group => {
     const groupNameUpper = normalizeStr(group.name);
-    if (isSketosSelected && (groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ"))) return false;
-    return true;
+    if (isSketosSelected && (groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ"))) {
+      return { ...group, isRequired: false };
+    }
+    return group;
   });
 
   return (
@@ -61,7 +64,7 @@ export default function ProductModal({
         </div>
 
         <div className="overflow-y-auto flex-1 space-y-6 pb-6 no-scrollbar">
-          {visibleAddons.map((group) => {
+          {displayAddons.map((group) => {
             const groupDispName = lang === "en" && group.name_en ? group.name_en : group.name;
             return (
               <div key={group.id} className={`p-4 rounded-3xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50/50 border-gray-100"}`}>
