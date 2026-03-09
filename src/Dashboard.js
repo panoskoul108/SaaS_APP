@@ -70,7 +70,6 @@ export default function Dashboard() {
   const isKitchen = userRole === "kitchen";
   const isDark = theme === "dark";
 
-  // Δυναμικό Background του Browser
   useEffect(() => {
     document.body.style.backgroundColor = isDark ? '#111827' : '#f9fafb';
   }, [isDark]);
@@ -274,6 +273,16 @@ export default function Dashboard() {
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
+  // --- ΝΕΟ: ΤΑΞΙΝΟΜΗΣΗ ΕΙΔΩΝ ΚΑΙ ΣΤΟ MODAL ΛΕΠΤΟΜΕΡΕΙΩΝ ---
+  let sortedViewingItems = [];
+  if (viewingOrder && viewingOrder.items) {
+    sortedViewingItems = [...viewingOrder.items].sort((a, b) => {
+      if (a.station === "kitchen" && b.station !== "kitchen") return 1;
+      if (a.station !== "kitchen" && b.station === "kitchen") return -1;
+      return 0;
+    });
+  }
+
   return (
     <div className={`min-h-screen font-sans ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       <div className="print:hidden">
@@ -300,11 +309,9 @@ export default function Dashboard() {
                 Backup: {backupMode ? "ON" : "OFF"}
               </button>
             )}
-            
             <button onClick={toggleTheme} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "bg-gray-800 text-yellow-400 border border-gray-700" : "bg-gray-100 text-blue-600 border border-gray-200"}`}>
               {isDark ? "☀️" : "🌙"}
             </button>
-
             <button onClick={() => setIsMuted(!isMuted)} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ${isDark ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200"}`}>
               {isMuted ? "🔇" : "🔊"}
             </button>
@@ -504,7 +511,6 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* --- MODAL ΓΙΑ QR CODE ΤΡΑΠΕΖΙΟΥ ΠΟΥ ΕΙΧΕ ΧΑΘΕΙ --- */}
       {selectedTableForQR && userRole === "admin" && (
         <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedTableForQR(null)}>
           <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
@@ -533,10 +539,10 @@ export default function Dashboard() {
               </div>
             )}
             <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-              {(isKitchen ? viewingOrder.items?.filter((i) => i.station === "kitchen") : viewingOrder.items)?.map((item, i) => (
+              {(isKitchen ? sortedViewingItems.filter((i) => i.station === "kitchen") : sortedViewingItems)?.map((item, i) => (
                 <div key={i} className={`border-b pb-3 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <div className="flex justify-between font-black uppercase italic">
-                    <span>{item.quantity > 1 ? <span className="text-blue-500 mr-1">{item.quantity}x</span> : ""}{item.name}</span>
+                    <span>{item.quantity > 1 ? <span className={`${isKitchen ? "text-orange-500" : "text-blue-500"} mr-1`}>{item.quantity}x</span> : ""}{item.name}</span>
                     <span>{(item.price * (item.quantity || 1)).toFixed(2)}€</span>
                   </div>
                   {item.note && (
@@ -556,8 +562,8 @@ export default function Dashboard() {
               <button 
                 onClick={() => {
                   const orderToPrint = isKitchen 
-                    ? { ...viewingOrder, items: viewingOrder.items.filter(it => it.station === "kitchen") }
-                    : viewingOrder;
+                    ? { ...viewingOrder, items: sortedViewingItems.filter(it => it.station === "kitchen") }
+                    : { ...viewingOrder, items: sortedViewingItems }; // Περνάει ταξινομημένα είδη
                   setActivePrintOrder(orderToPrint);
                   setIsPrinting(true);
                   setTimeout(() => {
