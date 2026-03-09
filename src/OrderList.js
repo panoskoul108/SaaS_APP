@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 
 export default function OrderList({
   orders,
@@ -12,10 +12,51 @@ export default function OrderList({
 }) {
   const statuses = ["pending", "preparing", "ready"];
 
+  // --- ΝΕΟ: COMPONENT ΓΙΑ ΤΟ LIVE TIMER ---
+  const LiveTimer = ({ createdAt }) => {
+    const [elapsedTime, setElapsedTime] = useState(0);
+
+    useEffect(() => {
+      const calculateTime = () => {
+        const start = new Date(createdAt).getTime();
+        const now = new Date().getTime();
+        setElapsedTime(Math.floor((now - start) / 1000));
+      };
+
+      calculateTime(); // Αρχικός υπολογισμός
+      const interval = setInterval(calculateTime, 1000); // Ανανέωση κάθε 1 δευτερόλεπτο
+
+      return () => clearInterval(interval);
+    }, [createdAt]);
+
+    const minutes = Math.floor(elapsedTime / 60);
+    const seconds = elapsedTime % 60;
+    
+    // Μορφοποίηση 00:00
+    const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+    // Χρωματικός Κώδικας Καθυστέρησης
+    let timerColorClass = "text-gray-400 bg-gray-100";
+    if (isKitchen) timerColorClass = "text-gray-400 bg-gray-800"; // Default dark mode για κουζίνα
+
+    if (minutes >= 15) {
+      timerColorClass = "text-red-600 bg-red-100 animate-pulse font-black border border-red-300"; // Πολύ αργά!
+    } else if (minutes >= 8) {
+      timerColorClass = "text-orange-600 bg-orange-100 font-bold border border-orange-200"; // Προσοχή
+    }
+
+    return (
+      <span className={`text-[10px] px-2 py-1 rounded-lg flex items-center gap-1 ${timerColorClass}`}>
+        ⏱️ {formattedTime}
+      </span>
+    );
+  };
+
   const OrderCard = ({ order }) => {
     const displayItems = isKitchen
       ? order.items?.filter((it) => it.station === "kitchen") || []
       : order.items;
+    
     if (isKitchen && displayItems.length === 0) return null;
 
     const currentStatus = isKitchen
@@ -50,23 +91,29 @@ export default function OrderList({
           }`}
         >
           <div>
-            <span
-              className={`font-black text-lg ${
-                isKitchen ? "text-orange-400" : ""
-              }`}
-            >
-              #{order.table_number || "---"}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-black text-xl ${
+                  isKitchen ? "text-orange-400" : ""
+                }`}
+              >
+                #{order.table_number || "---"}
+              </span>
+              {/* --- ΤΟ LIVE TIMER ΜΠΑΙΝΕΙ ΕΔΩ --- */}
+              {currentStatus !== "ready" && currentStatus !== "completed" && (
+                <LiveTimer createdAt={order.created_at} />
+              )}
+            </div>
             <p
-              className={`text-[9px] font-black uppercase tracking-widest ${
+              className={`text-[9px] font-black uppercase tracking-widest mt-1 ${
                 isKitchen ? "text-gray-400" : "text-blue-500"
               }`}
             >
               {order.payment_method}
             </p>
           </div>
-          <span className="text-[10px] text-gray-400 font-bold">
-            {new Date(order.created_at).toLocaleTimeString("el-GR")}
+          <span className="text-[10px] text-gray-400 font-bold mt-1">
+            {new Date(order.created_at).toLocaleTimeString("el-GR", { hour: '2-digit', minute: '2-digit' })}
           </span>
         </div>
 
@@ -85,7 +132,7 @@ export default function OrderList({
           </div>
         )}
 
-        <ul className="mb-4 space-y-2">
+        <ul className="mb-4 space-y-3">
           {displayItems.map((it, i) => (
             <li key={i} className="flex flex-col">
               <span
@@ -96,7 +143,7 @@ export default function OrderList({
                 {it.quantity > 1 ? (
                   <span
                     className={
-                      isKitchen ? "text-orange-400 mr-1" : "text-blue-500 mr-1"
+                      isKitchen ? "text-orange-400 mr-1 text-lg font-black" : "text-blue-600 mr-1 text-lg font-black"
                     }
                   >
                     {it.quantity}x
@@ -108,10 +155,10 @@ export default function OrderList({
               </span>
               {it.note && (
                 <span
-                  className={`text-[10px] px-2 py-1 rounded-lg mt-1 font-black italic inline-block ${
+                  className={`text-xs px-2 py-1.5 rounded-lg mt-1 font-black uppercase inline-block border ${
                     isKitchen
-                      ? "bg-gray-700 text-yellow-400"
-                      : "bg-yellow-100 text-yellow-700"
+                      ? "bg-yellow-400 text-black border-yellow-500 shadow-sm" // ΠΟΛΥ έντονο για την κουζίνα
+                      : "bg-yellow-100 text-yellow-800 border-yellow-200"
                   }`}
                 >
                   📝 {it.note}
@@ -127,42 +174,44 @@ export default function OrderList({
         >
           {currentStatus === "pending" && (
             <div className="flex gap-2">
-              {!isKitchen && (
-                <button
-                  onClick={() => {
-                    setActivePrintOrder(order);
-                    setIsPrinting(true);
-                    setTimeout(() => {
-                      window.print();
-                      setIsPrinting(false);
-                      updateStatus(order.id, "preparing", false);
-                    }, 500);
-                  }}
-                  className="flex-[2] bg-blue-600 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-lg"
-                >
-                  ΕΚΤΥΠΩΣΗ
-                </button>
-              )}
+              {/* --- ΝΕΟ: Η ΚΟΥΖΙΝΑ ΕΧΕΙ ΤΩΡΑ ΚΟΥΜΠΙ ΕΚΤΥΠΩΣΗΣ --- */}
               <button
-                onClick={() => updateStatus(order.id, "preparing", isKitchen)}
-                className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase ${
-                  isKitchen
-                    ? "bg-orange-600 text-white shadow-lg"
-                    : "bg-slate-100 text-slate-500"
+                onClick={() => {
+                  setActivePrintOrder(order);
+                  setIsPrinting(true);
+                  setTimeout(() => {
+                    window.print();
+                    setIsPrinting(false);
+                    updateStatus(order.id, "preparing", isKitchen); // Ξεκινάει αυτόματα αν εκτυπώσει
+                  }, 500);
+                }}
+                className={`flex-[2] py-3 rounded-xl font-black text-[10px] uppercase shadow-lg transition-transform active:scale-95 ${
+                  isKitchen ? "bg-gray-600 text-white hover:bg-gray-500" : "bg-blue-600 text-white hover:bg-blue-500"
                 }`}
               >
-                {isKitchen ? "ΕΝΑΡΞΗ" : "ΧΩΡΙΣ ΧΑΡΤΙ"}
+                🖨️ ΕΚΤΥΠΩΣΗ
+              </button>
+              
+              <button
+                onClick={() => updateStatus(order.id, "preparing", isKitchen)}
+                className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-transform active:scale-95 border ${
+                  isKitchen
+                    ? "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700"
+                    : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"
+                }`}
+              >
+                📝 ΧΩΡΙΣ ΧΑΡΤΙ
               </button>
             </div>
           )}
           {currentStatus === "preparing" && (
             <button
               onClick={() => updateStatus(order.id, "ready", isKitchen)}
-              className={`w-full text-white py-4 rounded-xl font-black text-[10px] uppercase ${
-                isKitchen ? "bg-green-600" : "bg-orange-500"
+              className={`w-full text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg transition-transform active:scale-95 ${
+                isKitchen ? "bg-green-600 hover:bg-green-500" : "bg-orange-500 hover:bg-orange-400"
               }`}
             >
-              ΕΤΟΙΜΗ
+              ✅ ΕΤΟΙΜΗ
             </button>
           )}
           {currentStatus === "ready" &&
@@ -177,17 +226,17 @@ export default function OrderList({
             ) : (
               <button
                 onClick={() => updateStatus(order.id, "completed", false)}
-                className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-[10px] uppercase shadow-lg"
+                className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-xs uppercase shadow-lg transition-transform active:scale-95 hover:bg-green-500"
               >
-                ΟΛΟΚΛΗΡΩΣΗ
+                🏁 ΟΛΟΚΛΗΡΩΣΗ
               </button>
             ))}
           {userRole === "admin" && (
             <button
               onClick={() => deleteOrders([order.id])}
-              className="text-[9px] font-black text-gray-300 mt-2 self-center hover:text-red-500"
+              className="text-[9px] font-black text-gray-400 mt-3 self-center hover:text-red-500 transition-colors"
             >
-              Διαγραφή
+              🗑️ Διαγραφή Παραγγελίας
             </button>
           )}
         </div>
@@ -209,9 +258,9 @@ export default function OrderList({
         });
 
         const labelMap = {
-          pending: "ΝΕΕΣ",
-          preparing: "ΕΤΟΙΜΑΖΟΝΤΑΙ",
-          ready: "ΕΤΟΙΜΕΣ",
+          pending: "ΝΕΕΣ ΠΑΡΑΓΓΕΛΙΕΣ",
+          preparing: "ΣΕ ΠΡΟΕΤΟΙΜΑΣΙΑ",
+          ready: "ΕΤΟΙΜΕΣ / ΠΑΡΑΔΟΣΗ",
         };
 
         return (
@@ -219,7 +268,7 @@ export default function OrderList({
             key={s}
             className={`rounded-[2rem] p-5 min-h-[80vh] border ${
               isKitchen
-                ? "bg-gray-800/50 border-gray-700"
+                ? "bg-gray-800/40 border-gray-700"
                 : s === "pending"
                 ? "bg-blue-50/40 border-blue-100"
                 : s === "preparing"
@@ -227,22 +276,34 @@ export default function OrderList({
                 : "bg-green-50/40 border-green-100"
             }`}
           >
-            <h2
-              className={`font-black text-[11px] uppercase mb-4 px-2 italic ${
-                isKitchen
-                  ? "text-gray-400"
-                  : s === "pending"
-                  ? "text-blue-700"
-                  : s === "preparing"
-                  ? "text-orange-700"
-                  : "text-green-700"
-              }`}
-            >
-              {idx + 1}. {labelMap[s]} ({columnOrders.length})
-            </h2>
+            <div className="flex justify-between items-center mb-5 px-2">
+              <h2
+                className={`font-black text-[12px] uppercase italic tracking-widest ${
+                  isKitchen
+                    ? "text-gray-400"
+                    : s === "pending"
+                    ? "text-blue-700"
+                    : s === "preparing"
+                    ? "text-orange-700"
+                    : "text-green-700"
+                }`}
+              >
+                {labelMap[s]}
+              </h2>
+              <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${isKitchen ? "bg-gray-700 text-white" : "bg-white border text-gray-600"}`}>
+                {columnOrders.length}
+              </span>
+            </div>
+            
             {columnOrders.map((o) => (
               <OrderCard key={o.id} order={o} />
             ))}
+
+            {columnOrders.length === 0 && (
+              <div className={`text-center mt-10 text-[10px] font-bold uppercase tracking-widest ${isKitchen ? "text-gray-600" : "text-gray-400"}`}>
+                Καμια παραγγελια
+              </div>
+            )}
           </div>
         );
       })}
