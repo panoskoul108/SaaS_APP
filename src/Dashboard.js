@@ -170,6 +170,18 @@ export default function Dashboard() {
     fetchData();
   };
 
+  // --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΤΗΝ ΤΑΜΕΙΑΚΗ ΜΗΧΑΝΗ ---
+  const toggleReceipt = async (id, isPrinted) => {
+    // Ενημερώνουμε τοπικά πρώτα για να φαίνεται αμέσως η αλλαγή
+    setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o));
+    
+    // Ενημερώνουμε τη βάση δεδομένων
+    await supabase
+      .from("orders")
+      .update({ receipt_printed: isPrinted })
+      .eq("id", id);
+  };
+
   const deleteOrders = async (ids) => {
     if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) {
       await supabase.from("orders").delete().in("id", ids);
@@ -192,7 +204,6 @@ export default function Dashboard() {
     setIsAcceptingOrders(s);
   };
 
-  // ----- ΝΕΑ ΓΡΗΓΟΡΗ ΛΕΙΤΟΥΡΓΙΑ ΛΗΨΗΣ QR -----
   const downloadQR = async (table) => {
     try {
       const qrData = encodeURIComponent(
@@ -212,7 +223,6 @@ export default function Dashboard() {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      // Μόνο σε περίπτωση απρόσμενου σφάλματος θα ανοίξει σε νέα καρτέλα
       const qrData = encodeURIComponent(
         `${window.location.origin}/?store=${storeId}&table=${table}`
       );
@@ -326,6 +336,7 @@ export default function Dashboard() {
           payment_method: posPayment,
           status: "pending",
           general_note: removeAccents(posGeneralNote),
+          receipt_printed: false, // Το βάζουμε false από προεπιλογή
         },
       ]);
     setPosCart([]);
@@ -346,7 +357,7 @@ export default function Dashboard() {
       specific: specificDate || "ΕΙΔΙΚΗ",
     };
     const reportText =
-      `======================================\n         ΑΝΑΦΟΡΑ ΤΑΜΕΙΟΥ (Z)\n======================================\nΚΑΤΑΣΤΗΜΑ: ${
+      `======================================\n          ΑΝΑΦΟΡΑ ΤΑΜΕΙΟΥ (Z)\n======================================\nΚΑΤΑΣΤΗΜΑ: ${
         storeName || `ΚΑΤΑΣΤΗΜΑ ${storeId}`
       }\nΗΜΕΡΟΜΗΝΙΑ ΕΞΑΓΩΓΗΣ: ${new Date().toLocaleString(
         "el-GR"
@@ -577,6 +588,7 @@ export default function Dashboard() {
             setViewingOrder={setViewingOrder}
             setActivePrintOrder={setActivePrintOrder}
             setIsPrinting={setIsPrinting}
+            toggleReceipt={toggleReceipt} // ΠΕΡΝΑΜΕ ΤΗΝ ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΣΤΟ ORDERLIST
           />
         )}
         {tab === "history" && (
@@ -807,13 +819,15 @@ export default function Dashboard() {
                 ))}
               </div>
               <div className="p-5 bg-white border-t space-y-3">
+                {/* --- ΝΕΟ: ΕΞΥΠΝΟ ΠΕΔΙΟ PAGER/ΟΝΟΜΑ ΓΙΑ ΤΟ POS --- */}
                 <input
                   type="text"
-                  placeholder="ΤΡΑΠΕΖΙ ή ΠΑΚΕΤΟ"
+                  placeholder="ΕΙΣΑΓΩΓΗ PAGER Ή ΟΝΟΜΑ..."
                   value={posTable}
                   onChange={(e) => setPosTable(e.target.value)}
-                  className="w-full border-2 p-4 rounded-xl font-black uppercase"
+                  className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-4 rounded-xl font-black uppercase bg-gray-50"
                 />
+                
                 <textarea
                   rows="1"
                   placeholder="Γενική Σημείωση..."
@@ -839,7 +853,7 @@ export default function Dashboard() {
                 <button
                   onClick={submitPosOrder}
                   disabled={!posCart.length || !posPayment}
-                  className={`w-full p-5 rounded-2xl font-black uppercase text-white shadow-xl flex justify-between ${
+                  className={`w-full p-5 rounded-2xl font-black uppercase text-white shadow-xl flex justify-between transition-transform active:scale-95 ${
                     !posCart.length || !posPayment
                       ? "bg-gray-200"
                       : "bg-green-600"
@@ -877,7 +891,6 @@ export default function Dashboard() {
             <h2 className="text-3xl font-black italic uppercase mb-6 text-gray-800">
               ΤΡΑΠΕΖΙ {selectedTableForQR}
             </h2>
-            {/* ΝΕΟ IMAGE SRC ME QUICKCHART */}
             <img
               src={`https://quickchart.io/qr?size=500&text=${encodeURIComponent(
                 window.location.origin +
