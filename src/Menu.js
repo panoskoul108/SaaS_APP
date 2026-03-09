@@ -15,14 +15,13 @@ const TABLES_LIST = [
   "ΠΑΚΕΤΟ",
 ];
 
-const REWARD_THRESHOLD = 40;
+const REWARD_THRESHOLD = 25;
 
 // --- ΣΥΝΤΕΤΑΓΜΕΝΕΣ ΚΑΙ ΑΚΤΙΝΑ (Σπίτι) ---
 const TARGET_LAT = 38.3659639856658;
 const TARGET_LNG = 26.140604568410055;
 const ALLOWED_RADIUS_METERS = 100;
 
-// --- ΥΠΟΛΟΓΙΣΜΟΣ ΑΠΟΣΤΑΣΗΣ ΣΕ ΜΕΤΡΑ ---
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; 
   const f1 = (lat1 * Math.PI) / 180;
@@ -34,6 +33,28 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     Math.cos(f1) * Math.cos(f2) * Math.sin(dl / 2) * Math.sin(dl / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
+};
+
+// --- ΝΕΟ: ΕΞΥΠΝΕΣ ΦΩΤΟΓΡΑΦΙΕΣ ΒΑΣΕΙ ΟΝΟΜΑΤΟΣ/ΚΑΤΗΓΟΡΙΑΣ ---
+const getSmartImage = (product) => {
+  if (product.image_url) return product.image_url; // Αν έχεις βάλει δική σου, την κρατάει
+
+  const name = (product.name || "").toUpperCase();
+  const cat = (product.category || "").toUpperCase();
+
+  if (name.includes("RED BULL") || name.includes("REDBULL")) return "https://images.unsplash.com/photo-1622543925917-763c34d1a86e?auto=format&fit=crop&w=400&q=80";
+  if (name.includes("COCA") || name.includes("COLA")) return "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΚΡΕΠ") || name.includes("ΚΡΕΠ")) return "https://images.unsplash.com/photo-1519676867240-f03562e64548?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΠΙΤΣ") || name.includes("ΠΙΤΣ")) return "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΚΑΦΕ") || cat.includes("ΡΟΦΗΜ") || name.includes("ESPRESSO") || name.includes("CAPPUCCINO")) return "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΜΠΥΡ") || name.includes("BEER")) return "https://images.unsplash.com/photo-1614316315579-335368a52cb4?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΣΑΛΑΤ")) return "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΑΝΑΨΥΚΤΙΚ")) return "https://images.unsplash.com/photo-1624517452488-04869289c4ca?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΓΛΥΚ") || cat.includes("ΠΑΓΩΤ")) return "https://images.unsplash.com/photo-1551024506-0cb4a1cb1cce?auto=format&fit=crop&w=400&q=80";
+  if (cat.includes("ΖΥΜΑΡΙΚ")) return "https://images.unsplash.com/photo-1473093295043-cdd812d0e601?auto=format&fit=crop&w=400&q=80";
+
+  // Default ωραία φωτογραφία πιάτου/cafe
+  return "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 };
 
 const removeAccents = (str) => {
@@ -69,7 +90,7 @@ const CATEGORY_ORDER = [
 
 const DICT = {
   gr: {
-    requiredTable: "ΑΠΑΙΤΕΙΤΑΙ ΤΡΑΠΕΖΙ",
+    requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ",
     table: "ΤΡΑΠΕΖΙ",
     selectManual: "Λειτουργία Χειροκίνητης Επιλογής",
     btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ",
@@ -114,7 +135,7 @@ const DICT = {
     locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
   },
   en: {
-    requiredTable: "TABLE REQUIRED",
+    requiredTable: "SELECT TABLE",
     table: "TABLE",
     selectManual: "Manual Table Selection",
     btnSelectTable: "SELECT TABLE",
@@ -220,7 +241,7 @@ export default function Menu() {
   });
   
   const categoryNavRef = useRef(null);
-  const carouselRef = useRef(null); // --- ΝΕΟ REF ΓΙΑ ΤΟ ΚΑΡΟΥΖΕΛ ---
+  const carouselRef = useRef(null);
   
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
@@ -296,21 +317,19 @@ export default function Menu() {
     };
   }, [storeId]);
 
-  // --- ΝΕΟ USEEFFECT ΓΙΑ ΤΟ ΑΥΤΟΜΑΤΟ ΚΑΡΟΥΖΕΛ ---
   useEffect(() => {
     const autoScrollInterval = setInterval(() => {
       if (carouselRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-        const scrollAmount = 260; // Το πλάτος περίπου της κάθε κάρτας
+        const scrollAmount = 260; 
         
-        // Αν φτάσαμε στο τέλος, γύρνα στην αρχή, αλλιώς πήγαινε στο επόμενο
         if (scrollLeft + clientWidth >= scrollWidth - 10) {
           carouselRef.current.scrollTo({ left: 0, behavior: "smooth" });
         } else {
           carouselRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
         }
       }
-    }, 3000); // Αλλάζει κάθε 3 δευτερόλεπτα
+    }, 3000);
 
     return () => clearInterval(autoScrollInterval);
   }, []);
@@ -632,8 +651,6 @@ export default function Menu() {
 
   const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
   const themeColor = store?.theme_color || "#2563EB";
-  const placeholderImg =
-    "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=400&q=80";
 
   const filteredProducts = searchQuery
     ? visibleProducts.filter((p) => {
@@ -648,23 +665,54 @@ export default function Menu() {
 
   return (
     <div className={`min-h-screen pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
-      <header className={`fixed top-0 left-0 right-0 p-4 backdrop-blur-md shadow-sm z-30 flex justify-between items-center transition-all duration-300 ${isDark ? "bg-gray-900/90 border-b border-gray-800" : "bg-white/80"}`}>
-        <div className="flex gap-2">
-          <button onClick={() => setIsHistoryOpen(true)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xl shadow-sm border transition-colors ${isDark ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-white/50 border-gray-100/50 hover:bg-gray-100"}`}>🕒</button>
-        </div>
-        <div className="flex flex-col items-center">
-          {store?.logo_url ? (
-            <img src={store.logo_url} alt={store?.name} className="h-10 object-contain drop-shadow-sm" />
-          ) : (
-            <h1 className="text-xl font-black italic uppercase tracking-tighter" style={{ color: themeColor }}>{store?.name}</h1>
-          )}
-          <div className="mt-1 px-3 py-1 rounded-full text-[9px] font-black uppercase italic shadow-sm text-white" style={{ backgroundColor: tableNum ? themeColor : "#EF4444" }}>
-            {tableNum ? `${t.table} ${tableNum}` : t.requiredTable}
+      
+      {/* --- ΝΕΟ HEADER: Minimal & Σικ --- */}
+      <header className={`fixed top-0 left-0 right-0 pt-4 pb-2 px-4 backdrop-blur-md shadow-sm z-30 transition-all duration-300 ${isDark ? "bg-gray-900/95 border-b border-gray-800" : "bg-white/95"}`}>
+        <div className="flex justify-between items-center relative h-12">
+          
+          {/* ΑΡΙΣΤΕΡΑ: Κουμπί Ιστορικού */}
+          <div className="flex-1 flex justify-start">
+            <button 
+              onClick={() => setIsHistoryOpen(true)} 
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}
+            >
+              🕒
+            </button>
           </div>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={toggleTheme} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-sm border font-bold transition-colors ${isDark ? "bg-gray-800 border-gray-700 hover:bg-gray-700 text-yellow-400" : "bg-white/50 border-gray-100/50 hover:bg-gray-100 text-blue-500"}`}>{isDark ? "☀️" : "🌙"}</button>
-          <button onClick={() => setLang(lang === "gr" ? "en" : "gr")} className={`w-10 h-10 rounded-full flex items-center justify-center text-sm shadow-sm border font-bold transition-colors ${isDark ? "bg-gray-800 border-gray-700 hover:bg-gray-700" : "bg-white/50 border-gray-100/50 hover:bg-gray-100"}`}>{lang === "gr" ? "🇬🇧" : "🇬🇷"}</button>
+          
+          {/* ΚΕΝΤΡΟ: Λογότυπο & Τραπέζι */}
+          <div className="flex-[2] flex flex-col items-center justify-center text-center">
+            {store?.logo_url ? (
+              <img src={store.logo_url} alt={store?.name} className="h-9 object-contain drop-shadow-sm mb-1" />
+            ) : (
+              <h1 className="text-xl font-black uppercase tracking-widest" style={{ color: isDark ? '#fff' : '#111' }}>
+                {store?.name || "MENU"}
+              </h1>
+            )}
+            
+            {/* Λεπτή Γραμμή & Κείμενο */}
+            <div className={`w-8 h-[2px] rounded-full my-1 ${isDark ? "bg-gray-700" : "bg-gray-200"}`}></div>
+            <div className={`text-[10px] font-bold tracking-widest uppercase ${!tableNum ? 'text-red-500 animate-pulse' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
+              {tableNum ? `${t.table} ${tableNum}` : t.requiredTable}
+            </div>
+          </div>
+
+          {/* ΔΕΞΙΑ: Theme & Language */}
+          <div className="flex-1 flex justify-end gap-1">
+            <button 
+              onClick={toggleTheme} 
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-yellow-400 hover:bg-gray-800" : "text-blue-500 hover:bg-gray-100"}`}
+            >
+              {isDark ? "☀️" : "🌙"}
+            </button>
+            <button 
+              onClick={() => setLang(lang === "gr" ? "en" : "gr")} 
+              className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}
+            >
+              {lang === "gr" ? "🇬🇧" : "🇬🇷"}
+            </button>
+          </div>
+
         </div>
       </header>
 
@@ -724,7 +772,7 @@ export default function Menu() {
                 const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
                 return (
                   <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
-                    <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${p.image_url || placeholderImg})` }}></div>
+                    <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${getSmartImage(p)})` }}></div>
                     <div className="flex-1 flex flex-col justify-between py-1">
                       <div>
                         <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
@@ -749,7 +797,6 @@ export default function Menu() {
               <div key={cat} id={`category-${cat}`} className="scroll-mt-[220px]">
                 <h2 className={`font-black italic text-2xl mb-4 tracking-tighter pl-1 ${isDark ? "text-gray-100" : "text-gray-800"}`}>{getCategoryDisplayName(cat)}</h2>
                 {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
-                  /* --- ΚΑΡΟΥΖΕΛ ΜΕ ΤΟ REF --- */
                   <div ref={carouselRef} className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory no-scrollbar">
                     {sectionProducts.map((p) => {
                       const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
@@ -760,7 +807,7 @@ export default function Menu() {
                           onClick={() => p.is_available && handleProductClick(p)} 
                           className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-lg hover:-translate-y-1"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
                         >
-                          <div className="h-44 w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${p.image_url || placeholderImg})` }}>
+                          <div className="h-44 w-full bg-cover bg-center relative" style={{ backgroundImage: `url(${getSmartImage(p)})` }}>
                             <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
                               ⭐ {t.rec}
                             </div>
@@ -789,7 +836,7 @@ export default function Menu() {
                       const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
                       return (
                         <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all cursor-pointer ${!p.is_available ? "opacity-50 grayscale" : "hover:shadow-md"} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
-                          <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${p.image_url || placeholderImg})` }}></div>
+                          <div className="w-24 h-24 rounded-xl bg-cover bg-center shrink-0 shadow-inner" style={{ backgroundImage: `url(${getSmartImage(p)})` }}></div>
                           <div className="flex-1 flex flex-col justify-between py-1">
                             <div>
                               <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
@@ -861,4 +908,3 @@ export default function Menu() {
     </div>
   );
 }
-
