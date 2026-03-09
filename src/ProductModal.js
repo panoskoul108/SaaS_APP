@@ -24,48 +24,23 @@ export default function ProductModal({
       : activeProduct.description;
   const isDark = theme === "dark";
 
-  // --- ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ΓΙΑ ΤΟΝ "ΣΚΕΤΟ" ΚΑΦΕ ---
-  // Ελέγχουμε αν υπάρχει επιλεγμένη option που να λέει "ΣΚΕΤΟ" ή "ΣΚΕΤΗ" σε όλο το προϊόν
+  // --- ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ΓΙΑ "ΣΚΕΤΟ" ΚΑΦΕ ---
   let isSketosSelected = false;
-  if (activeProduct.addons) {
-    activeProduct.addons.forEach((group) => {
-      const selections = addonSelections[group.id] || [];
-      selections.forEach((selIndex) => {
-        const optName = group.options[selIndex]?.name?.toUpperCase() || "";
-        if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) {
-          isSketosSelected = true;
-        }
-      });
-    });
-  }
-
-  // Φιλτράρουμε τα Addons για να κρύψουμε το "ΕΙΔΟΣ ΖΑΧΑΡΗΣ" αν είναι σκέτος
-  const visibleAddons = (activeProduct.addons || []).map(group => {
-    const groupNameUpper = group.name.toUpperCase();
-    if (isSketosSelected && groupNameUpper.includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ")) {
-       return { ...group, isHidden: true, isRequired: false };
-    }
-    return { ...group, isHidden: false };
-  }).filter(group => !group.isHidden);
-
-
-  // --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΕΠΙΒΕΒΑΙΩΣΗΣ ΓΙΑ ΝΑ ΑΓΝΟΕΙ ΤΑ ΚΡΥΜΜΕΝΑ ---
-  const handleConfirm = () => {
-    let extraPrice = 0; let addonTexts = []; let isValid = true;
-    
-    visibleAddons.forEach((g) => {
-      const sels = addonSelections[g.id] || [];
-      if (g.isRequired && sels.length === 0) isValid = false;
-      if (sels.length > 0) {
-        const names = sels.map((idx) => g.options[idx].name);
-        addonTexts.push(`${names.join(", ")}`);
-        sels.forEach((idx) => (extraPrice += g.options[idx].price));
+  (activeProduct.addons || []).forEach((group) => {
+    const selections = addonSelections[group.id] || [];
+    selections.forEach((selIndex) => {
+      const optName = group.options[selIndex]?.name?.toUpperCase() || "";
+      if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) {
+        isSketosSelected = true;
       }
     });
-    
-    if (!isValid) return alert(lang === "gr" ? "Παρακαλώ συμπληρώστε όλες τις υποχρεωτικές επιλογές!" : "Please fill all required options!");
-    confirmAddons(extraPrice, addonTexts); // Στέλνουμε τα σωστά δεδομένα πίσω
-  };
+  });
+
+  const visibleAddons = (activeProduct.addons || []).filter(group => {
+    const groupNameUpper = group.name.toUpperCase();
+    if (isSketosSelected && groupNameUpper.includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ")) return false;
+    return true;
+  });
 
   return (
     <div
@@ -297,7 +272,7 @@ export default function ProductModal({
         </div>
 
         <button
-          onClick={handleConfirm}
+          onClick={confirmAddons}
           className="w-full text-white py-5 rounded-2xl font-black uppercase text-sm tracking-widest mt-4 shadow-xl active:scale-95 transition-transform flex justify-between px-6"
           style={{ backgroundColor: themeColor }}
         >
