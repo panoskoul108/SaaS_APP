@@ -51,6 +51,7 @@ export default function AdminProducts({ storeId }) {
       .order("category");
     if (data) setProducts(data);
   };
+  
   useEffect(() => {
     if (storeId) fetchProducts();
   }, [storeId]);
@@ -62,6 +63,7 @@ export default function AdminProducts({ storeId }) {
       .eq("id", product.id);
     fetchProducts();
   };
+
   const handleToggleRecommended = async (product) => {
     await supabase
       .from("products")
@@ -69,6 +71,7 @@ export default function AdminProducts({ storeId }) {
       .eq("id", product.id);
     fetchProducts();
   };
+
   const saveEdit = async () => {
     await supabase
       .from("products")
@@ -77,6 +80,7 @@ export default function AdminProducts({ storeId }) {
     setEditingId(null);
     fetchProducts();
   };
+
   const addNewProduct = async () => {
     await supabase
       .from("products")
@@ -84,6 +88,7 @@ export default function AdminProducts({ storeId }) {
     setIsAdding(false);
     fetchProducts();
   };
+
   const handleDelete = async (id) => {
     if (window.confirm("Διαγραφή προϊόντος;")) {
       await supabase.from("products").delete().eq("id", id);
@@ -567,6 +572,7 @@ export default function AdminProducts({ storeId }) {
                   {!p.is_available && (
                     <span className="text-red-500 text-[9px] ml-2">(OFF)</span>
                   )}
+                  {/* ΜΙΚΡΟ ΑΣΤΕΡΑΚΙ ΔΙΠΛΑ ΣΤΟ ΟΝΟΜΑ (Αν είναι προτεινόμενο) */}
                   {p.is_recommended && (
                     <span className="text-yellow-500 text-[10px] ml-2">⭐</span>
                   )}
@@ -587,9 +593,14 @@ export default function AdminProducts({ storeId }) {
               </div>
             </div>
             <div className="flex gap-1 flex-col sm:flex-row">
+              {/* ΔΙΟΡΘΩΜΕΝΟ ΚΟΥΜΠΙ: Αλλάζει χρώμα ανάλογα με το is_recommended */}
               <button
                 onClick={() => handleToggleRecommended(p)}
-                className="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-gray-50 text-gray-300"
+                className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-colors ${
+                  p.is_recommended 
+                    ? "bg-yellow-100 text-yellow-500 border border-yellow-200 shadow-sm" 
+                    : "bg-gray-50 text-gray-300 border border-transparent hover:bg-gray-100"
+                }`}
               >
                 ⭐
               </button>
