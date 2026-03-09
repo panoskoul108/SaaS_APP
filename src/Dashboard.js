@@ -23,20 +23,7 @@ const TABLES_LIST = [
 const removeAccents = (str) =>
   str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
 const CATEGORY_ORDER = [
-  "ΠΡΟΤΕΙΝΟΜΕΝΑ",
-  "ΚΑΦΕΔΕΣ",
-  "ΑΝΑΨΥΚΤΙΚΑ",
-  "ΡΟΦΗΜΑΤΑ",
-  "ΠΡΩΙΝΟ",
-  "ΜΠΥΡΕΣ",
-  "ΣΝΑΚΣ",
-  "ΣΥΝΟΔΕΥΤΙΚΑ",
-  "ΣΑΛΑΤΕΣ",
-  "ΖΥΜΑΡΙΚΑ",
-  "ΠΙΤΣΕΣ",
-  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ",
-  "ΓΛΥΚΕΣ ΚΡΕΠΕΣ",
-  "ΓΛΥΚΑ",
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ", "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ",
 ];
 
 export default function Dashboard() {
@@ -61,6 +48,9 @@ export default function Dashboard() {
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
+  // --- ΝΕΟ: THEME STATE ---
+  const [theme, setTheme] = useState(() => localStorage.getItem("dashboard_theme") || "light");
+
   // POS STATE
   const [isPosOpen, setIsPosOpen] = useState(false);
   const [isPosCartOpen, setIsPosCartOpen] = useState(false);
@@ -78,26 +68,33 @@ export default function Dashboard() {
   const currentHour = new Date().getHours();
   const isMorning = currentHour >= 6 && currentHour < 14;
   const isKitchen = userRole === "kitchen";
+  const isDark = theme === "dark";
+
+  // Δυναμικό Background του Browser
+  useEffect(() => {
+    document.body.style.backgroundColor = isDark ? '#111827' : '#f9fafb';
+  }, [isDark]);
+
+  // Αν μπει η Κουζίνα για πρώτη φορά και δεν έχει επιλέξει θέμα, βάλε της Dark (γιατί τις βολεύει συνήθως)
+  useEffect(() => {
+    if (userRole === "kitchen" && !localStorage.getItem("dashboard_theme")) {
+      setTheme("dark");
+    }
+  }, [userRole]);
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light";
+    setTheme(newTheme);
+    localStorage.setItem("dashboard_theme", newTheme);
+  };
 
   const fetchData = async () => {
     if (!isAuthenticated || !storeId) return;
-    const { data: ordersData } = await supabase
-      .from("orders")
-      .select("*")
-      .eq("store_id", storeId)
-      .order("created_at", { ascending: false });
+    const { data: ordersData } = await supabase.from("orders").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (ordersData) setOrders(ordersData);
-    const { data: reviewsData } = await supabase
-      .from("reviews")
-      .select("*")
-      .eq("store_id", storeId)
-      .order("created_at", { ascending: false });
+    const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
-    const { data: storeData } = await supabase
-      .from("stores")
-      .select("name, backup_mode, is_accepting_orders")
-      .eq("id", storeId)
-      .single();
+    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders").eq("id", storeId).single();
     if (storeData) {
       setBackupMode(storeData.backup_mode);
       setStoreName(storeData.name);
@@ -107,30 +104,12 @@ export default function Dashboard() {
 
   const fetchProducts = async () => {
     if (!isAuthenticated || !storeId) return;
-    const { data } = await supabase
-      .from("products")
-      .select("*")
-      .eq("store_id", storeId)
-      .order("sort_order", { ascending: true })
-      .order("name", { ascending: true });
+    const { data } = await supabase.from("products").select("*").eq("store_id", storeId).order("sort_order", { ascending: true }).order("name", { ascending: true });
     if (data) {
       const cleanedProducts = data.map((prod) => {
-        const cleanedProd = {
-          ...prod,
-          name: removeAccents(prod.name),
-          name_en: removeAccents(prod.name_en),
-          description: removeAccents(prod.description),
-          category: removeAccents(prod.category),
-        };
+        const cleanedProd = { ...prod, name: removeAccents(prod.name), name_en: removeAccents(prod.name_en), description: removeAccents(prod.description), category: removeAccents(prod.category) };
         if (cleanedProd.addons) {
-          cleanedProd.addons = cleanedProd.addons.map((g) => ({
-            ...g,
-            name: removeAccents(g.name),
-            options: g.options.map((opt) => ({
-              ...opt,
-              name: removeAccents(opt.name),
-            })),
-          }));
+          cleanedProd.addons = cleanedProd.addons.map((g) => ({ ...g, name: removeAccents(g.name), options: g.options.map((opt) => ({ ...opt, name: removeAccents(opt.name) })) }));
         }
         return cleanedProd;
       });
@@ -151,35 +130,21 @@ export default function Dashboard() {
     const pendingCount = orders.filter((o) => {
       if (o.status === "completed") return false;
       return isKitchen
-        ? (o.kitchen_status || "pending") === "pending" &&
-            o.items?.some((i) => i.station === "kitchen")
+        ? (o.kitchen_status || "pending") === "pending" && o.items?.some((i) => i.station === "kitchen")
         : (o.status || "pending") === "pending";
     }).length;
-    if (pendingCount > prevOrdersCount && !isMuted)
-      new Audio(NOTIFICATION_SOUND).play().catch(() => {});
+    if (pendingCount > prevOrdersCount && !isMuted) new Audio(NOTIFICATION_SOUND).play().catch(() => {});
     setPrevOrdersCount(pendingCount);
   }, [orders, isMuted, isKitchen, prevOrdersCount]);
 
   const updateStatus = async (id, newStatus, forKitchen = false) => {
-    await supabase
-      .from("orders")
-      .update(
-        forKitchen ? { kitchen_status: newStatus } : { status: newStatus }
-      )
-      .eq("id", id);
+    await supabase.from("orders").update(forKitchen ? { kitchen_status: newStatus } : { status: newStatus }).eq("id", id);
     fetchData();
   };
 
-  // --- ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΤΗΝ ΤΑΜΕΙΑΚΗ ΜΗΧΑΝΗ ---
   const toggleReceipt = async (id, isPrinted) => {
-    // Ενημερώνουμε τοπικά πρώτα για να φαίνεται αμέσως η αλλαγή
     setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o));
-    
-    // Ενημερώνουμε τη βάση δεδομένων
-    await supabase
-      .from("orders")
-      .update({ receipt_printed: isPrinted })
-      .eq("id", id);
+    await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id);
   };
 
   const deleteOrders = async (ids) => {
@@ -197,24 +162,17 @@ export default function Dashboard() {
   };
   const toggleAcceptingOrders = async () => {
     const s = !isAcceptingOrders;
-    await supabase
-      .from("stores")
-      .update({ is_accepting_orders: s })
-      .eq("id", storeId);
+    await supabase.from("stores").update({ is_accepting_orders: s }).eq("id", storeId);
     setIsAcceptingOrders(s);
   };
 
   const downloadQR = async (table) => {
     try {
-      const qrData = encodeURIComponent(
-        `${window.location.origin}/?store=${storeId}&table=${table}`
-      );
+      const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
       const url = `https://quickchart.io/qr?size=500&text=${qrData}`;
-
       const res = await fetch(url);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
-
       const a = document.createElement("a");
       a.href = blobUrl;
       a.download = `QR_Table_${table}.png`;
@@ -223,9 +181,7 @@ export default function Dashboard() {
       document.body.removeChild(a);
       URL.revokeObjectURL(blobUrl);
     } catch (error) {
-      const qrData = encodeURIComponent(
-        `${window.location.origin}/?store=${storeId}&table=${table}`
-      );
+      const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
       window.open(`https://quickchart.io/qr?size=500&text=${qrData}`, "_blank");
     }
   };
@@ -235,40 +191,21 @@ export default function Dashboard() {
     return true;
   });
 
-  const posCategories = [
-    ...new Set(posVisibleProducts.map((p) => p.category)),
-  ].sort((a, b) => {
-    let idxA = CATEGORY_ORDER.indexOf(a);
-    let idxB = CATEGORY_ORDER.indexOf(b);
-    if (idxA === -1) idxA = 999;
-    if (idxB === -1) idxB = 999;
-    return idxA - idxB;
+  const posCategories = [...new Set(posVisibleProducts.map((p) => p.category))].sort((a, b) => {
+    let idxA = CATEGORY_ORDER.indexOf(a); let idxB = CATEGORY_ORDER.indexOf(b);
+    if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999; return idxA - idxB;
   });
 
-  const posFilteredProducts =
-    posCategory === "ΟΛΑ"
-      ? posVisibleProducts
-      : posVisibleProducts.filter((p) => p.category === posCategory);
+  const posFilteredProducts = posCategory === "ΟΛΑ" ? posVisibleProducts : posVisibleProducts.filter((p) => p.category === posCategory);
 
   const handlePosProductClick = (p) => {
-    const initial = {};
-    p.addons?.forEach((g) => (initial[g.id] = []));
-    setPosAddonSelections(initial);
-    setPosQuantity(1);
-    setPosCurrentNote("");
-    setEditingCartId(null);
-    setPosActiveProduct(p);
+    const initial = {}; p.addons?.forEach((g) => (initial[g.id] = []));
+    setPosAddonSelections(initial); setPosQuantity(1); setPosCurrentNote(""); setEditingCartId(null); setPosActiveProduct(p);
   };
 
   const handleEditCartItem = (i) => {
     const p = products.find((prod) => prod.id === i.id);
-    if (p) {
-      setPosActiveProduct(p);
-      setPosAddonSelections(i.rawAddons || {});
-      setPosCurrentNote(i.note || "");
-      setPosQuantity(i.quantity || 1);
-      setEditingCartId(i.cartId);
-    }
+    if (p) { setPosActiveProduct(p); setPosAddonSelections(i.rawAddons || {}); setPosCurrentNote(i.note || ""); setPosQuantity(i.quantity || 1); setEditingCartId(i.cartId); }
   };
 
   const togglePosAddon = (gid, oidx, max) => {
@@ -280,219 +217,69 @@ export default function Dashboard() {
   };
 
   const confirmPosAddons = () => {
-    let extra = 0,
-      texts = [],
-      valid = true;
+    let extra = 0, texts = [], valid = true;
     posActiveProduct.addons?.forEach((g) => {
       const s = posAddonSelections[g.id] || [];
       if (g.isRequired && !s.length) valid = false;
-      if (s.length) {
-        texts.push(s.map((i) => g.options[i].name).join(", "));
-        s.forEach((i) => (extra += g.options[i].price));
-      }
+      if (s.length) { texts.push(s.map((i) => g.options[i].name).join(", ")); s.forEach((i) => (extra += g.options[i].price)); }
     });
     if (!valid) return alert("Συμπληρώστε τα υποχρεωτικά!");
-    const item = {
-      ...posActiveProduct,
-      cartId: editingCartId || Date.now() + Math.random(),
-      name: texts.length
-        ? `${posActiveProduct.name} (${texts.join(" | ")})`
-        : posActiveProduct.name,
-      price: posActiveProduct.price + extra,
-      note: removeAccents(posCurrentNote),
-      rawAddons: posAddonSelections,
-      quantity: posQuantity,
-    };
-    setPosCart(
-      editingCartId
-        ? posCart.map((i) => (i.cartId === editingCartId ? item : i))
-        : [...posCart, item]
-    );
-    setPosActiveProduct(null);
-    setEditingCartId(null);
+    const item = { ...posActiveProduct, cartId: editingCartId || Date.now() + Math.random(), name: texts.length ? `${posActiveProduct.name} (${texts.join(" | ")})` : posActiveProduct.name, price: posActiveProduct.price + extra, note: removeAccents(posCurrentNote), rawAddons: posAddonSelections, quantity: posQuantity };
+    setPosCart(editingCartId ? posCart.map((i) => (i.cartId === editingCartId ? item : i)) : [...posCart, item]);
+    setPosActiveProduct(null); setEditingCartId(null);
   };
 
   const updatePosCartQuantity = (cartId, delta) => {
-    setPosCart(
-      posCart.map((item) =>
-        item.cartId === cartId
-          ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) }
-          : item
-      )
-    );
+    setPosCart(posCart.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) } : item));
   };
 
   const submitPosOrder = async () => {
     if (!posCart.length || !posTable || !posPayment) return;
     const total = posCart.reduce((s, i) => s + i.price * i.quantity, 0);
-    await supabase
-      .from("orders")
-      .insert([
-        {
-          store_id: storeId,
-          table_number: posTable,
-          items: posCart,
-          total_price: total,
-          payment_method: posPayment,
-          status: "pending",
-          general_note: removeAccents(posGeneralNote),
-          receipt_printed: false, // Το βάζουμε false από προεπιλογή
-        },
-      ]);
-    setPosCart([]);
-    setPosTable("ΠΑΚΕΤΟ");
-    setPosGeneralNote("");
-    setPosPayment("");
-    setIsPosOpen(false);
-    setIsPosCartOpen(false);
-    fetchData();
+    await supabase.from("orders").insert([{ store_id: storeId, table_number: posTable, items: posCart, total_price: total, payment_method: posPayment, status: "pending", general_note: removeAccents(posGeneralNote), receipt_printed: false }]);
+    setPosCart([]); setPosTable("ΠΑΚΕΤΟ"); setPosGeneralNote(""); setPosPayment(""); setIsPosOpen(false); setIsPosCartOpen(false); fetchData();
   };
 
   const downloadReportFile = () => {
-    const periodMap = {
-      today: "ΣΗΜΕΡΙΝΗ",
-      week: "ΕΒΔΟΜΑΔΙΑΙΑ",
-      month: "ΜΗΝΙΑΙΑ",
-      all: "ΣΥΝΟΛΙΚΗ",
-      specific: specificDate || "ΕΙΔΙΚΗ",
-    };
-    const reportText =
-      `======================================\n          ΑΝΑΦΟΡΑ ΤΑΜΕΙΟΥ (Z)\n======================================\nΚΑΤΑΣΤΗΜΑ: ${
-        storeName || `ΚΑΤΑΣΤΗΜΑ ${storeId}`
-      }\nΗΜΕΡΟΜΗΝΙΑ ΕΞΑΓΩΓΗΣ: ${new Date().toLocaleString(
-        "el-GR"
-      )}\nΠΕΡΙΟΔΟΣ: ${
-        periodMap[dateRange] || "ΑΓΝΩΣΤΗ"
-      }\n--------------------------------------\nΣΥΝΟΛΙΚΟΣ ΤΖΙΡΟΣ : ${totalRevenue.toFixed(
-        2
-      )}€\nΜΕΤΡΗΤΑ          : ${cashTotal.toFixed(
-        2
-      )}€\nΚΑΡΤΑ            : ${cardTotal.toFixed(
-        2
-      )}€\n--------------------------------------\nΣΥΝΟΛΟ ΠΑΡΑΓΓΕΛΙΩΝ: ${totalOrdersCount}\nΜΕΣΗ ΑΞΙΑ / ΠΑΡ.  : ${avgOrderValue.toFixed(
-        2
-      )}€\n======================================`.trim();
+    const periodMap = { today: "ΣΗΜΕΡΙΝΗ", week: "ΕΒΔΟΜΑΔΙΑΙΑ", month: "ΜΗΝΙΑΙΑ", all: "ΣΥΝΟΛΙΚΗ", specific: specificDate || "ΕΙΔΙΚΗ" };
+    const reportText = `======================================\n          ΑΝΑΦΟΡΑ ΤΑΜΕΙΟΥ (Z)\n======================================\nΚΑΤΑΣΤΗΜΑ: ${storeName || `ΚΑΤΑΣΤΗΜΑ ${storeId}`}\nΗΜΕΡΟΜΗΝΙΑ ΕΞΑΓΩΓΗΣ: ${new Date().toLocaleString("el-GR")}\nΠΕΡΙΟΔΟΣ: ${periodMap[dateRange] || "ΑΓΝΩΣΤΗ"}\n--------------------------------------\nΣΥΝΟΛΙΚΟΣ ΤΖΙΡΟΣ : ${totalRevenue.toFixed(2)}€\nΜΕΤΡΗΤΑ          : ${cashTotal.toFixed(2)}€\nΚΑΡΤΑ            : ${cardTotal.toFixed(2)}€\n--------------------------------------\nΣΥΝΟΛΟ ΠΑΡΑΓΓΕΛΙΩΝ: ${totalOrdersCount}\nΜΕΣΗ ΑΞΙΑ / ΠΑΡ.  : ${avgOrderValue.toFixed(2)}€\n======================================`.trim();
     const blob = new Blob([reportText], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Z_Report_${new Date()
-      .toLocaleDateString("el-GR")
-      .replace(/\//g, "-")}.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `Z_Report_${new Date().toLocaleDateString("el-GR").replace(/\//g, "-")}.txt`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
   };
 
   const historyOrdersList = orders.filter((o) => {
     if (o.status !== "completed") return false;
-    const date = new Date(o.created_at);
-    const table = String(o.table_number || "").toLowerCase();
-    const matchesSearch = table.includes(historySearch.toLowerCase());
-    let matchesTime = true;
-    const now = new Date();
-    if (dateRange === "today")
-      matchesTime = date.toDateString() === now.toDateString();
-    else if (dateRange === "week")
-      matchesTime = date >= new Date(now - 7 * 24 * 60 * 60 * 1000);
-    else if (dateRange === "month")
-      matchesTime =
-        date.getMonth() === now.getMonth() &&
-        date.getFullYear() === now.getFullYear();
-    else if (dateRange === "specific" && specificDate)
-      matchesTime = date.toISOString().split("T")[0] === specificDate;
-    return (
-      matchesSearch &&
-      matchesTime &&
-      (!isKitchen || o.items?.some((it) => it.station === "kitchen"))
-    );
+    const date = new Date(o.created_at); const table = String(o.table_number || "").toLowerCase(); const matchesSearch = table.includes(historySearch.toLowerCase());
+    let matchesTime = true; const now = new Date();
+    if (dateRange === "today") matchesTime = date.toDateString() === now.toDateString();
+    else if (dateRange === "week") matchesTime = date >= new Date(now - 7 * 24 * 60 * 60 * 1000);
+    else if (dateRange === "month") matchesTime = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    else if (dateRange === "specific" && specificDate) matchesTime = date.toISOString().split("T")[0] === specificDate;
+    return matchesSearch && matchesTime && (!isKitchen || o.items?.some((it) => it.station === "kitchen"));
   });
 
-  const totalRevenue = historyOrdersList.reduce(
-    (sum, o) =>
-      sum +
-      (isKitchen
-        ? o.items
-            ?.filter((it) => it.station === "kitchen")
-            .reduce((s, it) => s + it.price * it.quantity, 0)
-        : o.total_price),
-    0
-  );
+  const totalRevenue = historyOrdersList.reduce((sum, o) => sum + (isKitchen ? o.items?.filter((it) => it.station === "kitchen").reduce((s, it) => s + it.price * it.quantity, 0) : o.total_price), 0);
   const totalOrdersCount = historyOrdersList.length;
   const avgOrderValue = totalOrdersCount ? totalRevenue / totalOrdersCount : 0;
-  const cashTotal = historyOrdersList
-    .filter((o) => o.payment_method === "ΜΕΤΡΗΤΑ")
-    .reduce(
-      (sum, o) =>
-        sum +
-        (isKitchen
-          ? o.items
-              ?.filter((it) => it.station === "kitchen")
-              .reduce((s, it) => s + it.price * it.quantity, 0)
-          : o.total_price),
-      0
-    );
+  const cashTotal = historyOrdersList.filter((o) => o.payment_method === "ΜΕΤΡΗΤΑ").reduce((sum, o) => sum + (isKitchen ? o.items?.filter((it) => it.station === "kitchen").reduce((s, it) => s + it.price * it.quantity, 0) : o.total_price), 0);
   const cardTotal = totalRevenue - cashTotal;
-  const activeTables = [
-    ...new Set(
-      orders.filter((o) => o.status !== "completed").map((o) => o.table_number)
-    ),
-  ];
+  const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
   const productCounts = {};
-  historyOrdersList.forEach((o) =>
-    o.items?.forEach((it) => {
-      if (!isKitchen || it.station === "kitchen")
-        productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity;
-    })
-  );
-  const topProducts = Object.entries(productCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
+  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const hourCounts = {};
-  historyOrdersList.forEach((o) => {
-    const h = new Date(o.created_at).getHours() + ":00";
-    hourCounts[h] = (hourCounts[h] || 0) + 1;
-  });
-  const peakHours = Object.entries(hourCounts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
+  historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
+  const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  if (!isAuthenticated)
-    return (
-      <Login
-        onLoginSuccess={(r, s) => {
-          setIsAuthenticated(true);
-          setUserRole(r);
-          setStoreId(s);
-        }}
-      />
-    );
-  if (isPrinting)
-    return (
-      <div className="bg-white">
-        <PrintTicket order={activePrintOrder} />
-      </div>
-    );
+  if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
+  if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
   return (
-    <div
-      className={`min-h-screen font-sans ${
-        isKitchen ? "bg-gray-900" : "bg-gray-50"
-      }`}
-    >
+    <div className={`min-h-screen font-sans ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       <div className="print:hidden">
-        <header
-          className={`border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm ${
-            isKitchen ? "bg-gray-900 border-gray-800" : "bg-white"
-          }`}
-        >
-          <h1
-            className={`font-black italic text-xl ${
-              isKitchen ? "text-white" : "text-gray-800"
-            }`}
-          >
+        <header className={`border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+          <h1 className={`font-black italic text-xl ${isDark ? "text-white" : "text-gray-800"}`}>
             {storeName?.toUpperCase()}{" "}
             <span className={isKitchen ? "text-orange-500" : "text-blue-600"}>
               {isKitchen ? "ΚΟΥΖΙΝΑ" : userRole === "admin" ? "ADMIN" : "ΜΠΑΡ"}
@@ -500,74 +287,49 @@ export default function Dashboard() {
           </h1>
           <div className="flex gap-2 items-center">
             {!isKitchen && (
-              <button
-                onClick={() => setIsPosOpen(true)}
-                className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg"
-              >
+              <button onClick={() => setIsPosOpen(true)} className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg">
                 + ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ
               </button>
             )}
             {!isKitchen && (
-              <button
-                onClick={toggleAcceptingOrders}
-                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${
-                  isAcceptingOrders
-                    ? "bg-green-500 text-white"
-                    : "bg-red-600 text-white animate-pulse"
-                }`}
-              >
+              <button onClick={toggleAcceptingOrders} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all shadow-md ${isAcceptingOrders ? "bg-green-500 text-white" : "bg-red-600 text-white animate-pulse"}`}>
                 {isAcceptingOrders ? "🟢 ON" : "🔴 OFF"}
               </button>
             )}
             {userRole === "admin" && (
-              <button
-                onClick={toggleBackupMode}
-                className={`px-4 py-2 rounded-full text-[10px] font-black uppercase ${
-                  backupMode
-                    ? "bg-orange-500 text-white shadow-lg"
-                    : "bg-gray-100 text-gray-400"
-                }`}
-              >
+              <button onClick={toggleBackupMode} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase ${backupMode ? "bg-orange-500 text-white shadow-lg" : (isDark ? "bg-gray-800 text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-500")}`}>
                 Backup: {backupMode ? "ON" : "OFF"}
               </button>
             )}
-            <button onClick={() => setIsMuted(!isMuted)} className="text-lg">
+            
+            {/* ΝΕΟ: ΚΟΥΜΠΙ THEME (ΗΛΙΟΣ/ΦΕΓΓΑΡΙ) */}
+            <button onClick={toggleTheme} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "bg-gray-800 text-yellow-400 border border-gray-700" : "bg-gray-100 text-blue-600 border border-gray-200"}`}>
+              {isDark ? "☀️" : "🌙"}
+            </button>
+
+            <button onClick={() => setIsMuted(!isMuted)} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ${isDark ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200"}`}>
               {isMuted ? "🔇" : "🔊"}
             </button>
-            <button
-              onClick={() => setIsAuthenticated(false)}
-              className="text-xs font-black px-3 py-1 rounded-full border border-gray-200 text-gray-400"
-            >
+            <button onClick={() => setIsAuthenticated(false)} className={`text-xs font-black px-3 py-1.5 rounded-full border ${isDark ? "border-gray-700 text-gray-400 hover:bg-gray-800" : "border-gray-200 text-gray-500 hover:bg-gray-100"}`}>
               ΕΞΟΔΟΣ
             </button>
           </div>
         </header>
-        <div
-          className={`flex border-b px-4 py-2 gap-2 sticky top-[65px] z-20 shadow-sm ${
-            isKitchen ? "bg-gray-900 border-gray-800" : "bg-white"
-          }`}
-        >
+        
+        <div className={`flex border-b px-4 py-2 gap-2 sticky top-[65px] z-20 shadow-sm transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
           {["orders", "tables", "reviews", "history", "products"].map((t) => {
             if (userRole === "staff" && t !== "orders") return null;
-            if (
-              isKitchen &&
-              (t === "tables" || t === "products" || t === "reviews")
-            )
-              return null;
+            if (isKitchen && (t === "tables" || t === "products" || t === "reviews")) return null;
             if (t === "reviews" && userRole !== "admin") return null;
-            const labelMap = {
-              orders: "ΠΑΡΑΓΓΕΛΙΕΣ",
-              tables: "ΤΡΑΠΕΖΙΑ",
-              reviews: "ΚΡΙΤΙΚΕΣ",
-              history: "ΙΣΤΟΡΙΚΟ",
-              products: "ΚΑΤΑΛΟΓΟΣ",
-            };
+            const labelMap = { orders: "ΠΑΡΑΓΓΕΛΙΕΣ", tables: "ΤΡΑΠΕΖΙΑ", reviews: "ΚΡΙΤΙΚΕΣ", history: "ΙΣΤΟΡΙΚΟ", products: "ΚΑΤΑΛΟΓΟΣ" };
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase ${
-                  tab === t ? "bg-black text-white" : "bg-gray-50 text-gray-400"
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-colors ${
+                  tab === t 
+                    ? (isDark ? "bg-white text-black shadow-md" : "bg-black text-white shadow-md") 
+                    : (isDark ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-50 text-gray-500 hover:bg-gray-100")
                 }`}
               >
                 {labelMap[t]}
@@ -588,7 +350,8 @@ export default function Dashboard() {
             setViewingOrder={setViewingOrder}
             setActivePrintOrder={setActivePrintOrder}
             setIsPrinting={setIsPrinting}
-            toggleReceipt={toggleReceipt} // ΠΕΡΝΑΜΕ ΤΗΝ ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΣΤΟ ORDERLIST
+            toggleReceipt={toggleReceipt}
+            theme={theme} // ΠΕΡΝΑΜΕ ΤΟ THEME
           />
         )}
         {tab === "history" && (
@@ -617,40 +380,23 @@ export default function Dashboard() {
         )}
         {tab === "reviews" && userRole === "admin" && (
           <div className="max-w-6xl mx-auto space-y-6 pb-20">
-            <h2 className="font-black text-2xl uppercase italic tracking-tighter text-gray-800 border-b pb-4">
+            <h2 className={`font-black text-2xl uppercase italic tracking-tighter border-b pb-4 ${isDark ? "text-white border-gray-800" : "text-gray-800 border-gray-200"}`}>
               Εσωτερικές Κριτικές
             </h2>
             {reviews.length === 0 ? (
-              <p className="text-center text-gray-400 font-bold uppercase text-sm">
-                Δεν υπάρχουν κριτικές!
-              </p>
+              <p className="text-center text-gray-400 font-bold uppercase text-sm">Δεν υπάρχουν κριτικές!</p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {reviews.map((rev) => (
-                  <div
-                    key={rev.id}
-                    className="bg-white p-6 rounded-3xl shadow-sm border border-orange-100 flex flex-col gap-3"
-                  >
-                    <div className="flex justify-between items-center border-b border-gray-50 pb-2">
+                  <div key={rev.id} className={`p-6 rounded-3xl shadow-sm border flex flex-col gap-3 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-orange-100"}`}>
+                    <div className={`flex justify-between items-center border-b pb-2 ${isDark ? "border-gray-700" : "border-gray-50"}`}>
                       <div className="text-xl">
-                        {Array.from({ length: rev.rating }).map((_, i) => (
-                          <span key={i} className="text-orange-400">
-                            ★
-                          </span>
-                        ))}
-                        {Array.from({ length: 5 - rev.rating }).map((_, i) => (
-                          <span key={i} className="text-gray-200">
-                            ★
-                          </span>
-                        ))}
+                        {Array.from({ length: rev.rating }).map((_, i) => (<span key={i} className="text-orange-400">★</span>))}
+                        {Array.from({ length: 5 - rev.rating }).map((_, i) => (<span key={i} className={isDark ? "text-gray-600" : "text-gray-200"}>★</span>))}
                       </div>
-                      <span className="text-[9px] font-black text-gray-400 uppercase">
-                        {new Date(rev.created_at).toLocaleDateString("el-GR")}
-                      </span>
+                      <span className="text-[9px] font-black text-gray-400 uppercase">{new Date(rev.created_at).toLocaleDateString("el-GR")}</span>
                     </div>
-                    <p className="text-sm font-bold text-gray-700 italic">
-                      "{rev.comment}"
-                    </p>
+                    <p className={`text-sm font-bold italic ${isDark ? "text-gray-300" : "text-gray-700"}`}>"{rev.comment}"</p>
                   </div>
                 ))}
               </div>
@@ -663,11 +409,11 @@ export default function Dashboard() {
               <div
                 key={t}
                 onClick={() => setSelectedTableForQR(t)}
-                className={`aspect-square rounded-2xl p-3 flex items-center justify-center border-2 cursor-pointer ${
+                className={`aspect-square rounded-2xl p-3 flex items-center justify-center border-2 cursor-pointer font-black text-2xl ${
                   activeTables.includes(t)
-                    ? "bg-red-50 border-red-200 text-red-600"
-                    : "bg-white border-green-200 text-green-600"
-                } font-black text-2xl`}
+                    ? (isDark ? "bg-red-900/30 border-red-800 text-red-500" : "bg-red-50 border-red-200 text-red-600")
+                    : (isDark ? "bg-gray-800 border-gray-700 text-green-500" : "bg-white border-green-200 text-green-600")
+                }`}
               >
                 {t}
               </div>
@@ -695,177 +441,62 @@ export default function Dashboard() {
 
       {isPosOpen && (
         <div className="fixed inset-0 bg-gray-100 lg:bg-black/80 z-[300] flex items-center justify-center lg:p-6 animate-fade-in">
-          <div
-            style={{ width: "98vw", height: "95vh" }}
-            className="bg-gray-100 lg:rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden"
-          >
-            <div
-              style={{ width: "55%" }}
-              className="flex flex-col bg-white border-r h-full"
-            >
-              <div className="p-4 bg-gray-50 flex justify-between items-center border-b">
-                <h2 className="font-black text-xl uppercase italic">
-                  ΚΑΤΑΛΟΓΟΣ TAMEIOY
-                </h2>
-                <button
-                  onClick={() => setIsPosOpen(false)}
-                  className="w-10 h-10 rounded-full border font-black bg-white hover:bg-red-50 hover:text-red-500"
-                >
-                  ✕
-                </button>
+          <div style={{ width: "98vw", height: "95vh" }} className={`lg:rounded-[2rem] shadow-2xl flex flex-col lg:flex-row overflow-hidden ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
+            <div style={{ width: "55%" }} className={`flex flex-col border-r h-full ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+              <div className={`p-4 flex justify-between items-center border-b ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
+                <h2 className={`font-black text-xl uppercase italic ${isDark ? "text-white" : "text-gray-900"}`}>ΚΑΤΑΛΟΓΟΣ TAMEIOY</h2>
+                <button onClick={() => setIsPosOpen(false)} className={`w-10 h-10 rounded-full border font-black ${isDark ? "bg-gray-800 border-gray-600 text-gray-300 hover:text-red-400" : "bg-white border-gray-200 hover:bg-red-50 hover:text-red-500"}`}>✕</button>
               </div>
-              <div className="flex overflow-x-auto gap-2 p-3 border-b no-scrollbar">
-                <button
-                  onClick={() => setPosCategory("ΟΛΑ")}
-                  className={`px-4 py-2 rounded-xl text-[10px] font-black ${
-                    posCategory === "ΟΛΑ"
-                      ? "bg-blue-600 text-white"
-                      : "bg-gray-100"
-                  }`}
-                >
-                  ΟΛΑ
-                </button>
+              <div className={`flex overflow-x-auto gap-2 p-3 border-b no-scrollbar ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+                <button onClick={() => setPosCategory("ΟΛΑ")} className={`px-4 py-2 rounded-xl text-[10px] font-black ${posCategory === "ΟΛΑ" ? "bg-blue-600 text-white" : (isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}`}>ΟΛΑ</button>
                 {posCategories.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setPosCategory(c)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-black ${
-                      posCategory === c
-                        ? "bg-blue-600 text-white"
-                        : "bg-gray-100"
-                    }`}
-                  >
-                    {c}
-                  </button>
+                  <button key={c} onClick={() => setPosCategory(c)} className={`px-4 py-2 rounded-xl text-[10px] font-black ${posCategory === c ? "bg-blue-600 text-white" : (isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600")}`}>{c}</button>
                 ))}
               </div>
-              <div className="flex-1 overflow-y-auto p-4 grid grid-cols-3 gap-3 bg-gray-50">
+              <div className={`flex-1 overflow-y-auto p-4 grid grid-cols-3 gap-3 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
                 {posFilteredProducts.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => handlePosProductClick(p)}
-                    className="bg-white p-4 border rounded-2xl flex flex-col justify-between items-start font-bold text-sm uppercase"
-                  >
+                  <button key={p.id} onClick={() => handlePosProductClick(p)} className={`p-4 border rounded-2xl flex flex-col justify-between items-start font-bold text-sm uppercase ${isDark ? "bg-gray-800 border-gray-700 text-gray-200 hover:border-gray-500" : "bg-white border-gray-200 hover:shadow-md"}`}>
                     <span>{p.name}</span>
-                    <span className="text-blue-600 text-lg">
-                      {p.price.toFixed(2)}€
-                    </span>
+                    <span className="text-blue-500 text-lg mt-2">{p.price.toFixed(2)}€</span>
                   </button>
                 ))}
               </div>
             </div>
-            <div
-              style={{ width: "45%" }}
-              className="flex flex-col bg-gray-50 h-full"
-            >
-              <div className="p-4 bg-white border-b flex justify-between items-center">
-                <h2 className="font-black text-xl">
-                  ΚΑΛΑΘΙ ({posCart.length})
-                </h2>
+            <div style={{ width: "45%" }} className={`flex flex-col h-full ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+              <div className={`p-4 border-b flex justify-between items-center ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200"}`}>
+                <h2 className="font-black text-xl">ΚΑΛΑΘΙ ({posCart.length})</h2>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-3 no-scrollbar">
                 {posCart.map((i) => (
-                  <div
-                    key={i.cartId}
-                    className="bg-white p-4 rounded-2xl border shadow-sm flex flex-col gap-2"
-                  >
+                  <div key={i.cartId} className={`p-4 rounded-2xl border flex flex-col gap-2 ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 shadow-sm"}`}>
                     <div className="flex justify-between font-black uppercase text-sm">
-                      <span>{i.name}</span>
-                      <span>{(i.price * i.quantity).toFixed(2)}€</span>
+                      <span>{i.name}</span><span>{(i.price * i.quantity).toFixed(2)}€</span>
                     </div>
-                    {i.note && (
-                      <p className="text-[10px] text-gray-500 italic">
-                        📝 {i.note}
-                      </p>
-                    )}
-                    <div className="flex justify-between items-center pt-2 border-t">
-                      <div className="flex items-center bg-gray-100 rounded-lg p-1">
-                        <button
-                          onClick={() => updatePosCartQuantity(i.cartId, -1)}
-                          className="w-8 h-8 font-black"
-                        >
-                          −
-                        </button>
-                        <span className="w-8 text-center font-black">
-                          {i.quantity}
-                        </span>
-                        <button
-                          onClick={() => updatePosCartQuantity(i.cartId, 1)}
-                          className="w-8 h-8 font-black text-blue-600"
-                        >
-                          +
-                        </button>
+                    {i.note && <p className="text-[10px] text-gray-400 italic">📝 {i.note}</p>}
+                    <div className={`flex justify-between items-center pt-2 border-t ${isDark ? "border-gray-700" : "border-gray-100"}`}>
+                      <div className={`flex items-center rounded-lg p-1 ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
+                        <button onClick={() => updatePosCartQuantity(i.cartId, -1)} className="w-8 h-8 font-black">−</button>
+                        <span className="w-8 text-center font-black">{i.quantity}</span>
+                        <button onClick={() => updatePosCartQuantity(i.cartId, 1)} className="w-8 h-8 font-black text-blue-500">+</button>
                       </div>
                       <div className="flex gap-2">
-                        <button
-                          onClick={() => handleEditCartItem(i)}
-                          className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 text-lg flex items-center justify-center"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() =>
-                            setPosCart(
-                              posCart.filter((item) => item.cartId !== i.cartId)
-                            )
-                          }
-                          className="w-10 h-10 rounded-xl bg-red-50 text-red-500 text-lg flex items-center justify-center"
-                        >
-                          🗑️
-                        </button>
+                        <button onClick={() => handleEditCartItem(i)} className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center ${isDark ? "bg-blue-900/30 text-blue-400" : "bg-blue-50 text-blue-500"}`}>✏️</button>
+                        <button onClick={() => setPosCart(posCart.filter((item) => item.cartId !== i.cartId))} className={`w-10 h-10 rounded-xl text-lg flex items-center justify-center ${isDark ? "bg-red-900/30 text-red-400" : "bg-red-50 text-red-500"}`}>🗑️</button>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="p-5 bg-white border-t space-y-3">
-                {/* --- ΝΕΟ: ΕΞΥΠΝΟ ΠΕΔΙΟ PAGER/ΟΝΟΜΑ ΓΙΑ ΤΟ POS --- */}
-                <input
-                  type="text"
-                  placeholder="ΕΙΣΑΓΩΓΗ PAGER Ή ΟΝΟΜΑ..."
-                  value={posTable}
-                  onChange={(e) => setPosTable(e.target.value)}
-                  className="w-full border-2 border-gray-300 focus:border-blue-500 outline-none p-4 rounded-xl font-black uppercase bg-gray-50"
-                />
-                
-                <textarea
-                  rows="1"
-                  placeholder="Γενική Σημείωση..."
-                  value={posGeneralNote}
-                  onChange={(e) => setPosGeneralNote(e.target.value)}
-                  className="w-full bg-gray-50 border p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none focus:border-blue-500"
-                ></textarea>
-                <div className="flex gap-1 bg-gray-100 p-1 rounded-xl">
+              <div className={`p-5 border-t space-y-3 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+                <input type="text" placeholder="ΕΙΣΑΓΩΓΗ PAGER Ή ΟΝΟΜΑ..." value={posTable} onChange={(e) => setPosTable(e.target.value)} className={`w-full border-2 outline-none p-4 rounded-xl font-black uppercase ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500"}`} />
+                <textarea rows="1" placeholder="Γενική Σημείωση..." value={posGeneralNote} onChange={(e) => setPosGeneralNote(e.target.value)} className={`w-full border p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"}`}></textarea>
+                <div className={`flex gap-1 p-1 rounded-xl ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                   {["ΜΕΤΡΗΤΑ", "ΚΑΡΤΑ"].map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setPosPayment(m)}
-                      className={`flex-1 py-4 rounded-lg font-black text-xs ${
-                        posPayment === m
-                          ? "bg-white shadow-sm text-blue-600"
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {m}
-                    </button>
+                    <button key={m} onClick={() => setPosPayment(m)} className={`flex-1 py-4 rounded-lg font-black text-xs ${posPayment === m ? (isDark ? "bg-gray-600 shadow-sm text-blue-400" : "bg-white shadow-sm text-blue-600") : "text-gray-400"}`}>{m}</button>
                   ))}
                 </div>
-                <button
-                  onClick={submitPosOrder}
-                  disabled={!posCart.length || !posPayment}
-                  className={`w-full p-5 rounded-2xl font-black uppercase text-white shadow-xl flex justify-between transition-transform active:scale-95 ${
-                    !posCart.length || !posPayment
-                      ? "bg-gray-200"
-                      : "bg-green-600"
-                  }`}
-                >
-                  <span>ΑΠΟΣΤΟΛΗ</span>
-                  <span>
-                    {posCart
-                      .reduce((s, i) => s + i.price * i.quantity, 0)
-                      .toFixed(2)}
-                    €
-                  </span>
+                <button onClick={submitPosOrder} disabled={!posCart.length || !posPayment} className={`w-full p-5 rounded-2xl font-black uppercase shadow-xl flex justify-between transition-transform active:scale-95 ${!posCart.length || !posPayment ? (isDark ? "bg-gray-700 text-gray-500" : "bg-gray-200 text-gray-400") : "bg-green-600 text-white"}`}>
+                  <span>ΑΠΟΣΤΟΛΗ</span><span>{posCart.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)}€</span>
                 </button>
               </div>
             </div>
@@ -874,127 +505,45 @@ export default function Dashboard() {
       )}
 
       {selectedTableForQR && userRole === "admin" && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setSelectedTableForQR(null)}
-        >
-          <div
-            className="bg-white w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setSelectedTableForQR(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-gray-100 rounded-full font-black text-gray-600"
-            >
-              ✕
-            </button>
-            <h2 className="text-3xl font-black italic uppercase mb-6 text-gray-800">
-              ΤΡΑΠΕΖΙ {selectedTableForQR}
-            </h2>
-            <img
-              src={`https://quickchart.io/qr?size=500&text=${encodeURIComponent(
-                window.location.origin +
-                  "/?store=" +
-                  storeId +
-                  "&table=" +
-                  selectedTableForQR
-              )}`}
-              alt="QR"
-              className="w-64 h-64 mb-8 shadow-sm rounded-xl"
-            />
-            <button
-              onClick={() => downloadQR(selectedTableForQR)}
-              className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg"
-            >
-              ΛΗΨΗ ΕΙΚΟΝΑΣ
-            </button>
+        <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedTableForQR(null)}>
+          <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
+            <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
+            <img src={`https://quickchart.io/qr?size=500&text=${encodeURIComponent(window.location.origin + "/?store=" + storeId + "&table=" + selectedTableForQR)}`} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl" />
+            <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
           </div>
         </div>
       )}
 
       {viewingOrder && (
-        <div
-          className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4"
-          onClick={() => setViewingOrder(null)}
-        >
-          <div
-            className={`${
-              isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-900"
-            } w-full max-w-md rounded-[3rem] p-8 shadow-2xl`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">
-              ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}
-            </h2>
+        <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setViewingOrder(null)}>
+          <div className={`${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"} w-full max-w-md rounded-[3rem] p-8 shadow-2xl`} onClick={(e) => e.stopPropagation()}>
+            <h2 className="font-black italic text-2xl uppercase tracking-tighter mb-6">ΛΕΠΤΟΜΕΡΕΙΕΣ #{viewingOrder.table_number}</h2>
             {viewingOrder.general_note && (
-              <div
-                className={`mb-6 p-4 rounded-2xl ${
-                  isKitchen
-                    ? "bg-orange-900/50 text-orange-200"
-                    : "bg-blue-50 text-blue-800"
-                }`}
-              >
-                <p className="text-sm font-bold italic">
-                  {viewingOrder.general_note}
-                </p>
+              <div className={`mb-6 p-4 rounded-2xl ${isKitchen ? (isDark ? "bg-orange-900/50 text-orange-200" : "bg-orange-50 text-orange-800") : (isDark ? "bg-blue-900/50 text-blue-200" : "bg-blue-50 text-blue-800")}`}>
+                <p className="text-sm font-bold italic">{viewingOrder.general_note}</p>
               </div>
             )}
             <div className="space-y-4 max-h-[40vh] overflow-y-auto pr-2">
-              {(isKitchen
-                ? viewingOrder.items?.filter((i) => i.station === "kitchen")
-                : viewingOrder.items
-              )?.map((item, i) => (
-                <div
-                  key={i}
-                  className={`border-b pb-3 ${
-                    isKitchen ? "border-gray-700" : "border-gray-100"
-                  }`}
-                >
+              {(isKitchen ? viewingOrder.items?.filter((i) => i.station === "kitchen") : viewingOrder.items)?.map((item, i) => (
+                <div key={i} className={`border-b pb-3 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
                   <div className="flex justify-between font-black uppercase italic">
-                    <span>
-                      {item.quantity > 1 ? `${item.quantity}x ` : ""}
-                      {item.name}
-                    </span>
-                    <span>
-                      {(item.price * (item.quantity || 1)).toFixed(2)}€
-                    </span>
+                    <span>{item.quantity > 1 ? `${item.quantity}x ` : ""}{item.name}</span>
+                    <span>{(item.price * (item.quantity || 1)).toFixed(2)}€</span>
                   </div>
                   {item.note && (
-                    <div
-                      className={`p-3 rounded-xl mt-2 text-xs font-bold italic ${
-                        isKitchen
-                          ? "bg-gray-700 text-yellow-400"
-                          : "bg-yellow-50 text-yellow-800"
-                      }`}
-                    >
+                    <div className={`p-3 rounded-xl mt-2 text-xs font-bold italic ${isKitchen ? "bg-yellow-400 text-black shadow-sm" : (isDark ? "bg-yellow-900/40 text-yellow-400" : "bg-yellow-50 text-yellow-800")}`}>
                       📝 {item.note}
                     </div>
                   )}
                 </div>
               ))}
             </div>
-            <div
-              className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${
-                isKitchen ? "border-gray-700" : "border-gray-100"
-              }`}
-            >
+            <div className={`mt-6 pt-4 border-t-2 border-dashed flex justify-between items-center text-2xl font-black italic tracking-tighter ${isDark ? "border-gray-700" : "border-gray-200"}`}>
               <span>ΣΥΝΟΛΟ:</span>
-              <span>
-                {(isKitchen
-                  ? viewingOrder.items
-                      ?.filter((i) => i.station === "kitchen")
-                      .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
-                  : viewingOrder.total_price
-                )?.toFixed(2)}
-                €
-              </span>
+              <span>{(isKitchen ? viewingOrder.items?.filter((i) => i.station === "kitchen").reduce((s, it) => s + it.price * (it.quantity || 1), 0) : viewingOrder.total_price)?.toFixed(2)}€</span>
             </div>
-            <button
-              onClick={() => setViewingOrder(null)}
-              className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs"
-            >
-              ΚΛΕΙΣΙΜΟ
-            </button>
+            <button onClick={() => setViewingOrder(null)} className="w-full mt-8 bg-blue-600 text-white py-5 rounded-2xl font-black uppercase text-xs shadow-lg">ΚΛΕΙΣΙΜΟ</button>
           </div>
         </div>
       )}
