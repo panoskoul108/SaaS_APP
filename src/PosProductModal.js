@@ -18,7 +18,7 @@ export default function PosProductModal({
 }) {
   if (!posActiveProduct) return null;
 
-  // --- ΑΠΟΛΥΤΑ ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ΓΙΑ POS ---
+  // --- ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ΓΙΑ POS ---
   let isSketosSelected = false;
   (posActiveProduct.addons || []).forEach((group) => {
     const selections = posAddonSelections[group.id] || [];
@@ -30,14 +30,19 @@ export default function PosProductModal({
     });
   });
 
-  const visibleAddons = (posActiveProduct.addons || []).filter(group => {
+  const displayAddons = (posActiveProduct.addons || []).map(group => {
     const groupNameUpper = normalizeStr(group.name);
-    if (isSketosSelected && (groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ"))) return false;
-    return true;
+    if (isSketosSelected && (groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ"))) {
+      return { ...group, isRequired: false };
+    }
+    return group;
   });
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => { setPosActiveProduct(null); setEditingCartId(null); }}>
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
+      onClick={() => { setPosActiveProduct(null); setEditingCartId(null); }}
+    >
       <div className="bg-white w-full max-w-md rounded-[2rem] p-6 shadow-2xl flex flex-col max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
         <div className="flex justify-between items-start mb-4 border-b pb-4">
           <div className="flex flex-col pr-4">
@@ -48,7 +53,7 @@ export default function PosProductModal({
         </div>
 
         <div className="overflow-y-auto flex-1 space-y-4 pr-2 no-scrollbar">
-          {visibleAddons.map((group) => (
+          {displayAddons.map((group) => (
             <div key={group.id} className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
               <div className="flex justify-between items-center mb-2">
                 <h3 className="font-black uppercase text-sm text-gray-800">{group.name}</h3>
