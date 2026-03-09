@@ -75,7 +75,6 @@ export default function Dashboard() {
     document.body.style.backgroundColor = isDark ? '#111827' : '#f9fafb';
   }, [isDark]);
 
-  // Αν μπει η Κουζίνα για πρώτη φορά και δεν έχει επιλέξει θέμα, βάλε της Dark (γιατί τις βολεύει συνήθως)
   useEffect(() => {
     if (userRole === "kitchen" && !localStorage.getItem("dashboard_theme")) {
       setTheme("dark");
@@ -326,7 +325,6 @@ export default function Dashboard() {
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                // --- ΑΛΛΑΓΗ ΧΡΩΜΑΤΩΝ ΓΙΑ ΤΑ TABS ΣΕ DARK MODE ---
                 className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-colors ${
                   tab === t 
                     ? (isDark ? "bg-white text-black shadow-md" : "bg-black text-white shadow-md") 
@@ -352,7 +350,7 @@ export default function Dashboard() {
             setActivePrintOrder={setActivePrintOrder}
             setIsPrinting={setIsPrinting}
             toggleReceipt={toggleReceipt}
-            theme={theme}
+            theme={theme} // <--- ΕΔΩ ΠΕΡΝΑΕΙ ΤΟ THEME
           />
         )}
         {tab === "history" && (
@@ -377,6 +375,7 @@ export default function Dashboard() {
             setSelectedOrderIds={setSelectedOrderIds}
             deleteOrders={deleteOrders}
             downloadReportFile={downloadReportFile}
+            theme={theme} // <--- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟ ΙΣΤΟΡΙΚΟ
           />
         )}
         {tab === "reviews" && userRole === "admin" && (
@@ -422,7 +421,7 @@ export default function Dashboard() {
           </div>
         )}
         {tab === "products" && userRole === "admin" && (
-          <AdminProducts storeId={storeId} />
+          <AdminProducts storeId={storeId} theme={theme} /> // <--- Η ΔΙΟΡΘΩΣΗ ΓΙΑ ΤΟΝ ΚΑΤΑΛΟΓΟ
         )}
       </main>
 
