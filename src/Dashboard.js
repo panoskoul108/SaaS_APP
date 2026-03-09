@@ -7,9 +7,8 @@ import PosProductModal from "./PosProductModal";
 import OrderList from "./OrderList";
 import HistoryPanel from "./HistoryPanel";
 
-const SUPABASE_URL = "https://vgyzevaxkayyobopznyr.supabase.co";
-const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZneXpldmF4a2F5eW9ib3B6bnlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEwNjI2MDksImV4cCI6MjA4NjYzODYwOX0.u-kO33BloFq4MU3sZsxN8QVcNTjOOZtsDT4srhbdsCw";
+const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const NOTIFICATION_SOUND =
   "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -590,3 +589,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
