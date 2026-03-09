@@ -18,13 +18,20 @@ const CATEGORY_ORDER_FALLBACK = [
   "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ", "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ"
 ];
 
+const DEFAULT_TABLES = [
+  ...Array.from({ length: 20 }, (_, i) => `A${i + 1}`),
+  ...Array.from({ length: 6 }, (_, i) => `Γ${i + 1}`),
+  ...Array.from({ length: 20 }, (_, i) => `Δ${i + 1}`),
+  "ΠΑΚΕΤΟ",
+];
+
 export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
   const [storeId, setStoreId] = useState(null);
   const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState(null);
-  const [storeTables, setStoreTables] = useState(["ΠΑΚΕΤΟ"]);
+  const [storeTables, setStoreTables] = useState(DEFAULT_TABLES);
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
   
   const [orders, setOrders] = useState([]);
@@ -194,8 +201,11 @@ export default function Dashboard() {
 
   const posCategories = [...new Set(posVisibleProducts.map((p) => p.category))].sort((a, b) => {
     const orderArr = storeCategoryOrder.length > 0 ? storeCategoryOrder : CATEGORY_ORDER_FALLBACK;
-    let idxA = orderArr.indexOf(a); let idxB = orderArr.indexOf(b);
-    if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999; return idxA - idxB;
+    let idxA = orderArr.indexOf(a); 
+    let idxB = orderArr.indexOf(b);
+    if (idxA === -1) idxA = 999; 
+    if (idxB === -1) idxB = 999; 
+    return idxA - idxB;
   });
 
   const posFilteredProducts = posCategory === "ΟΛΑ" ? posVisibleProducts : posVisibleProducts.filter((p) => p.category === posCategory);
@@ -220,15 +230,43 @@ export default function Dashboard() {
 
   const confirmPosAddons = () => {
     let extra = 0, texts = [], valid = true;
+    
+    let isSketosSelected = false;
+    (posActiveProduct.addons || []).forEach((g) => {
+      const s = posAddonSelections[g.id] || [];
+      s.forEach((idx) => {
+        const optName = g.options[idx]?.name?.toUpperCase() || "";
+        if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) isSketosSelected = true;
+      });
+    });
+
     posActiveProduct.addons?.forEach((g) => {
+      const isSugarType = g.name.toUpperCase().includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ");
+      if (isSketosSelected && isSugarType) return;
+
       const s = posAddonSelections[g.id] || [];
       if (g.isRequired && !s.length) valid = false;
-      if (s.length) { texts.push(s.map((i) => g.options[i].name).join(", ")); s.forEach((i) => (extra += g.options[i].price)); }
+      if (s.length) { 
+        texts.push(s.map((i) => g.options[i].name).join(", ")); 
+        s.forEach((i) => (extra += g.options[i].price)); 
+      }
     });
+    
     if (!valid) return alert("Συμπληρώστε τα υποχρεωτικά!");
-    const item = { ...posActiveProduct, cartId: editingCartId || Date.now() + Math.random(), name: texts.length ? `${posActiveProduct.name} (${texts.join(" | ")})` : posActiveProduct.name, price: posActiveProduct.price + extra, note: removeAccents(posCurrentNote), rawAddons: posAddonSelections, quantity: posQuantity };
+    
+    const item = { 
+      ...posActiveProduct, 
+      cartId: editingCartId || Date.now() + Math.random(), 
+      name: texts.length ? `${posActiveProduct.name} (${texts.join(" | ")})` : posActiveProduct.name, 
+      price: posActiveProduct.price + extra, 
+      note: removeAccents(posCurrentNote), 
+      rawAddons: posAddonSelections, 
+      quantity: posQuantity 
+    };
+    
     setPosCart(editingCartId ? posCart.map((i) => (i.cartId === editingCartId ? item : i)) : [...posCart, item]);
-    setPosActiveProduct(null); setEditingCartId(null);
+    setPosActiveProduct(null); 
+    setEditingCartId(null);
   };
 
   const updatePosCartQuantity = (cartId, delta) => {
