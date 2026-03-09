@@ -11,72 +11,10 @@ const READY_SOUND =
 
 const DICT = {
   gr: {
-    reviewTitle: "Πως ηταν η εμπειρια σας;",
-    reviewSubtitle: "Η γνωμη σας μας κανει καλυτερους",
-    goodReviewTitle: "Χαιρομαστε πολυ! 😍",
-    goodReviewSub: "Θα μας βοηθούσατε τεράστια με μια δημόσια κριτική.",
-    btnGoogle: "ΑΞΙΟΛΟΓΗΣΗ ΣΤΟ GOOGLE",
-    skipReturn: "ΠΑΡΑΛΕΙΨΗ & ΕΠΙΣΤΡΟΦΗ",
-    badReviewTitle: "Λυπουμαστε πολυ 😔",
-    badReviewSub: "Πείτε μας τι πήγε στραβά για να το διορθώσουμε αμέσως.",
-    placeholder: "Γράψτε το σχόλιό σας εδώ...",
-    btnSubmit: "ΑΠΟΣΤΟΛΗ ΣΧΟΛΙΟΥ",
-    btnSubmitting: "ΑΠΟΣΤΟΛΗ...",
-    skip: "ΠΑΡΑΛΕΙΨΗ",
-    returnMenu: "ΕΠΙΣΤΡΟΦΗ ΣΤΟ ΜΕΝΟΥ",
-    orderTitle: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ",
-    table: "ΤΡΑΠΕΖΙ",
-    sent: "Εσταλη",
-    preparing: "Ετοιμαζεται",
-    ready: "Ετοιμη",
-    bar: "ΜΠΑΡ",
-    kitchen: "ΚΟΥΖΙΝΑ",
-    statusSent: "ΕΣΤΑΛΗ 📝",
-    statusReady: "ΕΤΟΙΜΑ ✅",
-    statusPrep: "ΕΤΟΙΜΑΖΟΝΤΑΙ ⏳",
-    statusReceived: "Η ΠΑΡΑΓΓΕΛΙΑ ΕΛΗΦΘΗ!",
-    statusPrepMsg: "ΤΟ ΚΑΤΑΣΤΗΜΑ ΕΤΟΙΜΑΖΕΙ...",
-    statusReadyMsg: "Η ΠΑΡΑΓΓΕΛΙΑ ΕΙΝΑΙ ΠΛΗΡΩΣ ΕΤΟΙΜΗ!",
-    thanks: "ΕΥΧΑΡΙΣΤΟΥΜΕ ΠΟΛΥ ΓΙΑ ΤΗΝ ΠΡΟΤΙΜΗΣΗ",
-    notify: "ΘΑ ΣΑΣ ΕΝΗΜΕΡΩΣΟΥΜΕ ΜΟΛΙΣ ΕΙΝΑΙ ΕΤΟΙΜΗ",
-    summary: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ",
-    total: "ΣΥΝΟΛΟ",
-    payment: "ΠΛΗΡΩΜΗ",
-    newOrder: "ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ",
+    reviewTitle: "Πως ηταν η εμπειρια σας;", reviewSubtitle: "Η γνωμη σας μας κανει καλυτερους", goodReviewTitle: "Χαιρομαστε πολυ! 😍", goodReviewSub: "Θα μας βοηθούσατε τεράστια με μια δημόσια κριτική.", btnGoogle: "ΑΞΙΟΛΟΓΗΣΗ ΣΤΟ GOOGLE", skipReturn: "ΠΑΡΑΛΕΙΨΗ & ΕΠΙΣΤΡΟΦΗ", badReviewTitle: "Λυπουμαστε πολυ 😔", badReviewSub: "Πείτε μας τι πήγε στραβά για να το διορθώσουμε αμέσως.", placeholder: "Γράψτε το σχόλιό σας εδώ...", btnSubmit: "ΑΠΟΣΤΟΛΗ ΣΧΟΛΙΟΥ", btnSubmitting: "ΑΠΟΣΤΟΛΗ...", skip: "ΠΑΡΑΛΕΙΨΗ", returnMenu: "ΕΠΙΣΤΡΟΦΗ ΣΤΟ ΜΕΝΟΥ", orderTitle: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", table: "ΤΡΑΠΕΖΙ", sent: "Εσταλη", preparing: "Ετοιμαζεται", ready: "Ετοιμη", bar: "ΜΠΑΡ", kitchen: "ΚΟΥΖΙΝΑ", statusSent: "ΕΣΤΑΛΗ 📝", statusReady: "ΕΤΟΙΜΑ ✅", statusPrep: "ΕΤΟΙΜΑΖΟΝΤΑΙ ⏳", statusReceived: "Η ΠΑΡΑΓΓΕΛΙΑ ΕΛΗΦΘΗ!", statusPrepMsg: "ΤΟ ΚΑΤΑΣΤΗΜΑ ΕΤΟΙΜΑΖΕΙ...", statusReadyMsg: "Η ΠΑΡΑΓΓΕΛΙΑ ΕΙΝΑΙ ΠΛΗΡΩΣ ΕΤΟΙΜΗ!", thanks: "ΕΥΧΑΡΙΣΤΟΥΜΕ ΠΟΛΥ ΓΙΑ ΤΗΝ ΠΡΟΤΙΜΗΣΗ", notify: "ΘΑ ΣΑΣ ΕΝΗΜΕΡΩΣΟΥΜΕ ΜΟΛΙΣ ΕΙΝΑΙ ΕΤΟΙΜΗ", summary: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", total: "ΣΥΝΟΛΟ", payment: "ΠΛΗΡΩΜΗ", newOrder: "ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ",
   },
   en: {
-    reviewTitle: "How was your experience?",
-    reviewSubtitle: "Your feedback makes us better",
-    goodReviewTitle: "We are thrilled! 😍",
-    goodReviewSub: "A public review would help us immensely.",
-    btnGoogle: "REVIEW ON GOOGLE",
-    skipReturn: "SKIP & RETURN",
-    badReviewTitle: "We are very sorry 😔",
-    badReviewSub: "Please tell us what went wrong so we can fix it.",
-    placeholder: "Write your comment here...",
-    btnSubmit: "SUBMIT FEEDBACK",
-    btnSubmitting: "SUBMITTING...",
-    skip: "SKIP",
-    returnMenu: "RETURN TO MENU",
-    orderTitle: "YOUR ORDER",
-    table: "TABLE",
-    sent: "Sent",
-    preparing: "Preparing",
-    ready: "Ready",
-    bar: "BAR",
-    kitchen: "KITCHEN",
-    statusSent: "SENT 📝",
-    statusReady: "READY ✅",
-    statusPrep: "PREPARING ⏳",
-    statusReceived: "ORDER RECEIVED!",
-    statusPrepMsg: "PREPARING YOUR ORDER...",
-    statusReadyMsg: "YOUR ORDER IS FULLY READY!",
-    thanks: "THANK YOU FOR YOUR PREFERENCE",
-    notify: "WE WILL NOTIFY YOU WHEN IT's READY",
-    summary: "ORDER SUMMARY",
-    total: "TOTAL",
-    payment: "PAYMENT",
-    newOrder: "NEW ORDER",
+    reviewTitle: "How was your experience?", reviewSubtitle: "Your feedback makes us better", goodReviewTitle: "We are thrilled! 😍", goodReviewSub: "A public review would help us immensely.", btnGoogle: "REVIEW ON GOOGLE", skipReturn: "SKIP & RETURN", badReviewTitle: "We are very sorry 😔", badReviewSub: "Please tell us what went wrong so we can fix it.", placeholder: "Write your comment here...", btnSubmit: "SUBMIT FEEDBACK", btnSubmitting: "SUBMITTING...", skip: "SKIP", returnMenu: "RETURN TO MENU", orderTitle: "YOUR ORDER", table: "TABLE", sent: "Sent", preparing: "Preparing", ready: "Ready", bar: "BAR", kitchen: "KITCHEN", statusSent: "SENT 📝", statusReady: "READY ✅", statusPrep: "PREPARING ⏳", statusReceived: "ORDER RECEIVED!", statusPrepMsg: "PREPARING YOUR ORDER...", statusReadyMsg: "YOUR ORDER IS FULLY READY!", thanks: "THANK YOU FOR YOUR PREFERENCE", notify: "WE WILL NOTIFY YOU WHEN IT's READY", summary: "ORDER SUMMARY", total: "TOTAL", payment: "PAYMENT", newOrder: "NEW ORDER",
   },
 };
 
@@ -85,7 +23,7 @@ export default function OrderStatus({
   onBack,
   lang = "gr",
   products = [],
-  theme = "light", // <-- ΠΑΙΡΝΟΥΜΕ ΤΟ THEME
+  theme = "light",
 }) {
   const [order, setOrder] = useState(null);
   const [storeInfo, setStoreInfo] = useState(null);
@@ -97,9 +35,12 @@ export default function OrderStatus({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const t = DICT[lang] || DICT.gr;
-  const isDark = theme === "dark"; // <-- ΕΛΕΓΧΟΣ ΓΙΑ DARK MODE
+  const isDark = theme === "dark";
 
   useEffect(() => {
+    // --- ΔΙΟΡΘΩΣΗ SCROLL: ΠΑΕΙ ΤΕΡΜΑ ΠΑΝΩ ΜΟΛΙΣ ΑΝΟΙΞΕΙ ---
+    window.scrollTo(0, 0);
+
     if (!orderId) return;
 
     let isMounted = true;
