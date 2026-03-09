@@ -13,6 +13,7 @@ const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/286
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
+const normalizeStr = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
 
 const CATEGORY_ORDER_FALLBACK = [
   "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ", "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ"
@@ -235,14 +236,15 @@ export default function Dashboard() {
     (posActiveProduct.addons || []).forEach((g) => {
       const s = posAddonSelections[g.id] || [];
       s.forEach((idx) => {
-        const optName = g.options[idx]?.name?.toUpperCase() || "";
-        if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) isSketosSelected = true;
+        const optName = normalizeStr(g.options[idx]?.name);
+        if (optName.includes("ΣΚΕΤ") || optName.includes("ΧΩΡΙΣ")) isSketosSelected = true;
       });
     });
 
     posActiveProduct.addons?.forEach((g) => {
-      const isSugarType = g.name.toUpperCase().includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ");
-      if (isSketosSelected && isSugarType) return;
+      const groupNameUpper = normalizeStr(g.name);
+      const isSugarType = groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ");
+      if (isSketosSelected && isSugarType) return; // Αγνόησε αν είναι Σκέτος!
 
       const s = posAddonSelections[g.id] || [];
       if (g.isRequired && !s.length) valid = false;
