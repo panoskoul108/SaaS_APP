@@ -390,7 +390,6 @@ export default function Menu() {
           </div>
         )}
 
-        {/* --- ΝΕΟ: ΕΞΥΠΝΟ MODAL ΓΙΑ ΕΙΣΑΓΩΓΗ PAGER / ΤΡΑΠΕΖΙΟΥ --- */}
         {showTablePicker && (
           <div className="fixed inset-0 bg-black/90 z-[200] p-6 overflow-y-auto flex flex-col items-center justify-start pt-20">
             <div className="flex justify-between items-center mb-8 text-white font-black italic uppercase text-lg w-full max-w-md">
@@ -453,12 +452,15 @@ export default function Menu() {
           </div>
         </div>
 
-        <div className={`px-4 py-2 sticky z-20 backdrop-blur-md transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90" : "bg-gray-50/90"}`}>
-          <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span><input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} style={{ focusRingColor: themeColor }} /></div>
-        </div>
+        {/* ΚΡΥΒΟΥΜΕ ΤΗΝ ΑΝΑΖΗΤΗΣΗ ΣΤΟ BACKUP MODE */}
+        {!backupMode && (
+          <div className={`px-4 py-2 sticky z-20 backdrop-blur-md transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90" : "bg-gray-50/90"}`}>
+            <div className="relative"><span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span><input type="text" placeholder={t.search} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} style={{ focusRingColor: themeColor }} /></div>
+          </div>
+        )}
 
         {!searchQuery && (
-          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[180px]" : "top-[148px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
+          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? (backupMode ? "top-[120px]" : "top-[180px]") : (backupMode ? "top-[88px]" : "top-[148px]")} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (<button key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${selectedCategory !== cat ? isDark ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700" : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100" : "scale-105"}`} style={selectedCategory === cat ? { backgroundColor: themeColor, color: "#ffffff" } : {}}>{getCategoryDisplayName(cat)}</button>))}
           </div>
         )}
