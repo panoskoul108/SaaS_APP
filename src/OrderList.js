@@ -10,7 +10,7 @@ export default function OrderList({
   setActivePrintOrder,
   setIsPrinting,
   toggleReceipt,
-  theme, // ΝΕΟ PROP ΓΙΑ ΤΟ ΘΕΜΑ
+  theme,
 }) {
   const statuses = ["pending", "preparing", "ready"];
   const isDark = theme === "dark";
@@ -51,9 +51,16 @@ export default function OrderList({
   };
 
   const OrderCard = ({ order }) => {
+    // --- ΝΕΟ: ΤΑΞΙΝΟΜΗΣΗ - ΠΡΩΤΑ ΤΟ ΜΠΑΡ, ΜΕΤΑ Η ΚΟΥΖΙΝΑ ---
+    const sortedItems = [...(order.items || [])].sort((a, b) => {
+      if (a.station === "kitchen" && b.station !== "kitchen") return 1;
+      if (a.station !== "kitchen" && b.station === "kitchen") return -1;
+      return 0;
+    });
+
     const displayItems = isKitchen
-      ? order.items?.filter((it) => it.station === "kitchen") || []
-      : order.items;
+      ? sortedItems.filter((it) => it.station === "kitchen")
+      : sortedItems;
     
     if (isKitchen && displayItems.length === 0) return null;
 
@@ -149,8 +156,8 @@ export default function OrderList({
               <button
                 onClick={() => {
                   const orderToPrint = isKitchen 
-                    ? { ...order, items: order.items.filter(it => it.station === "kitchen") }
-                    : order;
+                    ? { ...order, items: sortedItems.filter(it => it.station === "kitchen") }
+                    : { ...order, items: sortedItems }; // Περνάει ταξινομημένα είδη
                   setActivePrintOrder(orderToPrint);
                   setIsPrinting(true);
                   setTimeout(() => {
