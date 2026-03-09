@@ -21,20 +21,22 @@ export default function HistoryPanel({
   setSelectedOrderIds,
   deleteOrders,
   downloadReportFile,
+  theme, // ΝΕΟ PROP ΓΙΑ ΤΟ THEME
 }) {
   const maxProductCount = topProducts.length > 0 ? topProducts[0][1] : 1;
   const maxHourCount = peakHours.length > 0 ? peakHours[0][1] : 1;
+  const isDark = theme === "dark" || isKitchen; // Η Κουζίνα είναι default dark, εκτός αν αλλάξει
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
       <div
-        className={`p-4 rounded-[2rem] shadow-sm flex flex-col md:flex-row gap-4 justify-between ${
-          isKitchen ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
+        className={`p-4 rounded-[2rem] shadow-sm flex flex-col md:flex-row gap-4 justify-between border transition-colors ${
+          isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
         }`}
       >
         <div
-          className={`flex p-1 rounded-2xl gap-1 overflow-x-auto no-scrollbar ${
-            isKitchen ? "bg-gray-900" : "bg-gray-50"
+          className={`flex p-1 rounded-2xl gap-1 overflow-x-auto no-scrollbar transition-colors ${
+            isDark ? "bg-gray-900" : "bg-gray-50"
           }`}
         >
           {["today", "week", "month", "all"].map((r) => (
@@ -44,12 +46,14 @@ export default function HistoryPanel({
                 setDateRange(r);
                 setSpecificDate("");
               }}
-              className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase whitespace-nowrap ${
+              className={`px-6 py-3 rounded-xl text-[10px] font-black uppercase whitespace-nowrap transition-colors ${
                 dateRange === r
-                  ? isKitchen
-                    ? "bg-gray-700 text-orange-500 shadow-md"
-                    : "bg-white shadow-md text-blue-600"
-                  : "text-gray-400"
+                  ? isDark
+                    ? "bg-gray-700 text-white shadow-md"
+                    : "bg-white text-blue-600 shadow-md"
+                  : isDark
+                  ? "text-gray-500 hover:text-gray-300"
+                  : "text-gray-400 hover:text-gray-600"
               }`}
             >
               {r === "today"
@@ -68,16 +72,20 @@ export default function HistoryPanel({
               setSpecificDate(e.target.value);
               if (e.target.value) setDateRange("specific");
             }}
-            className={`ml-2 px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all shadow-sm cursor-pointer outline-none border border-transparent ${
-              isKitchen ? "bg-gray-700 text-white" : "bg-white"
+            className={`ml-2 px-3 py-2 rounded-xl text-xs font-bold uppercase transition-all shadow-sm cursor-pointer outline-none border ${
+              isDark 
+                ? "bg-gray-800 text-white border-gray-700" 
+                : "bg-white border-transparent"
             } ${dateRange === "specific" ? "ring-2 ring-blue-500" : ""}`}
           />
         </div>
         <input
           type="text"
           placeholder="Αναζήτηση Τράπεζας..."
-          className={`px-4 py-3 rounded-2xl text-sm font-bold shadow-inner ${
-            isKitchen ? "bg-gray-900 text-white" : "bg-gray-50"
+          className={`px-4 py-3 rounded-2xl text-sm font-bold shadow-inner outline-none transition-colors ${
+            isDark 
+              ? "bg-gray-900 text-white placeholder-gray-500 border border-gray-700 focus:border-blue-500" 
+              : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-blue-100"
           }`}
           value={historySearch}
           onChange={(e) => setHistorySearch(e.target.value)}
@@ -87,24 +95,22 @@ export default function HistoryPanel({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
           className={`${
-            isKitchen ? "bg-orange-600" : "bg-blue-600"
-          } text-white p-6 rounded-[2rem] shadow-lg flex flex-col justify-between`}
+            isDark ? "bg-blue-900/40 border border-blue-800" : "bg-blue-600 border border-transparent"
+          } text-white p-6 rounded-[2rem] shadow-lg flex flex-col justify-between transition-colors`}
         >
-          <span className="text-[10px] font-black uppercase tracking-widest opacity-80">
+          <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-blue-300" : "opacity-80"}`}>
             Συνολικός Τζίρος
           </span>
-          <span className="text-4xl font-black italic mt-2">
+          <span className={`text-4xl font-black italic mt-2 ${isDark ? "text-blue-100" : "text-white"}`}>
             {totalRevenue.toFixed(2)}€
           </span>
         </div>
         <div
-          className={`${
-            isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-800"
-          } p-6 rounded-[2rem] shadow-sm flex flex-col justify-between border ${
-            isKitchen ? "border-gray-700" : "border-gray-100"
+          className={`p-6 rounded-[2rem] shadow-sm flex flex-col justify-between border transition-colors ${
+            isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-100 text-gray-800"
           }`}
         >
-          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+          <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-gray-500" : "text-gray-400"}`}>
             Παραγγελίες
           </span>
           <span className="text-4xl font-black italic mt-2">
@@ -112,13 +118,11 @@ export default function HistoryPanel({
           </span>
         </div>
         <div
-          className={`${
-            isKitchen ? "bg-gray-800 text-white" : "bg-white text-gray-800"
-          } p-6 rounded-[2rem] shadow-sm flex flex-col justify-between border ${
-            isKitchen ? "border-gray-700" : "border-gray-100"
+          className={`p-6 rounded-[2rem] shadow-sm flex flex-col justify-between border transition-colors ${
+            isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-100 text-gray-800"
           }`}
         >
-          <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+          <span className={`text-[10px] font-black uppercase tracking-widest ${isDark ? "text-gray-500" : "text-gray-400"}`}>
             Μέση Αξία / Παρ.
           </span>
           <span className="text-4xl font-black italic mt-2">
@@ -129,9 +133,9 @@ export default function HistoryPanel({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div
-          className={`p-4 rounded-[2rem] flex justify-between items-center shadow-sm border ${
-            isKitchen
-              ? "bg-gray-800 border-gray-700 text-white"
+          className={`p-4 rounded-[2rem] flex justify-between items-center shadow-sm border transition-colors ${
+            isDark
+              ? "bg-green-900/20 border-green-900/50 text-green-400"
               : "bg-green-50 border-green-200 text-green-800"
           }`}
         >
@@ -139,9 +143,9 @@ export default function HistoryPanel({
           <span className="font-black text-2xl">{cashTotal.toFixed(2)}€</span>
         </div>
         <div
-          className={`p-4 rounded-[2rem] flex justify-between items-center shadow-sm border ${
-            isKitchen
-              ? "bg-gray-800 border-gray-700 text-white"
+          className={`p-4 rounded-[2rem] flex justify-between items-center shadow-sm border transition-colors ${
+            isDark
+              ? "bg-blue-900/20 border-blue-900/50 text-blue-400"
               : "bg-blue-50 border-blue-200 text-blue-800"
           }`}
         >
@@ -150,7 +154,11 @@ export default function HistoryPanel({
         </div>
         <button
           onClick={downloadReportFile}
-          className="bg-gray-900 text-white p-4 rounded-[2rem] shadow-lg font-black uppercase text-[11px] hover:bg-gray-800 transition-colors"
+          className={`p-4 rounded-[2rem] shadow-lg font-black uppercase text-[11px] transition-transform active:scale-95 ${
+            isDark 
+              ? "bg-gray-700 text-white hover:bg-gray-600 border border-gray-600" 
+              : "bg-gray-900 text-white hover:bg-gray-800"
+          }`}
         >
           💾 ΕΞΑΓΩΓΗ ΑΝΑΦΟΡΑΣ (Z)
         </button>
@@ -158,13 +166,11 @@ export default function HistoryPanel({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div
-          className={`${
-            isKitchen
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-100"
-          } p-6 rounded-[2rem] shadow-sm border`}
+          className={`p-6 rounded-[2rem] shadow-sm border transition-colors ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
+          }`}
         >
-          <h3 className="text-[11px] font-black uppercase text-gray-400 mb-4 border-b pb-2">
+          <h3 className={`text-[11px] font-black uppercase mb-4 border-b pb-2 ${isDark ? "text-gray-500 border-gray-700" : "text-gray-400"}`}>
             Top 5 Προϊόντα
           </h3>
           <div className="space-y-4">
@@ -172,7 +178,7 @@ export default function HistoryPanel({
               <div key={name} className="relative">
                 <div
                   className={`flex justify-between text-xs font-black uppercase italic mb-1 z-10 relative px-2 ${
-                    isKitchen ? "text-white" : "text-gray-800"
+                    isDark ? "text-gray-200" : "text-gray-800"
                   }`}
                 >
                   <span>{name}</span>
@@ -180,12 +186,12 @@ export default function HistoryPanel({
                 </div>
                 <div
                   className={`w-full h-8 rounded-xl overflow-hidden relative ${
-                    isKitchen ? "bg-gray-900" : "bg-gray-50"
+                    isDark ? "bg-gray-900" : "bg-gray-50"
                   }`}
                 >
                   <div
                     className={`h-full rounded-xl transition-all duration-1000 ${
-                      isKitchen ? "bg-orange-900" : "bg-blue-100"
+                      isDark ? "bg-blue-900/50" : "bg-blue-100"
                     }`}
                     style={{ width: `${(count / maxProductCount) * 100}%` }}
                   ></div>
@@ -195,13 +201,11 @@ export default function HistoryPanel({
           </div>
         </div>
         <div
-          className={`${
-            isKitchen
-              ? "bg-gray-800 border-gray-700"
-              : "bg-white border-gray-100"
-          } p-6 rounded-[2rem] shadow-sm border`}
+          className={`p-6 rounded-[2rem] shadow-sm border transition-colors ${
+            isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
+          }`}
         >
-          <h3 className="text-[11px] font-black uppercase text-gray-400 mb-4 border-b pb-2">
+          <h3 className={`text-[11px] font-black uppercase mb-4 border-b pb-2 ${isDark ? "text-gray-500 border-gray-700" : "text-gray-400"}`}>
             Ώρες Αιχμής
           </h3>
           <div className="space-y-4">
@@ -209,7 +213,7 @@ export default function HistoryPanel({
               <div key={hour} className="relative">
                 <div
                   className={`flex justify-between text-xs font-black uppercase italic mb-1 z-10 relative px-2 ${
-                    isKitchen ? "text-white" : "text-gray-800"
+                    isDark ? "text-gray-200" : "text-gray-800"
                   }`}
                 >
                   <span>{hour}</span>
@@ -217,12 +221,12 @@ export default function HistoryPanel({
                 </div>
                 <div
                   className={`w-full h-8 rounded-xl overflow-hidden relative ${
-                    isKitchen ? "bg-gray-900" : "bg-gray-50"
+                    isDark ? "bg-gray-900" : "bg-gray-50"
                   }`}
                 >
                   <div
                     className={`h-full rounded-xl transition-all duration-1000 ${
-                      isKitchen ? "bg-orange-900" : "bg-orange-100"
+                      isDark ? "bg-orange-900/50" : "bg-orange-100"
                     }`}
                     style={{ width: `${(count / maxHourCount) * 100}%` }}
                   ></div>
@@ -237,7 +241,7 @@ export default function HistoryPanel({
         <div className="flex justify-between items-center mb-4 px-2">
           <h3
             className={`text-lg font-black italic uppercase tracking-tighter ${
-              isKitchen ? "text-white" : "text-gray-800"
+              isDark ? "text-white" : "text-gray-800"
             }`}
           >
             Λίστα Παραγγελιών
@@ -249,7 +253,7 @@ export default function HistoryPanel({
               className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all ${
                 selectedOrderIds.length > 0
                   ? "bg-red-500 text-white"
-                  : "bg-gray-100 text-gray-300"
+                  : (isDark ? "bg-gray-800 text-gray-600" : "bg-gray-100 text-gray-300")
               }`}
             >
               ΔΙΑΓΡΑΦΗ ΕΠΙΛΕΓΜΕΝΩΝ ({selectedOrderIds.length})
@@ -270,28 +274,28 @@ export default function HistoryPanel({
               }
               className={`p-4 rounded-[2rem] flex justify-between items-center cursor-pointer transition-all border-2 ${
                 selectedOrderIds.includes(o.id)
-                  ? "border-blue-500 bg-blue-50"
-                  : isKitchen
-                  ? "border-gray-700 bg-gray-800 shadow-sm"
-                  : "border-gray-50 bg-white shadow-sm"
+                  ? (isDark ? "border-blue-500 bg-blue-900/30" : "border-blue-500 bg-blue-50")
+                  : isDark
+                  ? "border-gray-700 bg-gray-800 hover:border-gray-600 shadow-sm"
+                  : "border-gray-50 bg-white hover:border-gray-200 shadow-sm"
               }`}
             >
               <div>
                 <span
                   className={`font-black italic text-base ${
-                    isKitchen ? "text-orange-400" : "text-blue-600"
+                    isDark ? "text-blue-400" : "text-blue-600"
                   }`}
                 >
                   #{o.table_number}
                 </span>
-                <p className="text-[9px] font-bold text-gray-400 uppercase">
+                <p className="text-[9px] font-bold text-gray-500 uppercase">
                   {new Date(o.created_at).toLocaleTimeString("el-GR")} •{" "}
                   {o.payment_method}
                 </p>
               </div>
               <span
                 className={`font-black text-lg tracking-tighter ${
-                  isKitchen ? "text-white" : "text-gray-800"
+                  isDark ? "text-gray-100" : "text-gray-800"
                 }`}
               >
                 {(isKitchen
