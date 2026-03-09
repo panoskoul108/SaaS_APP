@@ -300,9 +300,11 @@ export default function Dashboard() {
                 Backup: {backupMode ? "ON" : "OFF"}
               </button>
             )}
+            
             <button onClick={toggleTheme} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "bg-gray-800 text-yellow-400 border border-gray-700" : "bg-gray-100 text-blue-600 border border-gray-200"}`}>
               {isDark ? "☀️" : "🌙"}
             </button>
+
             <button onClick={() => setIsMuted(!isMuted)} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ${isDark ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200"}`}>
               {isMuted ? "🔇" : "🔊"}
             </button>
@@ -373,7 +375,7 @@ export default function Dashboard() {
             deleteOrders={deleteOrders}
             downloadReportFile={downloadReportFile}
             theme={theme} 
-            setViewingOrder={setViewingOrder} // ΝΕΟ ΠΕΡΑΣΜΑ
+            setViewingOrder={setViewingOrder}
           />
         )}
         {tab === "reviews" && userRole === "admin" && (
@@ -423,7 +425,6 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* --- ΥΠΟΛΟΙΠΑ MODALS... --- */}
       <PosProductModal
         posActiveProduct={posActiveProduct}
         setPosActiveProduct={setPosActiveProduct}
@@ -503,6 +504,18 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* --- MODAL ΓΙΑ QR CODE ΤΡΑΠΕΖΙΟΥ ΠΟΥ ΕΙΧΕ ΧΑΘΕΙ --- */}
+      {selectedTableForQR && userRole === "admin" && (
+        <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedTableForQR(null)}>
+          <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
+            <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
+            <img src={`https://quickchart.io/qr?size=500&text=${encodeURIComponent(window.location.origin + "/?store=" + storeId + "&table=" + selectedTableForQR)}`} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl" />
+            <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
+          </div>
+        </div>
+      )}
+
       {/* --- ΠΡΟΒΟΛΗ ΚΑΙ ΕΠΑΝΕΚΤΥΠΩΣΗ ΠΑΡΑΓΓΕΛΙΑΣ --- */}
       {viewingOrder && (
         <div className="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4" onClick={() => setViewingOrder(null)}>
@@ -540,7 +553,6 @@ export default function Dashboard() {
             </div>
             
             <div className="flex gap-2 mt-8">
-              {/* ΚΟΥΜΠΙ ΕΠΑΝΕΚΤΥΠΩΣΗΣ */}
               <button 
                 onClick={() => {
                   const orderToPrint = isKitchen 
