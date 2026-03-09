@@ -7,16 +7,15 @@ import ProductModal from "./ProductModal";
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const TABLES_LIST = [
-  ...Array.from({ length: 20 }, (_, i) => `A${i + 1}`),
-  ...Array.from({ length: 6 }, (_, i) => `Γ${i + 1}`),
-  ...Array.from({ length: 20 }, (_, i) => `Δ${i + 1}`),
-  "ΠΑΚΕΤΟ",
+
+const CATEGORY_ORDER_FALLBACK = [
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ",
+  "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ"
 ];
 
+const DEFAULT_LAT = 38.3659639856658;
+const DEFAULT_LNG = 26.140604568410055;
 const REWARD_THRESHOLD = 40;
-
-// Αφαιρέθηκαν οι σταθερές (καρφωτές) συντεταγμένες από εδώ
 
 const getDistance = (lat1, lon1, lat2, lon2) => {
   const R = 6371e3; 
@@ -66,10 +65,6 @@ const normalizeForSearch = (str) => {
   if (!str) return "";
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/ς/g, "σ");
 };
-
-const CATEGORY_ORDER = [
-  "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ", "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ",
-];
 
 const DICT = {
   gr: {
@@ -193,7 +188,8 @@ export default function Menu() {
   const visibleProducts = products.filter((p) => p.category === "ΠΡΩΙΝΟ" && !isMorning ? false : true);
   const hasRecommended = visibleProducts.some((p) => p.is_recommended);
   const rawCategories = [...new Set(visibleProducts.map((p) => p.category))].sort((a, b) => {
-    let idxA = CATEGORY_ORDER.indexOf(a); let idxB = CATEGORY_ORDER.indexOf(b);
+    const orderArr = store?.category_order || CATEGORY_ORDER_FALLBACK;
+    let idxA = orderArr.indexOf(a); let idxB = orderArr.indexOf(b);
     if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999;
     return idxA - idxB;
   });
@@ -291,29 +287,24 @@ export default function Menu() {
     setCart(newCart); if (newCart.length === 0) setIsCartOpen(false);
   };
 
+  const activeThreshold = store?.reward_threshold || REWARD_THRESHOLD;
   const currentCartTotal = cart.reduce((s, i) => s + i.price * (i.quantity || 1), 0);
-  const isRewardOrder = currentCartTotal >= REWARD_THRESHOLD;
-  const progressPercent = Math.min((currentCartTotal / REWARD_THRESHOLD) * 100, 100);
-  const remainingAmount = Math.max(REWARD_THRESHOLD - currentCartTotal, 0);
+  const isRewardOrder = currentCartTotal >= activeThreshold;
+  const progressPercent = Math.min((currentCartTotal / activeThreshold) * 100, 100);
 
-  // --- ΔΥΝΑΜΙΚΟΣ ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ ---
   const handleSendOrderClick = () => {
-    // Αν το μαγαζί ΔΕΝ έχει ορίσει συντεταγμένες στη βάση, προσπέρνα τον έλεγχο!
     if (!store?.lat || !store?.lng) {
       sendOrder();
       return;
     }
-
-    // Διαφορετικά, έλεγξε την τοποθεσία βάσει του μαγαζιού
     if (!navigator.geolocation) return alert(t.locErrorSupport);
     setIsLocating(true);
     navigator.geolocation.getCurrentPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
-        const radius = store.radius || 100; // Αν δεν έχει βάλει radius, βάλε 100m by default
+        const radius = store.radius || 100;
         const dist = getDistance(latitude, longitude, store.lat, store.lng);
         setIsLocating(false);
-        
         if (dist <= radius) sendOrder();
         else alert(t.locErrorFar);
       },
@@ -362,6 +353,7 @@ export default function Menu() {
 
   const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
   const themeColor = store?.theme_color || "#2563EB";
+  const tablesList = store?.tables || ["ΠΑΚΕΤΟ"];
 
   const filteredProducts = searchQuery ? visibleProducts.filter((p) => {
         const searchNorm = normalizeForSearch(searchQuery);
@@ -419,7 +411,7 @@ export default function Menu() {
 
             <p className="text-gray-500 text-xs font-bold mb-4 uppercase w-full max-w-md">Ή γρηγορη επιλογη:</p>
             <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
-              {TABLES_LIST.map((table) => (
+              {tablesList.map((table) => (
                 <button key={table} onClick={() => { setTableNum(table); setShowTablePicker(false); }} className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform">{table}</button>
               ))}
             </div>
@@ -434,7 +426,7 @@ export default function Menu() {
               <div>
                 <div className="flex justify-between items-center mb-1.5">
                   <span className="font-black text-[9px] uppercase tracking-widest text-gray-500">🎁 {t.loyaltyTitle}</span>
-                  <span className={`font-black text-[9px] px-1.5 py-0.5 rounded-md ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{currentCartTotal.toFixed(2)}€ / {REWARD_THRESHOLD}€</span>
+                  <span className={`font-black text-[9px] px-1.5 py-0.5 rounded-md ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>{currentCartTotal.toFixed(2)}€ / {activeThreshold}€</span>
                 </div>
                 <div className={`w-full rounded-full h-1.5 overflow-hidden shadow-inner ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                   <div className="h-1.5 rounded-full transition-all duration-1000 ease-out" style={{ width: `${progressPercent}%`, backgroundColor: themeColor }}></div>
@@ -527,42 +519,4 @@ export default function Menu() {
       {cart.length > 0 && !isCartOpen && !activeProduct && (
         <div className={`fixed bottom-0 left-0 right-0 p-4 backdrop-blur-sm z-40 ${isDark ? "bg-gradient-to-t from-gray-900/90 via-gray-900/80 to-transparent" : "bg-gradient-to-t from-white/90 via-white/80 to-transparent"}`}>
           <button onClick={() => setIsCartOpen(true)} className={`w-full text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300 ${cartBounce ? "scale-105 shadow-blue-500/50" : "hover:scale-[1.02]"}`} style={{ backgroundColor: themeColor }}>
-            <div className="flex items-center gap-3"><div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">{totalItemsCount}</div><span className="font-black uppercase text-xs tracking-widest">{t.viewCart}</span></div><span className="font-black text-lg">{currentCartTotal.toFixed(2)}€</span>
-          </button>
-        </div>
-      )}
-
-      <CartModal theme={theme} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} cart={cart} updateCartItemQuantity={updateCartItemQuantity} handleEditCartItem={handleEditCartItem} removeFromCart={removeFromCart} getItemDisplayName={getItemDisplayName} themeColor={themeColor} t={t} generalNote={generalNote} setGeneralNote={setGeneralNote} paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} isAcceptingOrders={isAcceptingOrders} tableNum={tableNum} handleSendOrderClick={handleSendOrderClick} isLocating={isLocating} openPrivacy={() => setShowPrivacyModal(true)} currentCartTotal={currentCartTotal} />
-
-      {showPrivacyModal && (
-        <div className="fixed inset-0 bg-black/80 z-[300] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowPrivacyModal(false)}>
-          <div className={`p-6 rounded-3xl max-w-sm w-full shadow-2xl ${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`} onClick={e => e.stopPropagation()}>
-             <h2 className="font-black text-lg mb-4 uppercase">{t.privacyTitle}</h2>
-             <div className="space-y-3 text-sm font-medium opacity-90"><p>📍 <b>Τοποθεσία:</b> Ζητάμε την τοποθεσία σας μόνο για να επιβεβαιώσουμε ότι βρίσκεστε εντός του καταστήματος κατά την αποστολή της παραγγελίας.</p><p>🛡️ <b>Δεδομένα:</b> Η διεύθυνση IP και οι συντεταγμένες καταγράφονται προσωρινά για την αποφυγή κακόβουλων παραγγελιών.</p><p>🔒 <b>Προστασία:</b> Τα στοιχεία αυτά δεν κοινοποιούνται σε τρίτους και χρησιμοποιούνται αποκλειστικά για την ασφάλεια των συναλλαγών βάσει GDPR.</p></div>
-             <button onClick={() => setShowPrivacyModal(false)} className="mt-6 w-full py-3 text-white rounded-xl font-black uppercase text-sm" style={{ backgroundColor: themeColor }}>ΚΛΕΙΣΙΜΟ</button>
-          </div>
-        </div>
-      )}
-
-      {isHistoryOpen && (
-        <div className={`fixed inset-0 z-[200] flex flex-col animate-slide-up ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-          <div className={`p-4 flex justify-between items-center shadow-sm border-b ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
-            <h2 className={`font-black uppercase text-lg ${isDark ? "text-white" : "text-gray-800"}`}>{t.history}</h2>
-            <button onClick={() => setIsHistoryOpen(false)} className={`w-10 h-10 rounded-full flex items-center justify-center font-black transition-colors ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>✕</button>
-          </div>
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
-            {orderHistory.length === 0 ? <div className="text-center text-gray-400 mt-10 font-bold text-sm uppercase">{t.noHistory}</div> : (
-              orderHistory.map((order) => (
-                <div key={order.id} className={`p-5 rounded-3xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
-                  <div className={`flex justify-between items-center mb-3 border-b pb-3 ${isDark ? "border-gray-700" : "border-gray-100"}`}><span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{new Date(order.date).toLocaleString("el-GR")}</span><span className="font-black text-lg" style={{ color: themeColor }}>{order.total.toFixed(2)}€</span></div>
-                  <ul className="mb-4 space-y-1">{order.items.map((it, i) => (<li key={i} className={`text-xs font-bold uppercase ${isDark ? "text-gray-300" : "text-gray-700"}`}>{it.quantity > 1 ? <span className="text-blue-500 mr-1">{it.quantity}x</span> : "• "}{getItemDisplayName(it)} {it.note && <span className="text-gray-400 lowercase italic">({it.note})</span>}</li>))}</ul>
-                  <button onClick={() => handleReorder(order)} className="w-full text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-colors opacity-90 hover:opacity-100 active:scale-95" style={{ backgroundColor: themeColor }}>{t.reorder}</button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+            <div className="flex items-center gap-3"><div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">{totalItemsCount}</div><span className="font-black uppercase text-xs tracking-widest">{t.viewCart}</span></div>
