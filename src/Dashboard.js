@@ -30,7 +30,7 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState(null);
   const [storeId, setStoreId] = useState(null);
   const [storeName, setStoreName] = useState("");
-  const [storeLogo, setStoreLogo] = useState(null); // ΝΕΟ: Κρατάει το λογότυπο του μαγαζιού
+  const [storeLogo, setStoreLogo] = useState(null);
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -93,12 +93,11 @@ export default function Dashboard() {
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
     
-    // Τραβάει και το logo_url για να το βάλει στο QR
     const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url").eq("id", storeId).single();
     if (storeData) {
       setBackupMode(storeData.backup_mode);
       setStoreName(storeData.name);
-      setStoreLogo(storeData.logo_url); // Αποθηκεύει το λογότυπο
+      setStoreLogo(storeData.logo_url);
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
     }
   };
@@ -167,7 +166,6 @@ export default function Dashboard() {
     setIsAcceptingOrders(s);
   };
 
-  // --- ΝΕΟ: ΦΤΙΑΧΝΕΙ ΤΟ QR ME TO ΛΟΓΟΤΥΠΟ ---
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
     const logoParam = storeLogo ? `&centerImageUrl=${encodeURIComponent(storeLogo)}` : "";
@@ -469,7 +467,8 @@ export default function Dashboard() {
               </div>
               <div className={`p-5 border-t space-y-3 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
                 <input type="text" placeholder="ΕΙΣΑΓΩΓΗ PAGER Ή ΟΝΟΜΑ..." value={posTable} onChange={(e) => setPosTable(e.target.value)} className={`w-full border-2 outline-none p-4 rounded-xl font-black uppercase ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-300 text-gray-900 focus:border-blue-500"}`} />
-                <textarea rows="1" placeholder="Γενική Σημείωση..." value={posGeneralNote} onChange={(e) => setGeneralNote(e.target.value)} className={`w-full border p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"}`}></textarea>
+                {/* Η ΔΙΟΡΘΩΣΗ ΕΙΝΑΙ ΕΔΩ: setPosGeneralNote */}
+                <textarea rows="1" placeholder="Γενική Σημείωση..." value={posGeneralNote} onChange={(e) => setPosGeneralNote(e.target.value)} className={`w-full border p-4 rounded-xl font-bold italic text-sm resize-none focus:outline-none ${isDark ? "bg-gray-700 border-gray-600 text-white focus:border-blue-500" : "bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500"}`}></textarea>
                 <div className={`flex gap-1 p-1 rounded-xl ${isDark ? "bg-gray-700" : "bg-gray-100"}`}>
                   {["ΜΕΤΡΗΤΑ", "ΚΑΡΤΑ"].map((m) => (
                     <button key={m} onClick={() => setPosPayment(m)} className={`flex-1 py-4 rounded-lg font-black text-xs ${posPayment === m ? (isDark ? "bg-gray-600 shadow-sm text-blue-400" : "bg-white shadow-sm text-blue-600") : "text-gray-400"}`}>{m}</button>
@@ -489,7 +488,7 @@ export default function Dashboard() {
           <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
             <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
-            {/* ΝΕΟ: ΕΜΦΑΝΙΣΗ QR ΜΕ ΛΟΓΟΤΥΠΟ */}
+            {/* ΕΜΦΑΝΙΣΗ QR ΜΕ ΛΟΓΟΤΥΠΟ */}
             <img src={getQrUrl(selectedTableForQR)} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl bg-white p-2" />
             <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
           </div>
