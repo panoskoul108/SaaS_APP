@@ -331,11 +331,23 @@ export default function Menu() {
     let addonTexts = []; 
     let isValid = true;
     
+    let isSketosSelected = false;
     (activeProduct.addons || []).forEach((g) => {
+      const sels = addonSelections[g.id] || [];
+      sels.forEach((idx) => {
+        const optName = g.options[idx]?.name?.toUpperCase() || "";
+        if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) isSketosSelected = true;
+      });
+    });
+
+    (activeProduct.addons || []).forEach((g) => {
+      const isSugarType = g.name.toUpperCase().includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ");
+      if (isSketosSelected && isSugarType) return;
+
       const sels = addonSelections[g.id] || [];
       if (g.isRequired && sels.length === 0) isValid = false;
       if (sels.length > 0) {
-        const names = sels.map((idx) => g.options[idx].name);
+        const names = sels.map((idx) => lang === "en" && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
         addonTexts.push(`${names.join(", ")}`);
         sels.forEach((idx) => (extraPrice += g.options[idx].price));
       }
