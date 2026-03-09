@@ -10,8 +10,10 @@ export default function OrderList({
   setActivePrintOrder,
   setIsPrinting,
   toggleReceipt,
+  theme, // ΝΕΟ PROP ΓΙΑ ΤΟ ΘΕΜΑ
 }) {
   const statuses = ["pending", "preparing", "ready"];
+  const isDark = theme === "dark";
 
   // --- LIVE TIMER ---
   const LiveTimer = ({ createdAt }) => {
@@ -33,8 +35,7 @@ export default function OrderList({
     const seconds = elapsedTime % 60;
     const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-    let timerColorClass = "text-gray-400 bg-gray-100";
-    if (isKitchen) timerColorClass = "text-gray-400 bg-gray-800";
+    let timerColorClass = isDark ? "text-gray-300 bg-gray-700" : "text-gray-500 bg-gray-100";
 
     if (minutes >= 15) {
       timerColorClass = "text-red-600 bg-red-100 animate-pulse font-black border border-red-300"; 
@@ -50,7 +51,6 @@ export default function OrderList({
   };
 
   const OrderCard = ({ order }) => {
-    // Τα είδη που βλέπει στην ΟΘΟΝΗ η κουζίνα
     const displayItems = isKitchen
       ? order.items?.filter((it) => it.station === "kitchen") || []
       : order.items;
@@ -67,7 +67,7 @@ export default function OrderList({
       <div
         onClick={() => setViewingOrder(order)}
         className={`${
-          isKitchen
+          isDark
             ? "bg-gray-800 border-gray-700 text-white"
             : "bg-white border-gray-100 text-gray-800"
         } rounded-2xl p-4 mb-4 shadow-sm border cursor-pointer hover:shadow-md transition-shadow relative overflow-hidden`}
@@ -80,23 +80,23 @@ export default function OrderList({
           </div>
         )}
 
-        <div className={`flex justify-between items-start mb-3 border-b pb-2 ${isKitchen ? "border-gray-700" : ""}`}>
+        <div className={`flex justify-between items-start mb-3 border-b pb-2 ${isDark ? "border-gray-700" : ""}`}>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`font-black text-xl ${isKitchen ? "text-orange-400" : ""}`}>
+              <span className={`font-black text-xl ${isKitchen ? "text-orange-500" : (isDark ? "text-blue-400" : "text-blue-600")}`}>
                 #{order.table_number || "---"}
               </span>
               {currentStatus !== "ready" && currentStatus !== "completed" && (
                 <LiveTimer createdAt={order.created_at} />
               )}
             </div>
-            <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${isKitchen ? "text-gray-400" : "text-blue-500"}`}>
+            <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
               {order.payment_method}
             </p>
           </div>
           
           <div className="flex flex-col items-end gap-2">
-            <span className="text-[10px] text-gray-400 font-bold">
+            <span className={`text-[10px] font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>
               {new Date(order.created_at).toLocaleTimeString("el-GR", { hour: '2-digit', minute: '2-digit' })}
             </span>
             
@@ -109,7 +109,7 @@ export default function OrderList({
                 className={`text-[9px] px-2 py-1.5 rounded-lg font-black uppercase flex items-center gap-1 transition-colors border shadow-sm ${
                   order.receipt_printed 
                     ? "bg-green-100 text-green-700 border-green-300" 
-                    : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100"
+                    : (isDark ? "bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600" : "bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100")
                 }`}
               >
                 {order.receipt_printed ? "✅ ΤΑΜΕΙΑΚΗ" : "🧾 ΑΠΟΔΕΙΞΗ;"}
@@ -119,7 +119,7 @@ export default function OrderList({
         </div>
 
         {order.general_note && (
-          <div className={`mb-3 p-2 rounded-xl border ${isKitchen ? "bg-orange-900/30 border-orange-800 text-orange-200" : "bg-blue-50 border-blue-100 text-blue-800"}`}>
+          <div className={`mb-3 p-2 rounded-xl border ${isKitchen ? (isDark ? "bg-orange-900/30 border-orange-800 text-orange-200" : "bg-orange-50 border-orange-200 text-orange-800") : (isDark ? "bg-blue-900/30 border-blue-800 text-blue-200" : "bg-blue-50 border-blue-100 text-blue-800")}`}>
             <span className="font-black text-[9px] uppercase tracking-widest">ΣΗΜΕΙΩΣΗ:</span>
             <p className="text-xs font-bold italic">{order.general_note}</p>
           </div>
@@ -128,14 +128,14 @@ export default function OrderList({
         <ul className="mb-4 space-y-3">
           {displayItems.map((it, i) => (
             <li key={i} className="flex flex-col">
-              <span className={`text-sm font-bold uppercase italic ${isKitchen ? "text-white text-base" : ""}`}>
+              <span className={`text-sm font-bold uppercase italic ${isDark ? "text-gray-100" : "text-gray-800"}`}>
                 {it.quantity > 1 ? (
-                  <span className={isKitchen ? "text-orange-400 mr-1 text-lg font-black" : "text-blue-600 mr-1 text-lg font-black"}>{it.quantity}x</span>
+                  <span className={`${isKitchen ? "text-orange-500" : "text-blue-500"} mr-1 text-lg font-black`}>{it.quantity}x</span>
                 ) : ("• ")}
                 {it.name}
               </span>
               {it.note && (
-                <span className={`text-xs px-2 py-1.5 rounded-lg mt-1 font-black uppercase inline-block border ${isKitchen ? "bg-yellow-400 text-black border-yellow-500 shadow-sm" : "bg-yellow-100 text-yellow-800 border-yellow-200"}`}>
+                <span className={`text-xs px-2 py-1.5 rounded-lg mt-1 font-black uppercase inline-block border ${isKitchen ? "bg-yellow-400 text-black border-yellow-500 shadow-sm" : (isDark ? "bg-yellow-900/40 text-yellow-400 border-yellow-700/50" : "bg-yellow-100 text-yellow-800 border-yellow-200")}`}>
                   📝 {it.note}
                 </span>
               )}
@@ -148,12 +148,9 @@ export default function OrderList({
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  // --- ΝΕΟ: ΦΙΛΤΡΑΡΙΣΜΑ ΓΙΑ ΤΟ ΧΑΡΤΑΚΙ ΤΗΣ ΚΟΥΖΙΝΑΣ ---
-                  // Αν είναι κουζίνα, στέλνει στον εκτυπωτή ΜΟΝΟ τα είδη κουζίνας
                   const orderToPrint = isKitchen 
                     ? { ...order, items: order.items.filter(it => it.station === "kitchen") }
                     : order;
-
                   setActivePrintOrder(orderToPrint);
                   setIsPrinting(true);
                   setTimeout(() => {
@@ -169,7 +166,7 @@ export default function OrderList({
               
               <button
                 onClick={() => updateStatus(order.id, "preparing", isKitchen)}
-                className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-transform active:scale-95 border ${isKitchen ? "bg-gray-800 border-gray-600 text-gray-300 hover:bg-gray-700" : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"}`}
+                className={`flex-1 py-3 rounded-xl font-black text-[10px] uppercase transition-transform active:scale-95 border ${isDark ? "bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600" : "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100"}`}
               >
                 📝 ΧΩΡΙΣ ΧΑΡΤΙ
               </button>
@@ -190,7 +187,7 @@ export default function OrderList({
               </button>
             ))}
           {userRole === "admin" && (
-            <button onClick={() => deleteOrders([order.id])} className="text-[9px] font-black text-gray-400 mt-3 self-center hover:text-red-500 transition-colors">
+            <button onClick={() => deleteOrders([order.id])} className={`text-[9px] font-black mt-3 self-center transition-colors ${isDark ? "text-gray-500 hover:text-red-400" : "text-gray-400 hover:text-red-500"}`}>
               🗑️ Διαγραφή Παραγγελίας
             </button>
           )}
@@ -212,17 +209,17 @@ export default function OrderList({
         const labelMap = { pending: "ΝΕΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", preparing: "ΣΕ ΠΡΟΕΤΟΙΜΑΣΙΑ", ready: "ΕΤΟΙΜΕΣ / ΠΑΡΑΔΟΣΗ" };
 
         return (
-          <div key={s} className={`rounded-[2rem] p-5 min-h-[80vh] border ${isKitchen ? "bg-gray-800/40 border-gray-700" : s === "pending" ? "bg-blue-50/40 border-blue-100" : s === "preparing" ? "bg-orange-50/40 border-orange-100" : "bg-green-50/40 border-green-100"}`}>
+          <div key={s} className={`rounded-[2rem] p-5 min-h-[80vh] border ${isDark ? "bg-gray-800/50 border-gray-700" : (s === "pending" ? "bg-blue-50/40 border-blue-100" : s === "preparing" ? "bg-orange-50/40 border-orange-100" : "bg-green-50/40 border-green-100")}`}>
             <div className="flex justify-between items-center mb-5 px-2">
-              <h2 className={`font-black text-[12px] uppercase italic tracking-widest ${isKitchen ? "text-gray-400" : s === "pending" ? "text-blue-700" : s === "preparing" ? "text-orange-700" : "text-green-700"}`}>
+              <h2 className={`font-black text-[12px] uppercase italic tracking-widest ${isDark ? "text-gray-300" : (s === "pending" ? "text-blue-700" : s === "preparing" ? "text-orange-700" : "text-green-700")}`}>
                 {labelMap[s]}
               </h2>
-              <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${isKitchen ? "bg-gray-700 text-white" : "bg-white border text-gray-600"}`}>
+              <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${isDark ? "bg-gray-700 text-white" : "bg-white border text-gray-600"}`}>
                 {columnOrders.length}
               </span>
             </div>
             {columnOrders.map((o) => <OrderCard key={o.id} order={o} />)}
-            {columnOrders.length === 0 && <div className={`text-center mt-10 text-[10px] font-bold uppercase tracking-widest ${isKitchen ? "text-gray-600" : "text-gray-400"}`}>Καμια παραγγελια</div>}
+            {columnOrders.length === 0 && <div className={`text-center mt-10 text-[10px] font-bold uppercase tracking-widest ${isDark ? "text-gray-500" : "text-gray-400"}`}>Καμια παραγγελια</div>}
           </div>
         );
       })}
