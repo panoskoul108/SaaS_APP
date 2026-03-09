@@ -15,6 +15,24 @@ export default function PosProductModal({
 }) {
   if (!posActiveProduct) return null;
 
+  // --- ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ ΓΙΑ "ΣΚΕΤΟ" ΚΑΦΕ ΣΤΟ POS ---
+  let isSketosSelected = false;
+  (posActiveProduct.addons || []).forEach((group) => {
+    const selections = posAddonSelections[group.id] || [];
+    selections.forEach((selIndex) => {
+      const optName = group.options[selIndex]?.name?.toUpperCase() || "";
+      if (optName.includes("ΣΚΕΤΟ") || optName.includes("ΣΚΕΤΗ")) {
+        isSketosSelected = true;
+      }
+    });
+  });
+
+  const visibleAddons = (posActiveProduct.addons || []).filter(group => {
+    const groupNameUpper = group.name.toUpperCase();
+    if (isSketosSelected && groupNameUpper.includes("ΕΙΔΟΣ ΖΑΧΑΡΗΣ")) return false;
+    return true;
+  });
+
   return (
     <div
       className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[400] flex items-center justify-center p-4 animate-fade-in"
@@ -50,7 +68,7 @@ export default function PosProductModal({
         </div>
 
         <div className="overflow-y-auto flex-1 space-y-4 pr-2 no-scrollbar">
-          {(posActiveProduct.addons || []).map((group) => (
+          {visibleAddons.map((group) => (
             <div
               key={group.id}
               className="bg-gray-50 p-4 rounded-2xl border border-gray-100"
