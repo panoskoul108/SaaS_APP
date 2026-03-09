@@ -9,7 +9,7 @@ export default function OrderList({
   setViewingOrder,
   setActivePrintOrder,
   setIsPrinting,
-  toggleReceipt, // ΝΕΟ PROP: Για να αποθηκεύει αν κόπηκε απόδειξη
+  toggleReceipt,
 }) {
   const statuses = ["pending", "preparing", "ready"];
 
@@ -50,6 +50,7 @@ export default function OrderList({
   };
 
   const OrderCard = ({ order }) => {
+    // Τα είδη που βλέπει στην ΟΘΟΝΗ η κουζίνα
     const displayItems = isKitchen
       ? order.items?.filter((it) => it.station === "kitchen") || []
       : order.items;
@@ -99,7 +100,6 @@ export default function OrderList({
               {new Date(order.created_at).toLocaleTimeString("el-GR", { hour: '2-digit', minute: '2-digit' })}
             </span>
             
-            {/* --- ΔΙΑΚΟΠΤΗΣ ΤΑΜΕΙΑΚΗΣ (ΚΡΥΦΟΣ ΑΠΟ ΤΗΝ ΚΟΥΖΙΝΑ) --- */}
             {!isKitchen && (
               <button
                 onClick={(e) => {
@@ -148,7 +148,13 @@ export default function OrderList({
             <div className="flex gap-2">
               <button
                 onClick={() => {
-                  setActivePrintOrder(order);
+                  // --- ΝΕΟ: ΦΙΛΤΡΑΡΙΣΜΑ ΓΙΑ ΤΟ ΧΑΡΤΑΚΙ ΤΗΣ ΚΟΥΖΙΝΑΣ ---
+                  // Αν είναι κουζίνα, στέλνει στον εκτυπωτή ΜΟΝΟ τα είδη κουζίνας
+                  const orderToPrint = isKitchen 
+                    ? { ...order, items: order.items.filter(it => it.station === "kitchen") }
+                    : order;
+
+                  setActivePrintOrder(orderToPrint);
                   setIsPrinting(true);
                   setTimeout(() => {
                     window.print();
