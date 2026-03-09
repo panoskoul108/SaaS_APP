@@ -244,10 +244,12 @@ export default function Dashboard() {
     posActiveProduct.addons?.forEach((g) => {
       const groupNameUpper = normalizeStr(g.name);
       const isSugarType = groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ");
-      if (isSketosSelected && isSugarType) return; // Αγνόησε αν είναι Σκέτος!
+      
+      let required = g.isRequired;
+      if (isSketosSelected && isSugarType) required = false; // Γίνεται προαιρετικό
 
       const s = posAddonSelections[g.id] || [];
-      if (g.isRequired && !s.length) valid = false;
+      if (required && !s.length) valid = false;
       if (s.length) { 
         texts.push(s.map((i) => g.options[i].name).join(", ")); 
         s.forEach((i) => (extra += g.options[i].price)); 
