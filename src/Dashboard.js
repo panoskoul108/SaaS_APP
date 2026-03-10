@@ -26,18 +26,43 @@ const DEFAULT_TABLES = [
   "ΠΑΚΕΤΟ",
 ];
 
-// --- ΝΕΟ COMPONENT: AI MANAGER TAB ---
-function AiManagerTab({ storeId, totalRevenue, totalOrdersCount, avgOrderValue, cashTotal, cardTotal, topProducts, peakHours, dateRange, specificDate, theme }) {
+// --- ΝΕΟ ΑΥΤΟΝΟΜΟ AI MANAGER TAB ---
+function AiManagerTab({ storeId, orders, isKitchen, theme }) {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiDateRange, setAiDateRange] = useState("week"); // Το δικό του φίλτρο!
   const isDark = theme === "dark";
 
+  // Υπολογισμός των εσόδων βάσει του αυτόνομου φίλτρου
+  const historyOrdersList = orders.filter((o) => {
+    if (o.status !== "completed") return false;
+    const date = new Date(o.created_at);
+    let matchesTime = true; const now = new Date();
+    if (aiDateRange === "today") matchesTime = date.toDateString() === now.toDateString();
+    else if (aiDateRange === "week") matchesTime = date >= new Date(now - 7 * 24 * 60 * 60 * 1000);
+    else if (aiDateRange === "month") matchesTime = date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+    return matchesTime && (!isKitchen || o.items?.some((it) => it.station === "kitchen"));
+  });
+
+  const totalRevenue = historyOrdersList.reduce((sum, o) => sum + (isKitchen ? o.items?.filter((it) => it.station === "kitchen").reduce((s, it) => s + it.price * it.quantity, 0) : o.total_price), 0);
+  const totalOrdersCount = historyOrdersList.length;
+  const avgOrderValue = totalOrdersCount ? totalRevenue / totalOrdersCount : 0;
+  const cashTotal = historyOrdersList.filter((o) => o.payment_method === "ΜΕΤΡΗΤΑ").reduce((sum, o) => sum + (isKitchen ? o.items?.filter((it) => it.station === "kitchen").reduce((s, it) => s + it.price * it.quantity, 0) : o.total_price), 0);
+  const cardTotal = totalRevenue - cashTotal;
+
+  const productCounts = {};
+  historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
+  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const hourCounts = {};
+  historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
+  const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  // Ανάκτηση των προβλέψεων (επόμενες 7 μέρες)
   useEffect(() => {
     const fetchPredictions = async () => {
       setLoading(true);
       try {
         const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-        
         const today = new Date();
         const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
         const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
@@ -50,28 +75,35 @@ function AiManagerTab({ storeId, totalRevenue, totalOrdersCount, avgOrderValue, 
           .lte('target_date', getLocalYYYYMMDD(nextWeek))
           .order('target_date', { ascending: true });
 
-        if (!error && data) {
-          setPredictions(data);
-        }
-      } catch (err) {
-        console.error("Error fetching AI predictions:", err);
-      }
+        if (!error && data) setPredictions(data);
+      } catch (err) { console.error("Error AI:", err); }
       setLoading(false);
     };
-
     if (storeId) fetchPredictions();
   }, [storeId]);
 
-  const periodLabels = { today: "Σήμερα", week: "Αυτή την εβδομάδα", month: "Αυτόν τον μήνα", specific: specificDate ? `Στις ${specificDate.split('-').reverse().join('/')}` : "Στη συγκεκριμένη ημερομηνία", all: "Συνολικά" };
-  const currentPeriodText = periodLabels[dateRange] || "Αυτή την περίοδο";
+  const periodLabels = { today: "Σήμερα", week: "Αυτή την εβδομάδα", month: "Αυτόν τον μήνα", all: "Συνολικά" };
+  const currentPeriodText = periodLabels[aiDateRange];
   const cardPercentage = totalRevenue > 0 ? ((cardTotal / totalRevenue) * 100).toFixed(0) : 0;
   const topProductName = topProducts.length > 0 ? topProducts[0][0] : 'Κανένα προϊόν';
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in">
-      <div className={`flex items-center gap-3 border-b pb-4 ${isDark ? "border-gray-800" : "border-gray-200"}`}>
-        <span className="text-4xl">✨</span>
-        <h2 className={`font-black text-3xl uppercase italic tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>AI Manager Pro</h2>
+      <div className={`flex justify-between items-center border-b pb-4 ${isDark ? "border-gray-800" : "border-gray-200"}`}>
+        <div className="flex items-center gap-3">
+          <span className="text-4xl">✨</span>
+          <h2 className={`font-black text-2xl md:text-3xl uppercase italic tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>AI Manager Pro</h2>
+        </div>
+        <select 
+          value={aiDateRange} 
+          onChange={(e) => setAiDateRange(e.target.value)}
+          className={`px-4 py-2 rounded-xl font-bold text-sm outline-none cursor-pointer ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-800 shadow-sm"}`}
+        >
+          <option value="today">Σήμερα</option>
+          <option value="week">Αυτή την Εβδομάδα</option>
+          <option value="month">Αυτόν τον Μήνα</option>
+          <option value="all">Συνολικά</option>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -110,7 +142,7 @@ function AiManagerTab({ storeId, totalRevenue, totalOrdersCount, avgOrderValue, 
       ) : predictions.length === 0 ? (
         <div className={`p-8 rounded-3xl text-center border-2 border-dashed ${isDark ? "bg-gray-800/50 border-gray-700 text-gray-400" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
           <p className="font-bold text-sm uppercase">Δεν βρέθηκαν δεδομένα AI για τις επόμενες ημέρες.</p>
-          <p className="text-xs mt-2">Βεβαιωθείτε ότι ο πίνακας "daily_predictions" είναι στο ίδιο Supabase project και ενημερώνεται σωστά.</p>
+          <p className="text-xs mt-2">Βεβαιωθείτε ότι ο πίνακας "daily_predictions" ενημερώνεται σωστά.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -147,10 +179,6 @@ function AiManagerTab({ storeId, totalRevenue, totalOrdersCount, avgOrderValue, 
                       <span className={isDark ? "text-gray-300" : "text-gray-700"}>Μάγειρες:</span>
                       <span className={isDark ? "text-white" : "text-gray-900"}>{day.cooks_needed}</span>
                     </div>
-                    <div className="flex justify-between text-sm font-bold">
-                      <span className={isDark ? "text-gray-300" : "text-gray-700"}>Βοηθοί:</span>
-                      <span className={isDark ? "text-white" : "text-gray-900"}>{day.helpers_needed}</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -176,13 +204,17 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("orders");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // ΝΕΟ State για το Sidebar
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
+  
+  // States Ιστορικού
   const [historySearch, setHistorySearch] = useState("");
   const [dateRange, setDateRange] = useState("today");
   const [specificDate, setSpecificDate] = useState("");
   const [selectedOrderIds, setSelectedOrderIds] = useState([]);
+  
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
@@ -209,15 +241,8 @@ export default function Dashboard() {
   const isKitchen = userRole === "kitchen";
   const isDark = theme === "dark";
 
-  useEffect(() => {
-    document.body.style.backgroundColor = isDark ? '#111827' : '#f9fafb';
-  }, [isDark]);
-
-  useEffect(() => {
-    if (userRole === "kitchen" && !localStorage.getItem("dashboard_theme")) {
-      setTheme("dark");
-    }
-  }, [userRole]);
+  useEffect(() => { document.body.style.backgroundColor = isDark ? '#111827' : '#f9fafb'; }, [isDark]);
+  useEffect(() => { if (userRole === "kitchen" && !localStorage.getItem("dashboard_theme")) setTheme("dark"); }, [userRole]);
 
   const toggleTheme = () => {
     const newTheme = theme === "light" ? "dark" : "light";
@@ -235,10 +260,7 @@ export default function Dashboard() {
     
     const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order").eq("id", storeId).single();
     if (storeData) {
-      setBackupMode(storeData.backup_mode);
-      setStoreName(storeData.name);
-      setStoreLogo(storeData.logo_url);
-      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
+      setBackupMode(storeData.backup_mode); setStoreName(storeData.name); setStoreLogo(storeData.logo_url); setIsAcceptingOrders(storeData.is_accepting_orders !== false);
       if (storeData.tables) setStoreTables(storeData.tables);
       if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
@@ -250,9 +272,7 @@ export default function Dashboard() {
     if (data) {
       const cleanedProducts = data.map((prod) => {
         const cleanedProd = { ...prod, name: removeAccents(prod.name), name_en: removeAccents(prod.name_en), description: removeAccents(prod.description), category: removeAccents(prod.category) };
-        if (cleanedProd.addons) {
-          cleanedProd.addons = cleanedProd.addons.map((g) => ({ ...g, name: removeAccents(g.name), options: g.options.map((opt) => ({ ...opt, name: removeAccents(opt.name) })) }));
-        }
+        if (cleanedProd.addons) cleanedProd.addons = cleanedProd.addons.map((g) => ({ ...g, name: removeAccents(g.name), options: g.options.map((opt) => ({ ...opt, name: removeAccents(opt.name) })) }));
         return cleanedProd;
       });
       setProducts(cleanedProducts);
@@ -260,160 +280,72 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchData();
-      fetchProducts();
-      const interval = setInterval(fetchData, 5000);
-      return () => clearInterval(interval);
-    }
+    if (isAuthenticated) { fetchData(); fetchProducts(); const interval = setInterval(fetchData, 5000); return () => clearInterval(interval); }
   }, [isAuthenticated, storeId]);
 
   useEffect(() => {
     const pendingCount = orders.filter((o) => {
       if (o.status === "completed") return false;
-      return isKitchen
-        ? (o.kitchen_status || "pending") === "pending" && o.items?.some((i) => i.station === "kitchen")
-        : (o.status || "pending") === "pending";
+      return isKitchen ? (o.kitchen_status || "pending") === "pending" && o.items?.some((i) => i.station === "kitchen") : (o.status || "pending") === "pending";
     }).length;
     if (pendingCount > prevOrdersCount && !isMuted) new Audio(NOTIFICATION_SOUND).play().catch(() => {});
     setPrevOrdersCount(pendingCount);
   }, [orders, isMuted, isKitchen, prevOrdersCount]);
 
-  const updateStatus = async (id, newStatus, forKitchen = false) => {
-    await supabase.from("orders").update(forKitchen ? { kitchen_status: newStatus } : { status: newStatus }).eq("id", id);
-    fetchData();
-  };
+  const updateStatus = async (id, newStatus, forKitchen = false) => { await supabase.from("orders").update(forKitchen ? { kitchen_status: newStatus } : { status: newStatus }).eq("id", id); fetchData(); };
+  const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
+  const deleteOrders = async (ids) => { if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { await supabase.from("orders").delete().in("id", ids); setSelectedOrderIds([]); fetchData(); } };
+  const toggleBackupMode = async () => { const s = !backupMode; await supabase.from("stores").update({ backup_mode: s }).eq("id", storeId); setBackupMode(s); };
+  const toggleAcceptingOrders = async () => { const s = !isAcceptingOrders; await supabase.from("stores").update({ is_accepting_orders: s }).eq("id", storeId); setIsAcceptingOrders(s); };
 
-  const toggleReceipt = async (id, isPrinted) => {
-    setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o));
-    await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id);
-  };
-
-  const deleteOrders = async (ids) => {
-    if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) {
-      await supabase.from("orders").delete().in("id", ids);
-      setSelectedOrderIds([]);
-      fetchData();
-    }
-  };
-
-  const toggleBackupMode = async () => {
-    const s = !backupMode;
-    await supabase.from("stores").update({ backup_mode: s }).eq("id", storeId);
-    setBackupMode(s);
-  };
-  const toggleAcceptingOrders = async () => {
-    const s = !isAcceptingOrders;
-    await supabase.from("stores").update({ is_accepting_orders: s }).eq("id", storeId);
-    setIsAcceptingOrders(s);
-  };
-
+  // --- ΝΕΟ ΕΞΥΠΝΟ QR CODE ΓΙΑ ΤΡΑΠΕΖΙΑ ---
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
-    const logoParam = storeLogo ? `&centerImageUrl=${encodeURIComponent(storeLogo)}` : "";
-    return `https://quickchart.io/qr?size=500&text=${qrData}${logoParam}`;
+    const safeTable = encodeURIComponent(table);
+    // Φτιάχνει μια εικόνα με το όνομα του τραπεζιού και τη βάζει στο κέντρο!
+    const tableImage = encodeURIComponent(`https://ui-avatars.com/api/?name=${safeTable}&background=ffffff&color=000000&size=100&font-size=0.4&bold=true`);
+    return `https://quickchart.io/qr?size=500&text=${qrData}&centerImageUrl=${tableImage}`;
   };
 
   const downloadQR = async (table) => {
     try {
-      const url = getQrUrl(table);
-      const res = await fetch(url);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = blobUrl;
-      a.download = `QR_Table_${table}.png`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(blobUrl);
-    } catch (error) {
-      window.open(getQrUrl(table), "_blank");
-    }
+      const url = getQrUrl(table); const res = await fetch(url); const blob = await res.blob(); const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement("a"); a.href = blobUrl; a.download = `QR_Table_${table}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
+    } catch (error) { window.open(getQrUrl(table), "_blank"); }
   };
 
-  const posVisibleProducts = products.filter((p) => {
-    if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false;
-    return true;
-  });
-
+  const posVisibleProducts = products.filter((p) => { if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false; return true; });
   const posCategories = [...new Set(posVisibleProducts.map((p) => p.category))].sort((a, b) => {
     const orderArr = storeCategoryOrder.length > 0 ? storeCategoryOrder : CATEGORY_ORDER_FALLBACK;
-    let idxA = orderArr.indexOf(a); 
-    let idxB = orderArr.indexOf(b);
-    if (idxA === -1) idxA = 999; 
-    if (idxB === -1) idxB = 999; 
-    return idxA - idxB;
+    let idxA = orderArr.indexOf(a); let idxB = orderArr.indexOf(b);
+    if (idxA === -1) idxA = 999; if (idxB === -1) idxB = 999; return idxA - idxB;
   });
-
   const posFilteredProducts = posCategory === "ΟΛΑ" ? posVisibleProducts : posVisibleProducts.filter((p) => p.category === posCategory);
 
-  const handlePosProductClick = (p) => {
-    const initial = {}; p.addons?.forEach((g) => (initial[g.id] = []));
-    setPosAddonSelections(initial); setPosQuantity(1); setPosCurrentNote(""); setEditingCartId(null); setPosActiveProduct(p);
-  };
-
-  const handleEditCartItem = (i) => {
-    const p = products.find((prod) => prod.id === i.id);
-    if (p) { setPosActiveProduct(p); setPosAddonSelections(i.rawAddons || {}); setPosCurrentNote(i.note || ""); setPosQuantity(i.quantity || 1); setEditingCartId(i.cartId); }
-  };
-
-  const togglePosAddon = (gid, oidx, max) => {
-    let curr = posAddonSelections[gid] || [];
-    if (curr.includes(oidx)) curr = curr.filter((i) => i !== oidx);
-    else if (curr.length < max) curr = [...curr, oidx];
-    else if (max === 1) curr = [oidx];
-    setPosAddonSelections({ ...posAddonSelections, [gid]: curr });
-  };
+  const handlePosProductClick = (p) => { const initial = {}; p.addons?.forEach((g) => (initial[g.id] = [])); setPosAddonSelections(initial); setPosQuantity(1); setPosCurrentNote(""); setEditingCartId(null); setPosActiveProduct(p); };
+  const handleEditCartItem = (i) => { const p = products.find((prod) => prod.id === i.id); if (p) { setPosActiveProduct(p); setPosAddonSelections(i.rawAddons || {}); setPosCurrentNote(i.note || ""); setPosQuantity(i.quantity || 1); setEditingCartId(i.cartId); } };
+  const togglePosAddon = (gid, oidx, max) => { let curr = posAddonSelections[gid] || []; if (curr.includes(oidx)) curr = curr.filter((i) => i !== oidx); else if (curr.length < max) curr = [...curr, oidx]; else if (max === 1) curr = [oidx]; setPosAddonSelections({ ...posAddonSelections, [gid]: curr }); };
 
   const confirmPosAddons = () => {
-    let extra = 0, texts = [], valid = true;
-    
-    let isSketosSelected = false;
+    let extra = 0, texts = [], valid = true; let isSketosSelected = false;
     (posActiveProduct.addons || []).forEach((g) => {
       const s = posAddonSelections[g.id] || [];
-      s.forEach((idx) => {
-        const optName = normalizeStr(g.options[idx]?.name);
-        if (optName.includes("ΣΚΕΤ") || optName.includes("ΧΩΡΙΣ")) isSketosSelected = true;
-      });
+      s.forEach((idx) => { const optName = normalizeStr(g.options[idx]?.name); if (optName.includes("ΣΚΕΤ") || optName.includes("ΧΩΡΙΣ")) isSketosSelected = true; });
     });
-
     posActiveProduct.addons?.forEach((g) => {
       const groupNameUpper = normalizeStr(g.name);
       const isSugarType = groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ");
-      
-      let required = g.isRequired;
-      if (isSketosSelected && isSugarType) required = false;
-
+      let required = g.isRequired; if (isSketosSelected && isSugarType) required = false;
       const s = posAddonSelections[g.id] || [];
       if (required && !s.length) valid = false;
-      if (s.length) { 
-        texts.push(s.map((i) => g.options[i].name).join(", ")); 
-        s.forEach((i) => (extra += g.options[i].price)); 
-      }
+      if (s.length) { texts.push(s.map((i) => g.options[i].name).join(", ")); s.forEach((i) => (extra += g.options[i].price)); }
     });
-    
     if (!valid) return alert("Συμπληρώστε τα υποχρεωτικά!");
-    
-    const item = { 
-      ...posActiveProduct, 
-      cartId: editingCartId || Date.now() + Math.random(), 
-      name: texts.length ? `${posActiveProduct.name} (${texts.join(" | ")})` : posActiveProduct.name, 
-      price: posActiveProduct.price + extra, 
-      note: removeAccents(posCurrentNote), 
-      rawAddons: posAddonSelections, 
-      quantity: posQuantity 
-    };
-    
-    setPosCart(editingCartId ? posCart.map((i) => (i.cartId === editingCartId ? item : i)) : [...posCart, item]);
-    setPosActiveProduct(null); 
-    setEditingCartId(null);
+    const item = { ...posActiveProduct, cartId: editingCartId || Date.now() + Math.random(), name: texts.length ? `${posActiveProduct.name} (${texts.join(" | ")})` : posActiveProduct.name, price: posActiveProduct.price + extra, note: removeAccents(posCurrentNote), rawAddons: posAddonSelections, quantity: posQuantity };
+    setPosCart(editingCartId ? posCart.map((i) => (i.cartId === editingCartId ? item : i)) : [...posCart, item]); setPosActiveProduct(null); setEditingCartId(null);
   };
 
-  const updatePosCartQuantity = (cartId, delta) => {
-    setPosCart(posCart.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) } : item));
-  };
-
+  const updatePosCartQuantity = (cartId, delta) => { setPosCart(posCart.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) } : item)); };
   const submitPosOrder = async () => {
     if (!posCart.length || !posTable || !posPayment) return;
     const total = posCart.reduce((s, i) => s + i.price * i.quantity, 0);
@@ -446,13 +378,6 @@ export default function Dashboard() {
   const cardTotal = totalRevenue - cashTotal;
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
-  const productCounts = {};
-  historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
-  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  const hourCounts = {};
-  historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
-  const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
@@ -460,24 +385,83 @@ export default function Dashboard() {
   if (viewingOrder && viewingOrder.items) {
     sortedViewingItems = [...viewingOrder.items].sort((a, b) => {
       if (a.station === "kitchen" && b.station !== "kitchen") return 1;
-      if (a.station !== "kitchen" && b.station === "kitchen") return -1;
-      return 0;
+      if (a.station !== "kitchen" && b.station === "kitchen") return -1; return 0;
     });
   }
 
+  // Δημιουργία λίστας σελίδων για το Sidebar
+  const pagesList = [
+    { id: "orders", label: "ΠΟΥΛΙΑ", icon: "🧾" },
+    { id: "tables", label: "ΤΡΑΠΕΖΙΑ & QR", icon: "🪑" },
+    { id: "products", label: "ΚΑΤΑΛΟΓΟΣ", icon: "📋" },
+    { id: "history", label: "ΙΣΤΟΡΙΚΟ (Z)", icon: "📈" },
+    { id: "reviews", label: "ΚΡΙΤΙΚΕΣ", icon: "⭐" },
+    { id: "ai_manager", label: "AI MANAGER", icon: "✨" }
+  ];
+
   return (
     <div className={`min-h-screen font-sans ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
+      
+      {/* --- SIDEBAR MENU (HAMBURGER) --- */}
+      {isSidebarOpen && (
+        <div className="fixed inset-0 z-50 flex animate-fade-in print:hidden">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsSidebarOpen(false)}></div>
+          <div className={`relative w-72 h-full shadow-2xl flex flex-col transition-transform transform ${isDark ? "bg-gray-900 border-r border-gray-800" : "bg-white border-r border-gray-200"}`}>
+            <div className="p-6 border-b flex justify-between items-center">
+              <span className={`font-black italic text-2xl ${isDark ? "text-white" : "text-gray-900"}`}>ΜΕΝΟΥ</span>
+              <button onClick={() => setIsSidebarOpen(false)} className={`w-10 h-10 flex items-center justify-center rounded-full font-black ${isDark ? "bg-gray-800 text-gray-400" : "bg-gray-100 text-gray-600"}`}>✕</button>
+            </div>
+            <div className="flex flex-col p-4 gap-2 overflow-y-auto flex-1">
+              {pagesList.map((page) => {
+                if (userRole === "staff" && page.id !== "orders") return null;
+                if (isKitchen && (page.id === "tables" || page.id === "products" || page.id === "reviews" || page.id === "ai_manager")) return null;
+                if ((page.id === "reviews" || page.id === "ai_manager" || page.id === "products" || page.id === "tables") && userRole !== "admin") return null;
+                
+                const isActive = tab === page.id;
+                return (
+                  <button
+                    key={page.id}
+                    onClick={() => { setTab(page.id); setIsSidebarOpen(false); }}
+                    className={`p-4 rounded-2xl font-black uppercase text-left flex items-center gap-4 transition-all ${
+                      isActive 
+                        ? (page.id === "ai_manager" ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg" : "bg-blue-600 text-white shadow-lg") 
+                        : (isDark ? "text-gray-400 hover:bg-gray-800 hover:text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900")
+                    }`}
+                  >
+                    <span className="text-2xl">{page.icon}</span>
+                    <span>{page.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div className={`p-6 border-t ${isDark ? "border-gray-800" : "border-gray-100"}`}>
+               <p className="text-[10px] text-gray-500 text-center font-bold uppercase">Smart POS System v2.0</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="print:hidden">
         <header className={`border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
-          <h1 className={`font-black italic text-xl ${isDark ? "text-white" : "text-gray-800"}`}>
-            {storeName?.toUpperCase()}{" "}
-            <span className={isKitchen ? "text-orange-500" : "text-blue-600"}>
-              {isKitchen ? "ΚΟΥΖΙΝΑ" : userRole === "admin" ? "ADMIN" : "ΜΠΑΡ"}
-            </span>
-          </h1>
+          <div className="flex items-center gap-3">
+            {/* Κουμπί Hamburger Menu */}
+            <button 
+              onClick={() => setIsSidebarOpen(true)} 
+              className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm transition-transform active:scale-95 ${isDark ? "bg-gray-800 text-white border border-gray-700" : "bg-white text-gray-900 border border-gray-200"}`}
+            >
+              ☰
+            </button>
+            <h1 className={`font-black italic text-xl hidden sm:block ${isDark ? "text-white" : "text-gray-800"}`}>
+              {storeName?.toUpperCase()}{" "}
+              <span className={isKitchen ? "text-orange-500" : "text-blue-600"}>
+                {isKitchen ? "ΚΟΥΖΙΝΑ" : userRole === "admin" ? "ADMIN" : "ΜΠΑΡ"}
+              </span>
+            </h1>
+          </div>
+          
           <div className="flex gap-2 items-center">
             {!isKitchen && (
-              <button onClick={() => setIsPosOpen(true)} className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg">
+              <button onClick={() => setIsPosOpen(true)} className="bg-blue-600 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase shadow-lg hover:bg-blue-700">
                 + ΝΕΑ ΠΑΡΑΓΓΕΛΙΑ
               </button>
             )}
@@ -497,37 +481,11 @@ export default function Dashboard() {
             <button onClick={() => setIsMuted(!isMuted)} className={`w-9 h-9 rounded-full flex items-center justify-center text-lg ${isDark ? "bg-gray-800 border border-gray-700" : "bg-gray-100 border border-gray-200"}`}>
               {isMuted ? "🔇" : "🔊"}
             </button>
-            <button onClick={() => setIsAuthenticated(false)} className={`text-xs font-black px-3 py-1.5 rounded-full border ${isDark ? "border-gray-700 text-gray-400 hover:bg-gray-800" : "border-gray-200 text-gray-500 hover:bg-gray-100"}`}>
+            <button onClick={() => setIsAuthenticated(false)} className={`text-xs font-black px-3 py-1.5 rounded-full border transition-colors ${isDark ? "border-gray-700 text-gray-400 hover:bg-gray-800 hover:text-white" : "border-gray-200 text-gray-500 hover:bg-gray-100 hover:text-gray-900"}`}>
               ΕΞΟΔΟΣ
             </button>
           </div>
         </header>
-        
-        {/* --- NAVBAR ΜΕ ΤΟ ΝΕΟ TAB --- */}
-        <div className={`flex border-b px-4 py-2 gap-2 sticky top-[65px] z-20 shadow-sm transition-colors duration-300 overflow-x-auto no-scrollbar ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
-          {["orders", "tables", "reviews", "history", "products", "ai_manager"].map((t) => {
-            if (userRole === "staff" && t !== "orders") return null;
-            if (isKitchen && (t === "tables" || t === "products" || t === "reviews" || t === "ai_manager")) return null;
-            if (t === "reviews" && userRole !== "admin") return null;
-            if (t === "ai_manager" && userRole !== "admin") return null;
-            
-            const labelMap = { orders: "ΠΑΡΑΓΓΕΛΙΕΣ", tables: "ΤΡΑΠΕΖΙΑ", reviews: "ΚΡΙΤΙΚΕΣ", history: "ΙΣΤΟΡΙΚΟ", products: "ΚΑΤΑΛΟΓΟΣ", ai_manager: "✨ AI MANAGER" };
-            return (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`flex-1 min-w-[120px] py-3 rounded-xl text-[10px] font-black uppercase transition-colors shrink-0 ${
-                  tab === t 
-                    ? (isDark ? "bg-white text-black shadow-md" : "bg-black text-white shadow-md") 
-                    : (t === "ai_manager" ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-500 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30" 
-                      : (isDark ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-50 text-gray-500 hover:bg-gray-100"))
-                }`}
-              >
-                {labelMap[t]}
-              </button>
-            );
-          })}
-        </div>
       </div>
 
       <main className="p-4 print:hidden">
@@ -539,21 +497,9 @@ export default function Dashboard() {
           <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
         )}
 
-        {/* ΕΜΦΑΝΙΣΗ ΤΟΥ ΝΕΟΥ TAB AI MANAGER */}
+        {/* AI MANAGER TAB */}
         {tab === "ai_manager" && userRole === "admin" && (
-           <AiManagerTab 
-             storeId={storeId} 
-             totalRevenue={totalRevenue} 
-             totalOrdersCount={totalOrdersCount} 
-             avgOrderValue={avgOrderValue} 
-             cashTotal={cashTotal} 
-             cardTotal={cardTotal} 
-             topProducts={topProducts} 
-             peakHours={peakHours} 
-             dateRange={dateRange} 
-             specificDate={specificDate} 
-             theme={theme} 
-           />
+           <AiManagerTab storeId={storeId} orders={orders} isKitchen={isKitchen} theme={theme} />
         )}
         
         {tab === "reviews" && userRole === "admin" && (
@@ -581,16 +527,17 @@ export default function Dashboard() {
             )}
           </div>
         )}
+        
         {tab === "tables" && userRole === "admin" && (
           <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
             {storeTables.map((t) => (
               <div
                 key={t}
                 onClick={() => setSelectedTableForQR(t)}
-                className={`aspect-square rounded-2xl p-3 flex items-center justify-center border-2 cursor-pointer font-black text-2xl ${
+                className={`aspect-square rounded-2xl p-3 flex items-center justify-center border-2 cursor-pointer font-black text-2xl transition-transform hover:scale-105 ${
                   activeTables.includes(t)
-                    ? (isDark ? "bg-red-900/30 border-red-800 text-red-500" : "bg-red-50 border-red-200 text-red-600")
-                    : (isDark ? "bg-gray-800 border-gray-700 text-green-500" : "bg-white border-green-200 text-green-600")
+                    ? (isDark ? "bg-red-900/30 border-red-800 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "bg-red-50 border-red-200 text-red-600")
+                    : (isDark ? "bg-gray-800 border-gray-700 text-green-500" : "bg-white border-green-200 text-green-600 shadow-sm")
                 }`}
               >
                 {t}
@@ -598,6 +545,7 @@ export default function Dashboard() {
             ))}
           </div>
         )}
+        
         {tab === "products" && userRole === "admin" && (
           <AdminProducts storeId={storeId} theme={theme} />
         )}
