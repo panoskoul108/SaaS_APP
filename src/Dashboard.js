@@ -30,10 +30,9 @@ const DEFAULT_TABLES = [
 function AiManagerTab({ storeId, orders, isKitchen, theme }) {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [aiDateRange, setAiDateRange] = useState("week"); // Το δικό του φίλτρο!
+  const [aiDateRange, setAiDateRange] = useState("week"); 
   const isDark = theme === "dark";
 
-  // Υπολογισμός των εσόδων βάσει του αυτόνομου φίλτρου
   const historyOrdersList = orders.filter((o) => {
     if (o.status !== "completed") return false;
     const date = new Date(o.created_at);
@@ -57,7 +56,6 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
   historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
   const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Ανάκτηση των προβλέψεων (επόμενες 7 μέρες)
   useEffect(() => {
     const fetchPredictions = async () => {
       setLoading(true);
@@ -142,7 +140,7 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
       ) : predictions.length === 0 ? (
         <div className={`p-8 rounded-3xl text-center border-2 border-dashed ${isDark ? "bg-gray-800/50 border-gray-700 text-gray-400" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
           <p className="font-bold text-sm uppercase">Δεν βρέθηκαν δεδομένα AI για τις επόμενες ημέρες.</p>
-          <p className="text-xs mt-2">Βεβαιωθείτε ότι ο πίνακας "daily_predictions" ενημερώνεται σωστά.</p>
+          <p className="text-xs mt-2">Βεβαιωθείτε ότι ο πίνακας "daily_predictions" είναι στο ίδιο Supabase project και ενημερώνεται σωστά.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -179,6 +177,10 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
                       <span className={isDark ? "text-gray-300" : "text-gray-700"}>Μάγειρες:</span>
                       <span className={isDark ? "text-white" : "text-gray-900"}>{day.cooks_needed}</span>
                     </div>
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className={isDark ? "text-gray-300" : "text-gray-700"}>Βοηθοί:</span>
+                      <span className={isDark ? "text-white" : "text-gray-900"}>{day.helpers_needed}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -204,7 +206,7 @@ export default function Dashboard() {
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("orders");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // ΝΕΟ State για το Sidebar
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [backupMode, setBackupMode] = useState(false);
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
@@ -302,7 +304,6 @@ export default function Dashboard() {
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
     const safeTable = encodeURIComponent(table);
-    // Φτιάχνει μια εικόνα με το όνομα του τραπεζιού και τη βάζει στο κέντρο!
     const tableImage = encodeURIComponent(`https://ui-avatars.com/api/?name=${safeTable}&background=ffffff&color=000000&size=100&font-size=0.4&bold=true`);
     return `https://quickchart.io/qr?size=500&text=${qrData}&centerImageUrl=${tableImage}`;
   };
@@ -378,6 +379,15 @@ export default function Dashboard() {
   const cardTotal = totalRevenue - cashTotal;
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
+  // --- ΥΠΟΛΟΓΙΣΜΟΙ ΠΟΥ ΧΡΕΙΑΖΕΤΑΙ Η ΙΣΤΟΡΙΚΗ ΚΑΡΤΕΛΑ ---
+  const productCounts = {};
+  historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
+  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  
+  const hourCounts = {};
+  historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
+  const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
@@ -389,9 +399,8 @@ export default function Dashboard() {
     });
   }
 
-  // Δημιουργία λίστας σελίδων για το Sidebar
   const pagesList = [
-    { id: "orders", label: "ΠΟΥΛΙΑ", icon: "🧾" },
+    { id: "orders", label: "ΠΑΡΑΓΓΕΛΙΕΣ", icon: "🧾" },
     { id: "tables", label: "ΤΡΑΠΕΖΙΑ & QR", icon: "🪑" },
     { id: "products", label: "ΚΑΤΑΛΟΓΟΣ", icon: "📋" },
     { id: "history", label: "ΙΣΤΟΡΙΚΟ (Z)", icon: "📈" },
@@ -444,7 +453,6 @@ export default function Dashboard() {
       <div className="print:hidden">
         <header className={`border-b p-4 flex justify-between items-center sticky top-0 z-30 shadow-sm transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
           <div className="flex items-center gap-3">
-            {/* Κουμπί Hamburger Menu */}
             <button 
               onClick={() => setIsSidebarOpen(true)} 
               className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm transition-transform active:scale-95 ${isDark ? "bg-gray-800 text-white border border-gray-700" : "bg-white text-gray-900 border border-gray-200"}`}
@@ -626,17 +634,6 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {selectedTableForQR && userRole === "admin" && (
-        <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedTableForQR(null)}>
-          <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
-            <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
-            <img src={getQrUrl(selectedTableForQR)} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl bg-white p-2" />
-            <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
           </div>
         </div>
       )}
