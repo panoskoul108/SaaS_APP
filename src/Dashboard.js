@@ -12,9 +12,10 @@ import AiManagerTab from "./AiManagerTab";
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const REWARD_THRESHOLD = 40;
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
+const REWARD_THRESHOLD = 40;
 
 const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
 const normalizeStr = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
@@ -39,7 +40,6 @@ export default function Dashboard() {
   const [storeTables, setStoreTables] = useState(DEFAULT_TABLES);
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
   
-  // State για το αν είναι Premium το μαγαζί
   const [isPremium, setIsPremium] = useState(false);
   
   const [orders, setOrders] = useState([]);
@@ -99,15 +99,13 @@ export default function Dashboard() {
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
     
-    // Ζητάμε και το is_premium από τη βάση
     const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium").eq("id", storeId).single();
     if (storeData) {
       setBackupMode(storeData.backup_mode); 
       setStoreName(storeData.name); 
       setStoreLogo(storeData.logo_url); 
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
-      setIsPremium(storeData.is_premium || false); // Αποθηκεύουμε το premium status
-      
+      setIsPremium(storeData.is_premium || false);
       if (storeData.tables) setStoreTables(storeData.tables);
       if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
@@ -238,6 +236,15 @@ export default function Dashboard() {
   const cardTotal = totalRevenue - cashTotal;
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
+  // ΕΠΑΝΑΦΟΡΑ ΤΩΝ ΑΠΑΡΑΙΤΗΤΩΝ ΜΕΤΑΒΛΗΤΩΝ ΓΙΑ ΤΟ ΙΣΤΟΡΙΚΟ
+  const productCounts = {};
+  historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
+  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  
+  const hourCounts = {};
+  historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
+  const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
@@ -249,7 +256,6 @@ export default function Dashboard() {
     });
   }
 
-  // Αλλάζουμε το εικονίδιο και το όνομα στο Μενού ανάλογα με το αν είναι Premium
   const pagesList = [
     { id: "orders", label: "ΠΑΡΑΓΓΕΛΙΕΣ", icon: "🧾" },
     { id: "tables", label: "ΤΡΑΠΕΖΙΑ & QR", icon: "🪑" },
@@ -355,7 +361,6 @@ export default function Dashboard() {
           <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
         )}
 
-        {/* Λογική για το AI MANAGER TAB: Ελέγχει αν είναι Premium */}
         {tab === "ai_manager" && userRole === "admin" && (
            isPremium ? (
              <AiManagerTab storeId={storeId} orders={orders} isKitchen={isKitchen} theme={theme} />
