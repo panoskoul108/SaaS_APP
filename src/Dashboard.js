@@ -13,10 +13,8 @@ const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 2. Ξεχωριστή Βάση (Restaurant Predictor - Για το AI)
-// ΒΑΛΕ ΕΔΩ ΤΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟ 2ο PROJECT ΣΟΥ!
-const PREDICTOR_URL = process.env.REACT_APP_PREDICTOR_URL || https://qrmontajnhxwqwagxazb.supabase.co;
-const REWARD_THRESHOLD = 40;
-const PREDICTOR_KEY = process.env.REACT_APP_PREDICTOR_KEY || eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybW9udGFqbmh4d3F3YWd4YXpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTA1NzksImV4cCI6MjA4Nzg2NjU3OX0.DwPO5o7b5G2fTppX4BGEPrpyKAe5RMWwFwLyWOINwtA;
+const PREDICTOR_URL = "https://qrmontajnhxwqwagxazb.supabase.co";
+const PREDICTOR_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybW9udGFqbmh4d3F3YWd4YXpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTA1NzksImV4cCI6MjA4Nzg2NjU3OX0.DwPO5o7b5G2fTppX4BGEPrpyKAe5RMWwFwLyWOINwtA";
 const predictorSupabase = createClient(PREDICTOR_URL, PREDICTOR_KEY);
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
@@ -309,7 +307,6 @@ export default function Dashboard() {
   const toggleBackupMode = async () => { const s = !backupMode; await supabase.from("stores").update({ backup_mode: s }).eq("id", storeId); setBackupMode(s); };
   const toggleAcceptingOrders = async () => { const s = !isAcceptingOrders; await supabase.from("stores").update({ is_accepting_orders: s }).eq("id", storeId); setIsAcceptingOrders(s); };
 
-  // --- ΕΠΑΝΑΦΟΡΑ ΤΟΥ ΣΩΣΤΟΥ, ΛΕΙΤΟΥΡΓΙΚΟΥ QR URL ---
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
     const logoParam = storeLogo ? `&centerImageUrl=${encodeURIComponent(storeLogo)}` : "";
@@ -356,12 +353,10 @@ export default function Dashboard() {
 
   const updatePosCartQuantity = (cartId, delta) => { setPosCart(posCart.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) } : item)); };
   
-  // --- ΔΙΟΡΘΩΜΕΝΗ ΛΕΙΤΟΥΡΓΙΑ ΑΠΟΣΤΟΛΗΣ POS ---
   const submitPosOrder = async () => {
     if (!posCart.length || !posTable || !posPayment) return;
     const total = posCart.reduce((s, i) => s + i.price * i.quantity, 0);
     
-    // Προστέθηκε το customer_id για να περνάει η παραγγελία με ασφάλεια στο Supabase!
     const { error } = await supabase.from("orders").insert([{ 
       store_id: storeId, 
       table_number: posTable, 
@@ -743,4 +738,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
