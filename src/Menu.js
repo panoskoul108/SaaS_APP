@@ -509,13 +509,13 @@ export default function Menu() {
   return (
     <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       <header className={`fixed top-0 left-0 right-0 pt-4 pb-2 px-4 backdrop-blur-md shadow-sm z-40 transition-all duration-300 ${isDark ? "bg-gray-900/95 border-b border-gray-800" : "bg-white/95"}`}>
-        <div className="flex justify-between items-center relative h-12">
+        <div className="flex justify-between items-center relative min-h-[3.5rem]">
           <div className="flex-1 flex justify-start">
             <button onClick={() => setIsHistoryOpen(true)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}>🕒</button>
           </div>
           <div className="flex-[2] flex flex-col items-center justify-center text-center">
             {store?.logo_url ? (
-              <img src={store.logo_url} alt={store?.name} className="h-9 object-contain drop-shadow-sm mb-1" />
+              <img src={store.logo_url} alt={store?.name} className={`h-12 w-auto max-w-[160px] object-contain transition-all duration-300 mb-1 ${isDark ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" : "drop-shadow-sm"}`} />
             ) : (
               <h1 className="text-xl font-black uppercase tracking-widest" style={{ color: isDark ? '#fff' : '#111' }}>{store?.name || "MENU"}</h1>
             )}
@@ -558,38 +558,8 @@ export default function Menu() {
               {t.btnSelectTable} 
               <button onClick={() => setShowTablePicker(false)} className="text-3xl">✕</button>
             </div>
-            
-            <div className="w-full max-w-md mb-8">
-              <p className="text-gray-400 text-xs font-bold mb-2 uppercase">Εισαγωγη Pager / Ονοματος:</p>
-              <div className="flex gap-2">
-                <input 
-                  type="text" 
-                  id="pagerInput" 
-                  placeholder="π.χ. P-12 ή Πακέτο" 
-                  className="flex-1 p-4 rounded-2xl bg-gray-800 text-white font-bold border border-gray-600 focus:outline-none focus:border-blue-500"
-                  onKeyDown={(e) => { 
-                    if(e.key === 'Enter' && e.target.value) { 
-                      setTableNum(e.target.value.toUpperCase()); 
-                      setShowTablePicker(false); 
-                    } 
-                  }}
-                />
-                <button 
-                  onClick={() => { 
-                    const val = document.getElementById("pagerInput").value; 
-                    if(val) { 
-                      setTableNum(val.toUpperCase()); 
-                      setShowTablePicker(false); 
-                    } 
-                  }} 
-                  className="bg-blue-600 text-white px-6 rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-transform"
-                >
-                  ΟΚ
-                </button>
-              </div>
-            </div>
 
-            <p className="text-gray-500 text-xs font-bold mb-4 uppercase w-full max-w-md">Ή γρηγορη επιλογη:</p>
+            <p className="text-gray-400 text-xs font-bold mb-4 uppercase w-full max-w-md">ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ / ΠΑΚΕΤΟ:</p>
             <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
               {tablesList.map((table) => (
                 <button 
