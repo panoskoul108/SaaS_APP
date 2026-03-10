@@ -9,7 +9,7 @@ export default function CartModal({
   removeFromCart,
   getItemDisplayName,
   themeColor,
-  t,
+  t, // Εδώ δέχεται το λεξικό από το Menu.js (Αυτόματη Μετάφραση!)
   generalNote,
   setGeneralNote,
   paymentMethod,
@@ -126,7 +126,6 @@ export default function CartModal({
           ></textarea>
         </div>
 
-        {/* --- ΜΙΚΡΟΤΕΡΗ ΕΠΙΛΟΓΗ ΠΛΗΡΩΜΗΣ --- */}
         <div className={`flex flex-col mb-4 p-2.5 rounded-2xl border ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
           <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1.5 text-center">
             {t.payMethod} <span className="text-red-500">*</span>
@@ -187,7 +186,6 @@ export default function CartModal({
           </button>
         )}
 
-        {/* --- LINK ΠΟΛΙΤΙΚΗΣ ΑΠΟΡΡΗΤΟΥ ΚΡΥΜΜΕΝΟ ΚΑΤΩ ΑΠΟ ΤΟ ΚΟΥΜΠΙ --- */}
         <div className="text-center mt-1">
           <button 
             onClick={openPrivacy} 
