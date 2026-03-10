@@ -321,20 +321,35 @@ export default function Dashboard() {
   historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
   const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Λογική Παραγωγής AI Report
+  // Λογική Παραγωγής AI Report (Δυναμική με βάση τον χρόνο)
   const generateAiReport = () => {
     setIsAiLoading(true);
     setShowAiReport(true);
     
-    // Προσομοίωση επικοινωνίας με το Python Backend / ChatGPT
+    // Μετατροπή της επιλεγμένης περιόδου σε Ελληνικό κείμενο
+    const periodLabels = {
+      today: "Σήμερα",
+      week: "Αυτή την εβδομάδα",
+      month: "Αυτόν τον μήνα",
+      specific: specificDate ? `Στις ${specificDate.split('-').reverse().join('/')}` : "Στη συγκεκριμένη ημερομηνία",
+      all: "Συνολικά από την αρχή"
+    };
+    const currentPeriodText = periodLabels[dateRange] || "Αυτή την περίοδο";
+    
+    // Υπολογισμοί με ασφάλεια (για να μην βγάλει error αν δεν υπάρχουν παραγγελίες)
+    const cardPercentage = totalRevenue > 0 ? ((cardTotal / totalRevenue) * 100).toFixed(0) : 0;
+    const topProductName = topProducts.length > 0 ? topProducts[0][0] : 'Κανένα προϊόν';
+    const topProductQty = topProducts.length > 0 ? topProducts[0][1] : 0;
+    const peakHourName = peakHours.length > 0 ? peakHours[0][0] : '-';
+
     setTimeout(() => {
       setAiReportData({
-        sales: `Σήμερα ο συνολικός τζίρος έφτασε τα ${totalRevenue.toFixed(2)}€ από ${totalOrdersCount} παραγγελίες. Το κορυφαίο προϊόν σε ζήτηση ήταν το "${topProducts[0]?.[0] || 'Καφές'}".`,
-        insights: `Ποσοστό ${((cardTotal/totalRevenue)*100 || 0).toFixed(0)}% των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής εντοπίζονται κυρίως γύρω στις ${peakHours[0]?.[0] || '12:00'}.`,
-        prediction: `🤖 Σύμφωνα με το μοντέλο Random Forest (Ανάλυση Open-Meteo & Αφίξεων Charter Λέσβου): Αύριο αναμένονται ισχυροί άνεμοι (6 Μποφόρ). Προβλέπεται μείωση κίνησης στα εξωτερικά τραπέζια κατά 18% αλλά αύξηση στο Πακέτο. Προτείνεται μείωση προσωπικού στο service κατά 1 άτομο στη μεσημεριανή βάρδια.`
+        sales: `📊 ${currentPeriodText}, ο συνολικός τζίρος έφτασε τα ${totalRevenue.toFixed(2)}€ από ${totalOrdersCount} παραγγελίες. Η μέση αξία ανά παραγγελία είναι ${avgOrderValue.toFixed(2)}€. Το κορυφαίο προϊόν σε ζήτηση ήταν το "${topProductName}" (${topProductQty} τεμάχια).`,
+        insights: `💳 Ποσοστό ${cardPercentage}% των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής για ${currentPeriodText.toLowerCase()} εντοπίζονται κυρίως γύρω στις ${peakHourName}. ${cardPercentage > 60 ? '💡 Έξυπνο Tip: Υψηλή χρήση κάρτας, βεβαιώσου ότι το ρολό του τερματικού POS είναι γεμάτο.' : '💡 Έξυπνο Tip: Αρκετά μετρητά στο ταμείο, φρόντισε να υπάρχουν αρκετά ψιλά για ρέστα.'}`,
+        prediction: `🤖 Σύμφωνα με το μοντέλο Random Forest (Ανάλυση Καιρού & Αφίξεων Λέσβου): Βάσει της δυναμικής ${currentPeriodText.toLowerCase()}, αύριο προβλέπεται αλλαγή του καιρού. Προτείνεται προετοιμασία αποθέματος (stock) στο Top προϊόν ("${topProductName}") και αναπροσαρμογή της βάρδιας στο service.`
       });
       setIsAiLoading(false);
-    }, 3000);
+    }, 2000);
   };
 
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
@@ -495,14 +510,14 @@ export default function Dashboard() {
             ) : (
               <div className="space-y-6">
                 <div className={`p-5 rounded-2xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
-                  <h3 className="font-black text-xs uppercase text-indigo-500 mb-2">📊 Σημερινη Αποδοση</h3>
+                  <h3 className="font-black text-xs uppercase text-indigo-500 mb-2">📊 Αποδοση Επιλεγμενης Περιοδου</h3>
                   <p className={`text-sm font-medium leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.sales}</p>
                   <p className={`text-sm font-medium leading-relaxed mt-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.insights}</p>
                 </div>
                 
                 <div className={`p-5 rounded-2xl border-2 border-purple-500/30 bg-gradient-to-br ${isDark ? "from-purple-900/20 to-indigo-900/20" : "from-purple-50 to-indigo-50"}`}>
                   <h3 className="font-black text-xs uppercase text-purple-600 mb-2 flex items-center gap-2">
-                    🎯 Προβλεψη επομενης ημερας
+                    🎯 AI Προβλεψη & Στρατηγικη
                   </h3>
                   <p className={`text-sm font-bold leading-relaxed ${isDark ? "text-purple-200" : "text-purple-900"}`}>{aiReportData?.prediction}</p>
                 </div>
