@@ -7,10 +7,18 @@ import PosProductModal from "./PosProductModal";
 import OrderList from "./OrderList";
 import HistoryPanel from "./HistoryPanel";
 
+// 1. Κεντρική Βάση (SaaS_APP - Παραγγελίες & Κατάλογος)
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
-const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// 2. Ξεχωριστή Βάση (Restaurant Predictor - Για το AI)
+// ΒΑΛΕ ΕΔΩ ΤΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟ 2ο PROJECT ΣΟΥ!
+const PREDICTOR_URL = process.env.REACT_APP_PREDICTOR_URL || https://qrmontajnhxwqwagxazb.supabase.co;
+const PREDICTOR_KEY = process.env.REACT_APP_PREDICTOR_KEY || eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybW9udGFqbmh4d3F3YWd4YXpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTA1NzksImV4cCI6MjA4Nzg2NjU3OX0.DwPO5o7b5G2fTppX4BGEPrpyKAe5RMWwFwLyWOINwtA;
+const predictorSupabase = createClient(PREDICTOR_URL, PREDICTOR_KEY);
+
+const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
 
 const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
 const normalizeStr = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
@@ -26,7 +34,7 @@ const DEFAULT_TABLES = [
   "ΠΑΚΕΤΟ",
 ];
 
-// --- ΝΕΟ ΑΥΤΟΝΟΜΟ AI MANAGER TAB ---
+// --- ΑΥΤΟΝΟΜΟ AI MANAGER TAB (ΔΙΑΒΑΖΕΙ ΑΠΟ ΤΗ 2Η ΒΑΣΗ) ---
 function AiManagerTab({ storeId, orders, isKitchen, theme }) {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,7 +73,8 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
         const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
         const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
 
-        const { data, error } = await supabase
+        // ΧΡΗΣΙΜΟΠΟΙΕΙ ΤΗ ΔΕΥΤΕΡΗ ΒΑΣΗ (Restaurant Predictor)
+        const { data, error } = await predictorSupabase
           .from('daily_predictions')
           .select('*')
           .eq('restaurant_id', parseInt(storeId)) 
@@ -73,7 +82,8 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
           .lte('target_date', getLocalYYYYMMDD(nextWeek))
           .order('target_date', { ascending: true });
 
-        if (!error && data) setPredictions(data);
+        if (error) console.error("Error AI DB:", error);
+        if (data) setPredictions(data);
       } catch (err) { console.error("Error AI:", err); }
       setLoading(false);
     };
@@ -140,7 +150,7 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
       ) : predictions.length === 0 ? (
         <div className={`p-8 rounded-3xl text-center border-2 border-dashed ${isDark ? "bg-gray-800/50 border-gray-700 text-gray-400" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
           <p className="font-bold text-sm uppercase">Δεν βρέθηκαν δεδομένα AI για τις επόμενες ημέρες.</p>
-          <p className="text-xs mt-2">Βεβαιωθείτε ότι ο πίνακας "daily_predictions" είναι στο ίδιο Supabase project και ενημερώνεται σωστά.</p>
+          <p className="text-xs mt-2">Ελέγξτε ότι ο πίνακας "daily_predictions" είναι σωστός στο project Predictor.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -191,7 +201,6 @@ function AiManagerTab({ storeId, orders, isKitchen, theme }) {
     </div>
   );
 }
-// --- ΤΕΛΟΣ AI MANAGER COMPONENT ---
 
 export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -211,7 +220,6 @@ export default function Dashboard() {
   const [backupMode, setBackupMode] = useState(false);
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
   
-  // States Ιστορικού
   const [historySearch, setHistorySearch] = useState("");
   const [dateRange, setDateRange] = useState("today");
   const [specificDate, setSpecificDate] = useState("");
@@ -300,12 +308,11 @@ export default function Dashboard() {
   const toggleBackupMode = async () => { const s = !backupMode; await supabase.from("stores").update({ backup_mode: s }).eq("id", storeId); setBackupMode(s); };
   const toggleAcceptingOrders = async () => { const s = !isAcceptingOrders; await supabase.from("stores").update({ is_accepting_orders: s }).eq("id", storeId); setIsAcceptingOrders(s); };
 
-  // --- ΝΕΟ ΕΞΥΠΝΟ QR CODE ΓΙΑ ΤΡΑΠΕΖΙΑ ---
+  // --- ΕΠΑΝΑΦΟΡΑ ΤΟΥ ΣΩΣΤΟΥ, ΛΕΙΤΟΥΡΓΙΚΟΥ QR URL ---
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
-    const safeTable = encodeURIComponent(table);
-    const tableImage = encodeURIComponent(`https://ui-avatars.com/api/?name=${safeTable}&background=ffffff&color=000000&size=100&font-size=0.4&bold=true`);
-    return `https://quickchart.io/qr?size=500&text=${qrData}&centerImageUrl=${tableImage}`;
+    const logoParam = storeLogo ? `&centerImageUrl=${encodeURIComponent(storeLogo)}` : "";
+    return `https://quickchart.io/qr?size=500&text=${qrData}${logoParam}`;
   };
 
   const downloadQR = async (table) => {
@@ -347,10 +354,30 @@ export default function Dashboard() {
   };
 
   const updatePosCartQuantity = (cartId, delta) => { setPosCart(posCart.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) } : item)); };
+  
+  // --- ΔΙΟΡΘΩΜΕΝΗ ΛΕΙΤΟΥΡΓΙΑ ΑΠΟΣΤΟΛΗΣ POS ---
   const submitPosOrder = async () => {
     if (!posCart.length || !posTable || !posPayment) return;
     const total = posCart.reduce((s, i) => s + i.price * i.quantity, 0);
-    await supabase.from("orders").insert([{ store_id: storeId, table_number: posTable, items: posCart, total_price: total, payment_method: posPayment, status: "pending", general_note: removeAccents(posGeneralNote), receipt_printed: false }]);
+    
+    // Προστέθηκε το customer_id για να περνάει η παραγγελία με ασφάλεια στο Supabase!
+    const { error } = await supabase.from("orders").insert([{ 
+      store_id: storeId, 
+      table_number: posTable, 
+      items: posCart, 
+      total_price: total, 
+      payment_method: posPayment, 
+      status: "pending", 
+      general_note: removeAccents(posGeneralNote), 
+      receipt_printed: false,
+      customer_id: "staff_pos_system" 
+    }]);
+
+    if (error) {
+      alert("Σφάλμα κατά την αποστολή παραγγελίας: " + error.message);
+      return;
+    }
+
     setPosCart([]); setPosTable("ΠΑΚΕΤΟ"); setPosGeneralNote(""); setPosPayment(""); setIsPosOpen(false); setIsPosCartOpen(false); fetchData();
   };
 
@@ -379,7 +406,6 @@ export default function Dashboard() {
   const cardTotal = totalRevenue - cashTotal;
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
-  // --- ΥΠΟΛΟΓΙΣΜΟΙ ΠΟΥ ΧΡΕΙΑΖΕΤΑΙ Η ΙΣΤΟΡΙΚΗ ΚΑΡΤΕΛΑ ---
   const productCounts = {};
   historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
   const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
@@ -634,6 +660,17 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {selectedTableForQR && userRole === "admin" && (
+        <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedTableForQR(null)}>
+          <div className={`w-full max-w-sm rounded-[3rem] p-8 shadow-2xl flex flex-col items-center relative ${isDark ? "bg-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setSelectedTableForQR(null)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black ${isDark ? "bg-gray-700 text-gray-300" : "bg-gray-100 text-gray-600"}`}>✕</button>
+            <h2 className={`text-3xl font-black italic uppercase mb-6 ${isDark ? "text-white" : "text-gray-800"}`}>ΤΡΑΠΕΖΙ {selectedTableForQR}</h2>
+            <img src={getQrUrl(selectedTableForQR)} alt="QR" className="w-64 h-64 mb-8 shadow-sm rounded-xl bg-white p-2" />
+            <button onClick={() => downloadQR(selectedTableForQR)} className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase shadow-lg">ΛΗΨΗ ΕΙΚΟΝΑΣ</button>
           </div>
         </div>
       )}
