@@ -14,6 +14,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 2. Ξεχωριστή Βάση (Restaurant Predictor - Για το AI)
 const PREDICTOR_URL = "https://qrmontajnhxwqwagxazb.supabase.co";
+const REWARD_THRESHOLD = 40;
 const PREDICTOR_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybW9udGFqbmh4d3F3YWd4YXpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTA1NzksImV4cCI6MjA4Nzg2NjU3OX0.DwPO5o7b5G2fTppX4BGEPrpyKAe5RMWwFwLyWOINwtA";
 const predictorSupabase = createClient(PREDICTOR_URL, PREDICTOR_KEY);
 
@@ -353,10 +354,12 @@ export default function Dashboard() {
 
   const updatePosCartQuantity = (cartId, delta) => { setPosCart(posCart.map((item) => item.cartId === cartId ? { ...item, quantity: Math.max(1, (item.quantity || 1) + delta) } : item)); };
   
+  // --- ΔΙΟΡΘΩΜΕΝΗ ΛΕΙΤΟΥΡΓΙΑ ΑΠΟΣΤΟΛΗΣ (ΧΩΡΙΣ ΑΓΝΩΣΤΑ ΠΕΔΙΑ) ---
   const submitPosOrder = async () => {
     if (!posCart.length || !posTable || !posPayment) return;
     const total = posCart.reduce((s, i) => s + i.price * i.quantity, 0);
     
+    // Αφαιρέθηκαν τα πεδία που προκαλούσαν το σφάλμα στο Supabase
     const { error } = await supabase.from("orders").insert([{ 
       store_id: storeId, 
       table_number: posTable, 
@@ -364,9 +367,7 @@ export default function Dashboard() {
       total_price: total, 
       payment_method: posPayment, 
       status: "pending", 
-      general_note: removeAccents(posGeneralNote), 
-      receipt_printed: false,
-      customer_id: "staff_pos_system" 
+      general_note: removeAccents(posGeneralNote)
     }]);
 
     if (error) {
