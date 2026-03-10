@@ -37,7 +37,8 @@ export default function CartModal({
 
   return (
     <div className={`fixed inset-0 z-[200] flex flex-col animate-slide-up ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-      <div className={`p-4 flex justify-between items-center shadow-sm border-b ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+      {/* HEADER */}
+      <div className={`p-4 flex justify-between items-center shadow-sm border-b shrink-0 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
         <h2 className={`font-black uppercase text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
           {t.yourOrder}
         </h2>
@@ -51,7 +52,10 @@ export default function CartModal({
         </button>
       </div>
 
-      <div className={`flex-1 overflow-y-auto p-4 no-scrollbar ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+      {/* ΚΥΡΙΩΣ ΣΩΜΑ - ΕΔΩ ΡΟΛΑΡΟΥΝ ΟΛΑ (Προϊόντα, Upsell, Σημειώσεις, Πληρωμή) */}
+      <div className={`flex-1 overflow-y-auto p-4 no-scrollbar pb-32 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+        
+        {/* ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ */}
         <div className="space-y-4 mb-8">
           {cart.map((item) => (
             <div
@@ -123,13 +127,13 @@ export default function CartModal({
           ))}
         </div>
 
-        {/* --- ΕΞΥΠΝΕΣ ΠΡΟΤΑΣΕΙΣ (UPSELLING ΣΤΟ ΚΑΛΑΘΙ) --- */}
+        {/* ΕΞΥΠΝΕΣ ΠΡΟΤΑΣΕΙΣ (UPSELLING) */}
         {recommendations.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-8">
             <p className="font-black text-[10px] uppercase text-indigo-500 mb-3 tracking-widest px-1">
               {t.freqBought}
             </p>
-            <div className="flex overflow-x-auto gap-3 pb-4 no-scrollbar px-1">
+            <div className="flex overflow-x-auto gap-3 pb-2 no-scrollbar px-1">
               {recommendations.map(prod => (
                 <div
                   key={prod.id}
@@ -148,34 +152,34 @@ export default function CartModal({
             </div>
           </div>
         )}
-      </div>
 
-      <div className={`p-6 rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.1)] border-t ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
-        <div className="mb-4">
-          <p className="font-black text-[10px] uppercase text-gray-400 mb-2 tracking-widest">{t.genNoteTitle}</p>
+        {/* ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (Μπήκε στο scroll) */}
+        <div className="mb-6">
+          <p className="font-black text-[10px] uppercase text-gray-400 mb-2 tracking-widest px-1">{t.genNoteTitle}</p>
           <textarea
-            rows="1"
+            rows="2"
             placeholder={t.note}
             value={generalNote}
             onChange={(e) => setGeneralNote(e.target.value)}
-            className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none font-bold resize-none ${
-              isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-gray-50 border-gray-200/80 text-gray-900"
+            className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none font-bold resize-none shadow-sm ${
+              isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"
             }`}
           ></textarea>
         </div>
 
-        <div className={`flex flex-col mb-4 p-2.5 rounded-2xl border ${isDark ? "bg-gray-900 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
-          <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-1.5 text-center">
+        {/* ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ (Μπήκε στο scroll) */}
+        <div className={`flex flex-col mb-4 p-3 rounded-2xl border shadow-sm ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
+          <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-2 text-center">
             {t.payMethod} <span className="text-red-500">*</span>
           </span>
-          <div className={`flex p-1 rounded-xl shadow-inner ${isDark ? "bg-gray-800" : "bg-gray-200/50"}`}>
+          <div className={`flex p-1.5 rounded-xl shadow-inner ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
             <button
               onClick={() => setPaymentMethod("ΜΕΤΡΗΤΑ")}
-              className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+              className={`flex-1 py-3 rounded-lg font-black text-xs uppercase transition-all flex items-center justify-center gap-2 ${
                 paymentMethod === "ΜΕΤΡΗΤΑ"
                   ? isDark
-                    ? "bg-gray-700 text-white shadow-sm scale-105"
-                    : "bg-white shadow-sm text-gray-900 scale-105"
+                    ? "bg-gray-700 text-white shadow-md scale-[1.02]"
+                    : "bg-white shadow-md text-gray-900 scale-[1.02]"
                   : "text-gray-400 hover:text-gray-500"
               }`}
               style={paymentMethod === "ΜΕΤΡΗΤΑ" ? { color: themeColor } : {}}
@@ -184,11 +188,11 @@ export default function CartModal({
             </button>
             <button
               onClick={() => setPaymentMethod("ΚΑΡΤΑ")}
-              className={`flex-1 py-2 rounded-lg font-black text-[10px] uppercase transition-all flex items-center justify-center gap-1 ${
+              className={`flex-1 py-3 rounded-lg font-black text-xs uppercase transition-all flex items-center justify-center gap-2 ${
                 paymentMethod === "ΚΑΡΤΑ"
                   ? isDark
-                    ? "bg-gray-700 text-white shadow-sm scale-105"
-                    : "bg-white shadow-sm text-gray-900 scale-105"
+                    ? "bg-gray-700 text-white shadow-md scale-[1.02]"
+                    : "bg-white shadow-md text-gray-900 scale-[1.02]"
                   : "text-gray-400 hover:text-gray-500"
               }`}
               style={paymentMethod === "ΚΑΡΤΑ" ? { color: themeColor } : {}}
@@ -198,6 +202,10 @@ export default function CartModal({
           </div>
         </div>
 
+      </div>
+
+      {/* STICKY FOOTER (ΜΟΝΟ ΤΟ ΚΟΥΜΠΙ ΚΑΙ Η ΠΟΛΙΤΙΚΗ ΑΠΟΡΡΗΤΟΥ) */}
+      <div className={`p-4 shrink-0 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
         {!isAcceptingOrders ? (
           <div className="bg-red-50 text-red-600 p-4 rounded-2xl font-black text-center text-xs uppercase border-2 border-red-200 mb-2">
             ⚠️ {t.pausedCartMsg}
@@ -206,7 +214,7 @@ export default function CartModal({
           <button
             onClick={handleSendOrderClick}
             disabled={!paymentMethod || !tableNum || isLocating}
-            className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 mb-2 ${
+            className={`w-full py-5 rounded-2xl font-black flex justify-between px-6 items-center transition-all active:scale-95 mb-1 ${
               paymentMethod && tableNum && !isLocating
                 ? "text-white shadow-xl hover:opacity-90"
                 : isDark
@@ -224,17 +232,16 @@ export default function CartModal({
           </button>
         )}
 
-        <div className="text-center mt-1">
+        <div className="text-center mt-2">
           <button 
             onClick={openPrivacy} 
-            className={`text-[8px] font-bold uppercase tracking-widest transition-colors ${
-              isDark ? "text-gray-600 hover:text-gray-400" : "text-gray-400 hover:text-gray-600"
+            className={`text-[9px] font-bold uppercase tracking-widest transition-colors ${
+              isDark ? "text-gray-500 hover:text-gray-300" : "text-gray-400 hover:text-gray-600"
             }`}
           >
             {t.privacyLink}
           </button>
         </div>
-
       </div>
     </div>
   );
