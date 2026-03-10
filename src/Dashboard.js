@@ -26,6 +26,143 @@ const DEFAULT_TABLES = [
   "ΠΑΚΕΤΟ",
 ];
 
+// --- ΝΕΟ COMPONENT: AI MANAGER TAB ---
+function AiManagerTab({ storeId, totalRevenue, totalOrdersCount, avgOrderValue, cashTotal, cardTotal, topProducts, peakHours, dateRange, specificDate, theme }) {
+  const [predictions, setPredictions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const isDark = theme === "dark";
+
+  useEffect(() => {
+    const fetchPredictions = async () => {
+      setLoading(true);
+      try {
+        const getLocalYYYYMMDD = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        
+        const today = new Date();
+        const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+        const nextWeek = new Date(today); nextWeek.setDate(nextWeek.getDate() + 7);
+
+        const { data, error } = await supabase
+          .from('daily_predictions')
+          .select('*')
+          .eq('restaurant_id', parseInt(storeId)) 
+          .gte('target_date', getLocalYYYYMMDD(tomorrow))
+          .lte('target_date', getLocalYYYYMMDD(nextWeek))
+          .order('target_date', { ascending: true });
+
+        if (!error && data) {
+          setPredictions(data);
+        }
+      } catch (err) {
+        console.error("Error fetching AI predictions:", err);
+      }
+      setLoading(false);
+    };
+
+    if (storeId) fetchPredictions();
+  }, [storeId]);
+
+  const periodLabels = { today: "Σήμερα", week: "Αυτή την εβδομάδα", month: "Αυτόν τον μήνα", specific: specificDate ? `Στις ${specificDate.split('-').reverse().join('/')}` : "Στη συγκεκριμένη ημερομηνία", all: "Συνολικά" };
+  const currentPeriodText = periodLabels[dateRange] || "Αυτή την περίοδο";
+  const cardPercentage = totalRevenue > 0 ? ((cardTotal / totalRevenue) * 100).toFixed(0) : 0;
+  const topProductName = topProducts.length > 0 ? topProducts[0][0] : 'Κανένα προϊόν';
+
+  return (
+    <div className="max-w-6xl mx-auto space-y-6 pb-20 animate-fade-in">
+      <div className={`flex items-center gap-3 border-b pb-4 ${isDark ? "border-gray-800" : "border-gray-200"}`}>
+        <span className="text-4xl">✨</span>
+        <h2 className={`font-black text-3xl uppercase italic tracking-tighter ${isDark ? "text-white" : "text-gray-900"}`}>AI Manager Pro</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className={`p-6 rounded-3xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+          <h3 className="font-black text-sm uppercase text-indigo-500 mb-4 flex items-center gap-2">
+            <span className="text-lg">📊</span> Ανάλυση Αποδοσης ({currentPeriodText})
+          </h3>
+          <p className={`text-sm font-medium leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+            Ο συνολικός τζίρος έφτασε τα <strong className="text-indigo-500">{totalRevenue.toFixed(2)}€</strong> από {totalOrdersCount} παραγγελίες (Μέση Αξία: {avgOrderValue.toFixed(2)}€). Το κορυφαίο προϊόν σε ζήτηση ήταν το <strong>"{topProductName}"</strong>.
+          </p>
+        </div>
+
+        <div className={`p-6 rounded-3xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+          <h3 className="font-black text-sm uppercase text-purple-500 mb-4 flex items-center gap-2">
+            <span className="text-lg">💡</span> Στρατηγικα Insights
+          </h3>
+          <p className={`text-sm font-medium leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+            Το <strong>{cardPercentage}%</strong> των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής εντοπίζονται γύρω στις {peakHours.length > 0 ? peakHours[0][0] : '-'}. 
+            <br/><br/>
+            <span className="bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 px-2 py-1 rounded-md text-xs font-bold italic">
+              {cardPercentage > 60 ? 'Tip: Υψηλή χρήση κάρτας, βεβαιώσου ότι το ρολό του τερματικού POS είναι γεμάτο.' : 'Tip: Αρκετά μετρητά, φρόντισε να υπάρχουν αρκετά ψιλά στο ταμείο.'}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <h3 className={`font-black text-xl uppercase italic mt-10 mb-4 ${isDark ? "text-gray-100" : "text-gray-800"}`}>
+        📅 Πρόβλεψη Κίνησης (Επόμενες 7 Ημέρες)
+      </h3>
+
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="font-bold text-sm text-gray-500 mt-4 uppercase tracking-widest animate-pulse">Σύνδεση με AI Μοντέλο...</p>
+        </div>
+      ) : predictions.length === 0 ? (
+        <div className={`p-8 rounded-3xl text-center border-2 border-dashed ${isDark ? "bg-gray-800/50 border-gray-700 text-gray-400" : "bg-gray-50 border-gray-200 text-gray-500"}`}>
+          <p className="font-bold text-sm uppercase">Δεν βρέθηκαν δεδομένα AI για τις επόμενες ημέρες.</p>
+          <p className="text-xs mt-2">Βεβαιωθείτε ότι ο πίνακας "daily_predictions" είναι στο ίδιο Supabase project και ενημερώνεται σωστά.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {predictions.map((day) => {
+            const dateObj = new Date(day.target_date);
+            const dateStr = `${dateObj.getDate().toString().padStart(2, '0')}/${(dateObj.getMonth() + 1).toString().padStart(2, '0')}`;
+            const daysGr = ["Κυριακή", "Δευτέρα", "Τρίτη", "Τετάρτη", "Πέμπτη", "Παρασκευή", "Σάββατο"];
+            const dayName = daysGr[dateObj.getDay()];
+
+            return (
+              <div key={day.id} className={`flex flex-col p-5 rounded-3xl border-2 transition-all hover:-translate-y-1 hover:shadow-lg ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-indigo-50"}`}>
+                <div className={`flex justify-between items-center mb-4 border-b pb-3 ${isDark ? "border-gray-700" : "border-indigo-100/50"}`}>
+                  <div>
+                    <div className={`font-black text-lg ${isDark ? "text-white" : "text-gray-900"}`}>{dayName}</div>
+                    <div className="text-xs font-bold text-gray-400 uppercase tracking-widest">{dateStr}</div>
+                  </div>
+                  <div className="bg-indigo-500 text-white w-10 h-10 rounded-full flex items-center justify-center font-black shadow-md">
+                    {day.predicted_customers}
+                  </div>
+                </div>
+                
+                <div className="flex-1 space-y-3">
+                  <div className={`text-[11px] font-bold p-3 rounded-xl ${isDark ? "bg-gray-900 text-gray-300" : "bg-indigo-50 text-indigo-900"}`}>
+                    ☁️ {day.reasoning || "Κανονικές συνθήκες"}
+                  </div>
+                  
+                  <div className="space-y-2 pt-2">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Προτεινομενο Προσωπικο</p>
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className={isDark ? "text-gray-300" : "text-gray-700"}>Σερβιτόροι:</span>
+                      <span className={isDark ? "text-white" : "text-gray-900"}>{day.waiters_needed}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className={isDark ? "text-gray-300" : "text-gray-700"}>Μάγειρες:</span>
+                      <span className={isDark ? "text-white" : "text-gray-900"}>{day.cooks_needed}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold">
+                      <span className={isDark ? "text-gray-300" : "text-gray-700"}>Βοηθοί:</span>
+                      <span className={isDark ? "text-white" : "text-gray-900"}>{day.helpers_needed}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+// --- ΤΕΛΟΣ AI MANAGER COMPONENT ---
+
 export default function Dashboard() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState(null);
@@ -66,11 +203,6 @@ export default function Dashboard() {
   const [posQuantity, setPosQuantity] = useState(1);
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
-
-  // AI Analytics State
-  const [showAiReport, setShowAiReport] = useState(false);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiReportData, setAiReportData] = useState(null);
 
   const currentHour = new Date().getHours();
   const isMorning = currentHour >= 6 && currentHour < 14;
@@ -321,71 +453,6 @@ export default function Dashboard() {
   historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
   const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Live Σύνδεση με τον πίνακα daily_predictions (για 7 ημέρες)
-  const generateAiReport = async () => {
-    setIsAiLoading(true);
-    setShowAiReport(true);
-    
-    const periodLabels = {
-      today: "Σήμερα",
-      week: "Αυτή την εβδομάδα",
-      month: "Αυτόν τον μήνα",
-      specific: specificDate ? `Στις ${specificDate.split('-').reverse().join('/')}` : "Στη συγκεκριμένη ημερομηνία",
-      all: "Συνολικά από την αρχή"
-    };
-    const currentPeriodText = periodLabels[dateRange] || "Αυτή την περίοδο";
-    
-    const cardPercentage = totalRevenue > 0 ? ((cardTotal / totalRevenue) * 100).toFixed(0) : 0;
-    const topProductName = topProducts.length > 0 ? topProducts[0][0] : 'Κανένα προϊόν';
-    const topProductQty = topProducts.length > 0 ? topProducts[0][1] : 0;
-    const peakHourName = peakHours.length > 0 ? peakHours[0][0] : '-';
-
-    // Υπολογισμός Ημερομηνιών: Από αύριο έως +7 ημέρες
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
-    const nextWeekStr = nextWeek.toISOString().split('T')[0];
-
-    // Τράβηγμα των πραγματικών δεδομένων (της εβδομάδας) από το Supabase
-    const { data: predictionData, error } = await supabase
-      .from('daily_predictions')
-      .select('*')
-      .eq('restaurant_id', storeId) 
-      .gte('target_date', tomorrowStr)
-      .lte('target_date', nextWeekStr)
-      .order('target_date', { ascending: true });
-
-    let aiPredictionText = `Δεν βρέθηκαν δεδομένα από το μοντέλο AI για τις επόμενες 7 ημέρες. Βεβαιωθείτε ότι το Python script ενημερώνει τη βάση δεδομένων.`;
-
-    if (predictionData && predictionData.length > 0) {
-      aiPredictionText = "📅 ΠΡΟΒΛΕΨΗ ΕΠΟΜΕΝΩΝ ΗΜΕΡΩΝ (AI Model):\n\n";
-      predictionData.forEach((day) => {
-        const d = new Date(day.target_date);
-        const formattedDate = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
-        
-        aiPredictionText += `🔹 ${formattedDate} | 👥 ${day.predicted_customers} Πελάτες\n`;
-        aiPredictionText += `   🍽️ Προσωπικό: ${day.waiters_needed} Σερβ. - ${day.cooks_needed} Μαγ. - ${day.helpers_needed} Βοηθ.\n`;
-        if (day.reasoning) {
-          aiPredictionText += `   ☁️ ${day.reasoning}\n`;
-        }
-        aiPredictionText += `\n`; // Κενή γραμμή μεταξύ ημερών
-      });
-    }
-
-    setTimeout(() => {
-      setAiReportData({
-        sales: `📊 ${currentPeriodText}, ο συνολικός τζίρος έφτασε τα ${totalRevenue.toFixed(2)}€ από ${totalOrdersCount} παραγγελίες. Η μέση αξία ανά παραγγελία είναι ${avgOrderValue.toFixed(2)}€. Το κορυφαίο προϊόν σε ζήτηση ήταν το "${topProductName}" (${topProductQty} τεμάχια).`,
-        insights: `💳 Ποσοστό ${cardPercentage}% των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής εντοπίζονται κυρίως γύρω στις ${peakHourName}. ${cardPercentage > 60 ? '💡 Έξυπνο Tip: Υψηλή χρήση κάρτας, βεβαιώσου ότι το ρολό του τερματικού POS είναι γεμάτο.' : '💡 Έξυπνο Tip: Αρκετά μετρητά στο ταμείο, φρόντισε να υπάρχουν αρκετά ψιλά για ρέστα.'}`,
-        prediction: aiPredictionText
-      });
-      setIsAiLoading(false);
-    }, 1200);
-  };
-
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
@@ -436,20 +503,24 @@ export default function Dashboard() {
           </div>
         </header>
         
-        <div className={`flex border-b px-4 py-2 gap-2 sticky top-[65px] z-20 shadow-sm transition-colors duration-300 ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
-          {["orders", "tables", "reviews", "history", "products"].map((t) => {
+        {/* --- NAVBAR ΜΕ ΤΟ ΝΕΟ TAB --- */}
+        <div className={`flex border-b px-4 py-2 gap-2 sticky top-[65px] z-20 shadow-sm transition-colors duration-300 overflow-x-auto no-scrollbar ${isDark ? "bg-gray-900 border-gray-800" : "bg-white border-gray-200"}`}>
+          {["orders", "tables", "reviews", "history", "products", "ai_manager"].map((t) => {
             if (userRole === "staff" && t !== "orders") return null;
-            if (isKitchen && (t === "tables" || t === "products" || t === "reviews")) return null;
+            if (isKitchen && (t === "tables" || t === "products" || t === "reviews" || t === "ai_manager")) return null;
             if (t === "reviews" && userRole !== "admin") return null;
-            const labelMap = { orders: "ΠΑΡΑΓΓΕΛΙΕΣ", tables: "ΤΡΑΠΕΖΙΑ", reviews: "ΚΡΙΤΙΚΕΣ", history: "ΙΣΤΟΡΙΚΟ", products: "ΚΑΤΑΛΟΓΟΣ" };
+            if (t === "ai_manager" && userRole !== "admin") return null;
+            
+            const labelMap = { orders: "ΠΑΡΑΓΓΕΛΙΕΣ", tables: "ΤΡΑΠΕΖΙΑ", reviews: "ΚΡΙΤΙΚΕΣ", history: "ΙΣΤΟΡΙΚΟ", products: "ΚΑΤΑΛΟΓΟΣ", ai_manager: "✨ AI MANAGER" };
             return (
               <button
                 key={t}
                 onClick={() => setTab(t)}
-                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase transition-colors ${
+                className={`flex-1 min-w-[120px] py-3 rounded-xl text-[10px] font-black uppercase transition-colors shrink-0 ${
                   tab === t 
                     ? (isDark ? "bg-white text-black shadow-md" : "bg-black text-white shadow-md") 
-                    : (isDark ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-50 text-gray-500 hover:bg-gray-100")
+                    : (t === "ai_manager" ? "bg-gradient-to-r from-indigo-500/10 to-purple-500/10 text-indigo-500 border border-indigo-200 dark:border-indigo-800 hover:bg-indigo-50 dark:hover:bg-indigo-900/30" 
+                      : (isDark ? "bg-gray-800 text-gray-400 hover:bg-gray-700" : "bg-gray-50 text-gray-500 hover:bg-gray-100"))
                 }`}
               >
                 {labelMap[t]}
@@ -465,19 +536,24 @@ export default function Dashboard() {
         )}
         
         {tab === "history" && (
-          <div className="relative">
-            {userRole === "admin" && (
-              <div className="flex justify-end mb-4">
-                <button 
-                  onClick={generateAiReport} 
-                  className={`px-6 py-3 rounded-xl font-black uppercase text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white`}
-                >
-                  <span className="text-lg">✨</span> AI Manager Αναφορά
-                </button>
-              </div>
-            )}
-            <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
-          </div>
+          <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
+        )}
+
+        {/* ΕΜΦΑΝΙΣΗ ΤΟΥ ΝΕΟΥ TAB AI MANAGER */}
+        {tab === "ai_manager" && userRole === "admin" && (
+           <AiManagerTab 
+             storeId={storeId} 
+             totalRevenue={totalRevenue} 
+             totalOrdersCount={totalOrdersCount} 
+             avgOrderValue={avgOrderValue} 
+             cashTotal={cashTotal} 
+             cardTotal={cardTotal} 
+             topProducts={topProducts} 
+             peakHours={peakHours} 
+             dateRange={dateRange} 
+             specificDate={specificDate} 
+             theme={theme} 
+           />
         )}
         
         {tab === "reviews" && userRole === "admin" && (
@@ -526,43 +602,6 @@ export default function Dashboard() {
           <AdminProducts storeId={storeId} theme={theme} />
         )}
       </main>
-
-      {/* --- AI REPORT MODAL --- */}
-      {showAiReport && (
-        <div className="fixed inset-0 bg-black/80 z-[500] flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAiReport(false)}>
-          <div className={`w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative flex flex-col max-h-[90vh] ${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`} onClick={(e) => e.stopPropagation()}>
-            <button onClick={() => setShowAiReport(false)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black flex items-center justify-center ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>✕</button>
-            <h2 className="text-2xl font-black italic uppercase mb-6 flex items-center gap-3 shrink-0">
-              <span className="text-3xl">✨</span> AI Manager Report
-            </h2>
-            
-            {isAiLoading ? (
-              <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="font-bold text-sm text-gray-400 animate-pulse uppercase tracking-widest">Ανακτηση Δεδομενων & Μοντελου...</p>
-              </div>
-            ) : (
-              <div className="space-y-6 overflow-y-auto pr-2 no-scrollbar flex-1 pb-4">
-                <div className={`p-5 rounded-2xl border shrink-0 ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
-                  <h3 className="font-black text-xs uppercase text-indigo-500 mb-2">📊 Αποδοση Επιλεγμενης Περιοδου</h3>
-                  <p className={`text-sm font-medium leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.sales}</p>
-                  <p className={`text-sm font-medium leading-relaxed mt-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.insights}</p>
-                </div>
-                
-                <div className={`p-5 rounded-2xl border-2 border-purple-500/30 bg-gradient-to-br ${isDark ? "from-purple-900/20 to-indigo-900/20" : "from-purple-50 to-indigo-50"}`}>
-                  <p className={`text-sm font-bold leading-relaxed whitespace-pre-line ${isDark ? "text-purple-200" : "text-purple-900"}`}>
-                    {aiReportData?.prediction}
-                  </p>
-                </div>
-
-                <button onClick={() => setShowAiReport(false)} className="w-full py-4 rounded-xl font-black uppercase text-sm bg-gray-900 text-white shadow-lg active:scale-95 transition-transform dark:bg-white dark:text-black shrink-0 mt-4">
-                  ΚΛΕΙΣΙΜΟ
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       <PosProductModal
         posActiveProduct={posActiveProduct}
