@@ -67,6 +67,11 @@ export default function Dashboard() {
   const [posCurrentNote, setPosCurrentNote] = useState("");
   const [editingCartId, setEditingCartId] = useState(null);
 
+  // AI Analytics State
+  const [showAiReport, setShowAiReport] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiReportData, setAiReportData] = useState(null);
+
   const currentHour = new Date().getHours();
   const isMorning = currentHour >= 6 && currentHour < 14;
   const isKitchen = userRole === "kitchen";
@@ -246,7 +251,7 @@ export default function Dashboard() {
       const isSugarType = groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ");
       
       let required = g.isRequired;
-      if (isSketosSelected && isSugarType) required = false; // Γίνεται προαιρετικό
+      if (isSketosSelected && isSugarType) required = false;
 
       const s = posAddonSelections[g.id] || [];
       if (required && !s.length) valid = false;
@@ -315,6 +320,22 @@ export default function Dashboard() {
   const hourCounts = {};
   historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
   const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+
+  // Λογική Παραγωγής AI Report
+  const generateAiReport = () => {
+    setIsAiLoading(true);
+    setShowAiReport(true);
+    
+    // Προσομοίωση επικοινωνίας με το Python Backend / ChatGPT
+    setTimeout(() => {
+      setAiReportData({
+        sales: `Σήμερα ο συνολικός τζίρος έφτασε τα ${totalRevenue.toFixed(2)}€ από ${totalOrdersCount} παραγγελίες. Το κορυφαίο προϊόν σε ζήτηση ήταν το "${topProducts[0]?.[0] || 'Καφές'}".`,
+        insights: `Ποσοστό ${((cardTotal/totalRevenue)*100 || 0).toFixed(0)}% των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής εντοπίζονται κυρίως γύρω στις ${peakHours[0]?.[0] || '12:00'}.`,
+        prediction: `🤖 Σύμφωνα με το μοντέλο Random Forest (Ανάλυση Open-Meteo & Αφίξεων Charter Λέσβου): Αύριο αναμένονται ισχυροί άνεμοι (6 Μποφόρ). Προβλέπεται μείωση κίνησης στα εξωτερικά τραπέζια κατά 18% αλλά αύξηση στο Πακέτο. Προτείνεται μείωση προσωπικού στο service κατά 1 άτομο στη μεσημεριανή βάρδια.`
+      });
+      setIsAiLoading(false);
+    }, 3000);
+  };
 
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
@@ -393,9 +414,23 @@ export default function Dashboard() {
         {tab === "orders" && (
           <OrderList orders={orders} isKitchen={isKitchen} userRole={userRole} updateStatus={updateStatus} deleteOrders={deleteOrders} setViewingOrder={setViewingOrder} setActivePrintOrder={setActivePrintOrder} setIsPrinting={setIsPrinting} toggleReceipt={toggleReceipt} theme={theme} />
         )}
+        
         {tab === "history" && (
-          <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
+          <div className="relative">
+            {userRole === "admin" && (
+              <div className="flex justify-end mb-4">
+                <button 
+                  onClick={generateAiReport} 
+                  className={`px-6 py-3 rounded-xl font-black uppercase text-xs shadow-lg transition-transform active:scale-95 flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-purple-600 text-white`}
+                >
+                  <span className="text-lg">✨</span> AI Manager Αναφορά
+                </button>
+              </div>
+            )}
+            <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
+          </div>
         )}
+        
         {tab === "reviews" && userRole === "admin" && (
           <div className="max-w-6xl mx-auto space-y-6 pb-20">
             <h2 className={`font-black text-2xl uppercase italic tracking-tighter border-b pb-4 ${isDark ? "text-white border-gray-800" : "text-gray-800 border-gray-200"}`}>
@@ -442,6 +477,44 @@ export default function Dashboard() {
           <AdminProducts storeId={storeId} theme={theme} />
         )}
       </main>
+
+      {/* --- AI REPORT MODAL --- */}
+      {showAiReport && (
+        <div className="fixed inset-0 bg-black/80 z-[500] flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAiReport(false)}>
+          <div className={`w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative flex flex-col ${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`} onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowAiReport(false)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black flex items-center justify-center ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>✕</button>
+            <h2 className="text-2xl font-black italic uppercase mb-6 flex items-center gap-3">
+              <span className="text-3xl">✨</span> AI Manager Report
+            </h2>
+            
+            {isAiLoading ? (
+              <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="font-bold text-sm text-gray-400 animate-pulse uppercase tracking-widest">Αναλυση Δεδομενων & Μοντελου...</p>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                <div className={`p-5 rounded-2xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
+                  <h3 className="font-black text-xs uppercase text-indigo-500 mb-2">📊 Σημερινη Αποδοση</h3>
+                  <p className={`text-sm font-medium leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.sales}</p>
+                  <p className={`text-sm font-medium leading-relaxed mt-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.insights}</p>
+                </div>
+                
+                <div className={`p-5 rounded-2xl border-2 border-purple-500/30 bg-gradient-to-br ${isDark ? "from-purple-900/20 to-indigo-900/20" : "from-purple-50 to-indigo-50"}`}>
+                  <h3 className="font-black text-xs uppercase text-purple-600 mb-2 flex items-center gap-2">
+                    🎯 Προβλεψη επομενης ημερας
+                  </h3>
+                  <p className={`text-sm font-bold leading-relaxed ${isDark ? "text-purple-200" : "text-purple-900"}`}>{aiReportData?.prediction}</p>
+                </div>
+
+                <button onClick={() => setShowAiReport(false)} className="w-full py-4 rounded-xl font-black uppercase text-sm bg-gray-900 text-white shadow-lg active:scale-95 transition-transform dark:bg-white dark:text-black">
+                  ΚΛΕΙΣΙΜΟ
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <PosProductModal
         posActiveProduct={posActiveProduct}
