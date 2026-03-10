@@ -6,7 +6,7 @@ import Login from "./Login";
 import PosProductModal from "./PosProductModal";
 import OrderList from "./OrderList";
 import HistoryPanel from "./HistoryPanel";
-import AiManagerTab from "./AiManagerTab"; // ΚΑΝΟΥΜΕ IMPORT ΤΟ ΝΕΟ ΚΑΘΑΡΟ ΑΡΧΕΙΟ!
+import AiManagerTab from "./AiManagerTab";
 
 // Κεντρική Βάση (SaaS_APP - Παραγγελίες & Κατάλογος)
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
@@ -38,6 +38,9 @@ export default function Dashboard() {
   const [storeLogo, setStoreLogo] = useState(null);
   const [storeTables, setStoreTables] = useState(DEFAULT_TABLES);
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
+  
+  // State για το αν είναι Premium το μαγαζί
+  const [isPremium, setIsPremium] = useState(false);
   
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -96,9 +99,15 @@ export default function Dashboard() {
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
     
-    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order").eq("id", storeId).single();
+    // Ζητάμε και το is_premium από τη βάση
+    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium").eq("id", storeId).single();
     if (storeData) {
-      setBackupMode(storeData.backup_mode); setStoreName(storeData.name); setStoreLogo(storeData.logo_url); setIsAcceptingOrders(storeData.is_accepting_orders !== false);
+      setBackupMode(storeData.backup_mode); 
+      setStoreName(storeData.name); 
+      setStoreLogo(storeData.logo_url); 
+      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
+      setIsPremium(storeData.is_premium || false); // Αποθηκεύουμε το premium status
+      
       if (storeData.tables) setStoreTables(storeData.tables);
       if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
@@ -229,14 +238,6 @@ export default function Dashboard() {
   const cardTotal = totalRevenue - cashTotal;
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
-  const productCounts = {};
-  historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
-  const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
-  
-  const hourCounts = {};
-  historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
-  const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
-
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
@@ -248,13 +249,14 @@ export default function Dashboard() {
     });
   }
 
+  // Αλλάζουμε το εικονίδιο και το όνομα στο Μενού ανάλογα με το αν είναι Premium
   const pagesList = [
     { id: "orders", label: "ΠΑΡΑΓΓΕΛΙΕΣ", icon: "🧾" },
     { id: "tables", label: "ΤΡΑΠΕΖΙΑ & QR", icon: "🪑" },
     { id: "products", label: "ΚΑΤΑΛΟΓΟΣ", icon: "📋" },
     { id: "history", label: "ΙΣΤΟΡΙΚΟ (Z)", icon: "📈" },
     { id: "reviews", label: "ΚΡΙΤΙΚΕΣ", icon: "⭐" },
-    { id: "ai_manager", label: "AI MANAGER", icon: "✨" }
+    { id: "ai_manager", label: isPremium ? "AI MANAGER" : "AI MANAGER PRO", icon: isPremium ? "✨" : "🔒" }
   ];
 
   return (
@@ -281,9 +283,9 @@ export default function Dashboard() {
                     onClick={() => { setTab(page.id); setIsSidebarOpen(false); }}
                     className={`p-4 rounded-2xl font-black uppercase text-left flex items-center gap-4 transition-all ${
                       isActive 
-                        ? (page.id === "ai_manager" ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg" : "bg-blue-600 text-white shadow-lg") 
+                        ? (page.id === "ai_manager" && isPremium ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg" : "bg-blue-600 text-white shadow-lg") 
                         : (isDark ? "text-gray-400 hover:bg-gray-800 hover:text-white" : "text-gray-600 hover:bg-gray-100 hover:text-gray-900")
-                    }`}
+                    } ${!isPremium && page.id === "ai_manager" && !isActive ? "text-purple-500 border border-purple-500/30" : ""}`}
                   >
                     <span className="text-2xl">{page.icon}</span>
                     <span>{page.label}</span>
@@ -353,9 +355,24 @@ export default function Dashboard() {
           <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
         )}
 
-        {/* ΑΝΤΙ ΓΙΑ ΟΛΟ ΤΟΝ ΚΩΔΙΚΑ, ΚΑΛΟΥΜΕ ΤΟ ΝΕΟ ΑΡΧΕΙΟ! */}
+        {/* Λογική για το AI MANAGER TAB: Ελέγχει αν είναι Premium */}
         {tab === "ai_manager" && userRole === "admin" && (
-           <AiManagerTab storeId={storeId} orders={orders} isKitchen={isKitchen} theme={theme} />
+           isPremium ? (
+             <AiManagerTab storeId={storeId} orders={orders} isKitchen={isKitchen} theme={theme} />
+           ) : (
+             <div className={`max-w-2xl mx-auto mt-10 p-10 md:p-16 rounded-[3rem] text-center border-2 border-dashed shadow-sm ${isDark ? "bg-gray-800/50 border-purple-900/50" : "bg-purple-50/50 border-purple-200"}`}>
+               <div className="text-6xl md:text-7xl mb-6">🔒</div>
+               <h2 className={`font-black text-3xl md:text-4xl uppercase italic tracking-tighter mb-4 ${isDark ? "text-white" : "text-gray-900"}`}>
+                 AI Manager Pro
+               </h2>
+               <p className={`font-medium mb-10 leading-relaxed text-sm md:text-base ${isDark ? "text-gray-300" : "text-gray-700"}`}>
+                 Αυτή η λειτουργία είναι διαθέσιμη αποκλειστικά στο <strong className="text-purple-500">Premium</strong> πακέτο. Αποκτήστε πρόσβαση σε AI προβλέψεις κίνησης, έξυπνη διαχείριση προσωπικού και αναλύσεις τζίρου για να αυξήσετε τα κέρδη σας.
+               </p>
+               <button onClick={() => alert('Επικοινωνήστε μαζί μας για να αναβαθμίσετε το πακέτο σας στο Premium!')} className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-black uppercase text-xs md:text-sm px-8 py-5 rounded-2xl shadow-xl hover:-translate-y-1 transition-transform">
+                 ΑΝΑΒΑΘΜΙΣΗ ΣΕ PREMIUM
+               </button>
+             </div>
+           )
         )}
         
         {tab === "reviews" && userRole === "admin" && (
