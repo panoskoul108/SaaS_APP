@@ -321,12 +321,11 @@ export default function Dashboard() {
   historyOrdersList.forEach((o) => { const h = new Date(o.created_at).getHours() + ":00"; hourCounts[h] = (hourCounts[h] || 0) + 1; });
   const peakHours = Object.entries(hourCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
 
-  // Λογική Παραγωγής AI Report (Δυναμική με βάση τον χρόνο)
-  const generateAiReport = () => {
+  // Live Σύνδεση με τον πίνακα daily_predictions (για 7 ημέρες)
+  const generateAiReport = async () => {
     setIsAiLoading(true);
     setShowAiReport(true);
     
-    // Μετατροπή της επιλεγμένης περιόδου σε Ελληνικό κείμενο
     const periodLabels = {
       today: "Σήμερα",
       week: "Αυτή την εβδομάδα",
@@ -336,20 +335,55 @@ export default function Dashboard() {
     };
     const currentPeriodText = periodLabels[dateRange] || "Αυτή την περίοδο";
     
-    // Υπολογισμοί με ασφάλεια (για να μην βγάλει error αν δεν υπάρχουν παραγγελίες)
     const cardPercentage = totalRevenue > 0 ? ((cardTotal / totalRevenue) * 100).toFixed(0) : 0;
     const topProductName = topProducts.length > 0 ? topProducts[0][0] : 'Κανένα προϊόν';
     const topProductQty = topProducts.length > 0 ? topProducts[0][1] : 0;
     const peakHourName = peakHours.length > 0 ? peakHours[0][0] : '-';
 
+    // Υπολογισμός Ημερομηνιών: Από αύριο έως +7 ημέρες
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowStr = tomorrow.toISOString().split('T')[0];
+
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    const nextWeekStr = nextWeek.toISOString().split('T')[0];
+
+    // Τράβηγμα των πραγματικών δεδομένων (της εβδομάδας) από το Supabase
+    const { data: predictionData, error } = await supabase
+      .from('daily_predictions')
+      .select('*')
+      .eq('restaurant_id', storeId) 
+      .gte('target_date', tomorrowStr)
+      .lte('target_date', nextWeekStr)
+      .order('target_date', { ascending: true });
+
+    let aiPredictionText = `Δεν βρέθηκαν δεδομένα από το μοντέλο AI για τις επόμενες 7 ημέρες. Βεβαιωθείτε ότι το Python script ενημερώνει τη βάση δεδομένων.`;
+
+    if (predictionData && predictionData.length > 0) {
+      aiPredictionText = "📅 ΠΡΟΒΛΕΨΗ ΕΠΟΜΕΝΩΝ ΗΜΕΡΩΝ (AI Model):\n\n";
+      predictionData.forEach((day) => {
+        const d = new Date(day.target_date);
+        const formattedDate = `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+        
+        aiPredictionText += `🔹 ${formattedDate} | 👥 ${day.predicted_customers} Πελάτες\n`;
+        aiPredictionText += `   🍽️ Προσωπικό: ${day.waiters_needed} Σερβ. - ${day.cooks_needed} Μαγ. - ${day.helpers_needed} Βοηθ.\n`;
+        if (day.reasoning) {
+          aiPredictionText += `   ☁️ ${day.reasoning}\n`;
+        }
+        aiPredictionText += `\n`; // Κενή γραμμή μεταξύ ημερών
+      });
+    }
+
     setTimeout(() => {
       setAiReportData({
         sales: `📊 ${currentPeriodText}, ο συνολικός τζίρος έφτασε τα ${totalRevenue.toFixed(2)}€ από ${totalOrdersCount} παραγγελίες. Η μέση αξία ανά παραγγελία είναι ${avgOrderValue.toFixed(2)}€. Το κορυφαίο προϊόν σε ζήτηση ήταν το "${topProductName}" (${topProductQty} τεμάχια).`,
-        insights: `💳 Ποσοστό ${cardPercentage}% των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής για ${currentPeriodText.toLowerCase()} εντοπίζονται κυρίως γύρω στις ${peakHourName}. ${cardPercentage > 60 ? '💡 Έξυπνο Tip: Υψηλή χρήση κάρτας, βεβαιώσου ότι το ρολό του τερματικού POS είναι γεμάτο.' : '💡 Έξυπνο Tip: Αρκετά μετρητά στο ταμείο, φρόντισε να υπάρχουν αρκετά ψιλά για ρέστα.'}`,
-        prediction: `🤖 Σύμφωνα με το μοντέλο Random Forest (Ανάλυση Καιρού & Αφίξεων Λέσβου): Βάσει της δυναμικής ${currentPeriodText.toLowerCase()}, αύριο προβλέπεται αλλαγή του καιρού. Προτείνεται προετοιμασία αποθέματος (stock) στο Top προϊόν ("${topProductName}") και αναπροσαρμογή της βάρδιας στο service.`
+        insights: `💳 Ποσοστό ${cardPercentage}% των πελατών πλήρωσε με κάρτα. Οι ώρες αιχμής εντοπίζονται κυρίως γύρω στις ${peakHourName}. ${cardPercentage > 60 ? '💡 Έξυπνο Tip: Υψηλή χρήση κάρτας, βεβαιώσου ότι το ρολό του τερματικού POS είναι γεμάτο.' : '💡 Έξυπνο Tip: Αρκετά μετρητά στο ταμείο, φρόντισε να υπάρχουν αρκετά ψιλά για ρέστα.'}`,
+        prediction: aiPredictionText
       });
       setIsAiLoading(false);
-    }, 2000);
+    }, 1200);
   };
 
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
@@ -496,33 +530,32 @@ export default function Dashboard() {
       {/* --- AI REPORT MODAL --- */}
       {showAiReport && (
         <div className="fixed inset-0 bg-black/80 z-[500] flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowAiReport(false)}>
-          <div className={`w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative flex flex-col ${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`} onClick={(e) => e.stopPropagation()}>
+          <div className={`w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl relative flex flex-col max-h-[90vh] ${isDark ? "bg-gray-800 text-white" : "bg-white text-gray-900"}`} onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setShowAiReport(false)} className={`absolute top-4 right-4 w-10 h-10 rounded-full font-black flex items-center justify-center ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>✕</button>
-            <h2 className="text-2xl font-black italic uppercase mb-6 flex items-center gap-3">
+            <h2 className="text-2xl font-black italic uppercase mb-6 flex items-center gap-3 shrink-0">
               <span className="text-3xl">✨</span> AI Manager Report
             </h2>
             
             {isAiLoading ? (
               <div className="flex flex-col items-center justify-center py-12 space-y-4">
                 <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="font-bold text-sm text-gray-400 animate-pulse uppercase tracking-widest">Αναλυση Δεδομενων & Μοντελου...</p>
+                <p className="font-bold text-sm text-gray-400 animate-pulse uppercase tracking-widest">Ανακτηση Δεδομενων & Μοντελου...</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                <div className={`p-5 rounded-2xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
+              <div className="space-y-6 overflow-y-auto pr-2 no-scrollbar flex-1 pb-4">
+                <div className={`p-5 rounded-2xl border shrink-0 ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-100"}`}>
                   <h3 className="font-black text-xs uppercase text-indigo-500 mb-2">📊 Αποδοση Επιλεγμενης Περιοδου</h3>
                   <p className={`text-sm font-medium leading-relaxed ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.sales}</p>
                   <p className={`text-sm font-medium leading-relaxed mt-2 ${isDark ? "text-gray-300" : "text-gray-700"}`}>{aiReportData?.insights}</p>
                 </div>
                 
                 <div className={`p-5 rounded-2xl border-2 border-purple-500/30 bg-gradient-to-br ${isDark ? "from-purple-900/20 to-indigo-900/20" : "from-purple-50 to-indigo-50"}`}>
-                  <h3 className="font-black text-xs uppercase text-purple-600 mb-2 flex items-center gap-2">
-                    🎯 AI Προβλεψη & Στρατηγικη
-                  </h3>
-                  <p className={`text-sm font-bold leading-relaxed ${isDark ? "text-purple-200" : "text-purple-900"}`}>{aiReportData?.prediction}</p>
+                  <p className={`text-sm font-bold leading-relaxed whitespace-pre-line ${isDark ? "text-purple-200" : "text-purple-900"}`}>
+                    {aiReportData?.prediction}
+                  </p>
                 </div>
 
-                <button onClick={() => setShowAiReport(false)} className="w-full py-4 rounded-xl font-black uppercase text-sm bg-gray-900 text-white shadow-lg active:scale-95 transition-transform dark:bg-white dark:text-black">
+                <button onClick={() => setShowAiReport(false)} className="w-full py-4 rounded-xl font-black uppercase text-sm bg-gray-900 text-white shadow-lg active:scale-95 transition-transform dark:bg-white dark:text-black shrink-0 mt-4">
                   ΚΛΕΙΣΙΜΟ
                 </button>
               </div>
