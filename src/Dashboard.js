@@ -14,9 +14,9 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // 2. Ξεχωριστή Βάση (Restaurant Predictor - Για το AI)
 // ΒΑΛΕ ΕΔΩ ΤΑ ΣΤΟΙΧΕΙΑ ΑΠΟ ΤΟ 2ο PROJECT ΣΟΥ!
-const PREDICTOR_URL = process.env.REACT_APP_PREDICTOR_URL || "ΒΑΛΕ_ΕΔΩ_ΤΟ_URL_ΤΟΥ_RESTAURANT_PREDICTOR";
+const PREDICTOR_URL = process.env.REACT_APP_PREDICTOR_URL || https://qrmontajnhxwqwagxazb.supabase.co;
 const REWARD_THRESHOLD = 40;
-const PREDICTOR_KEY = process.env.REACT_APP_PREDICTOR_KEY || "ΒΑΛΕ_ΕΔΩ_ΤΟ_ANON_KEY_ΤΟΥ_RESTAURANT_PREDICTOR";
+const PREDICTOR_KEY = process.env.REACT_APP_PREDICTOR_KEY || eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFybW9udGFqbmh4d3F3YWd4YXpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIyOTA1NzksImV4cCI6MjA4Nzg2NjU3OX0.DwPO5o7b5G2fTppX4BGEPrpyKAe5RMWwFwLyWOINwtA;
 const predictorSupabase = createClient(PREDICTOR_URL, PREDICTOR_KEY);
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
@@ -743,3 +743,4 @@ export default function Dashboard() {
     </div>
   );
 }
+
