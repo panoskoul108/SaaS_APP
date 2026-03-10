@@ -66,15 +66,15 @@ const normalizeForSearch = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/ς/g, "σ");
 };
 
-// ΠΡΟΣΘΕΤΟΥΜΕ ΤΙΣ ΜΕΤΑΦΡΑΣΕΙΣ ΤΟΥ UPSELL ΣΤΟ ΛΕΞΙΚΟ
+// ΕΝΗΜΕΡΩΜΕΝΟ ΛΕΞΙΚΟ ΜΕ THN ΕΝΟΤΗΤΑ ΠΡΟΤΑΣΕΩΝ ΣΤΟ ΚΑΛΑΘΙ
 const DICT = {
   gr: {
     requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΑΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
-    upsellTitle: "ΜΗΠΩΣ ΞΕΧΑΣΑΤΕ ΚΑΤΙ;", upsellMsg: "Θέλετε να προσθέσετε ένα παγωμένο εμφιαλωμένο νερό;", upsellYes: "ΝΑΙ, ΠΡΟΣΘΗΚΗ (+0.50€)", upsellNo: "ΟΧΙ ΕΥΧΑΡΙΣΤΩ"
+    freqBought: "🔥 ΠΟΛΛΟΙ ΣΥΝΔΥΑΖΟΥΝ ΕΠΙΣΗΣ"
   },
   en: {
     requiredTable: "SELECT TABLE", table: "TABLE", selectManual: "Manual Table Selection", btnSelectTable: "SELECT TABLE", rec: "RECOMMENDED", outOfStock: "Out of Stock", unavail: "UNAVAILABLE", add: "ADD", req: "REQUIRED", opt: "OPTIONAL", upTo: "UP TO", select1: "SELECT 1", free: "FREE", addToCart: "ADD TO CART", viewCart: "VIEW CART", yourOrder: "YOUR ORDER", note: "NOTE", itemNotePlaceholder: "E.g. No sugar, extra ice...", genNoteTitle: "GENERAL NOTE (OPTIONAL)", payMethod: "PAYMENT METHOD", cash: "CASH", card: "CARD", send: "SEND ORDER", selPay: "SELECT PAYMENT", history: "PREVIOUS ORDERS", noHistory: "You have no previous orders", reorder: "REORDER", hasOptions: "Options available", search: "Search products...", qty: "QUANTITY", noResults: "No products found.", pausedBanner: "ORDERS TEMPORARILY PAUSED DUE TO HIGH VOLUME", pausedCartMsg: "New orders cannot be sent at this time.", edit: "EDIT", save: "SAVE", loyaltyTitle: "GIFT WITH ORDER", loyaltyReward: "YOU GET A FREE TREAT! 🎁", privacyTitle: "Privacy Policy & Security", privacyLink: "Privacy Policy (GDPR)", locErrorSupport: "Your device does not support location tracking.", locErrorDenied: "Please allow location access (GPS) to send your order.", locErrorFar: "It seems you are outside the store! Orders can only be sent from within our premises.", locFinding: "CHECKING LOCATION...",
-    upsellTitle: "DID YOU FORGET SOMETHING?", upsellMsg: "Would you like to add a cold bottled water?", upsellYes: "YES, ADD IT (+0.50€)", upsellNo: "NO THANKS"
+    freqBought: "🔥 FREQUENTLY ADDED TOGETHER"
   },
 };
 
@@ -87,7 +87,7 @@ export default function Menu() {
   const urlTable = new URLSearchParams(window.location.search).get("table");
   const [tableNum, setTableNum] = useState(urlTable === "null" ? null : urlTable);
   
-  // 1. ΑΥΤΟΜΑΤΗ ΑΝΙΧΝΕΥΣΗ ΓΛΩΣΣΑΣ BROWSER
+  // ΑΥΤΟΜΑΤΗ ΑΝΙΧΝΕΥΣΗ ΓΛΩΣΣΑΣ BROWSER
   const [lang, setLang] = useState(() => {
     const browserLang = navigator.language || navigator.userLanguage || "el";
     return browserLang.toLowerCase().startsWith("el") ? "gr" : "en";
@@ -135,9 +135,6 @@ export default function Menu() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-
-  // STATE ΓΙΑ ΤΟ UPSELL MODAL
-  const [showUpsellModal, setShowUpsellModal] = useState(false);
 
   const [orderHistory, setOrderHistory] = useState(() => {
     const saved = localStorage.getItem(`status_order_history_${storeId}`);
@@ -404,43 +401,10 @@ export default function Menu() {
   const isRewardOrder = currentCartTotal >= activeThreshold;
   const progressPercent = Math.min((currentCartTotal / activeThreshold) * 100, 100);
 
-  // 2. Ο ΜΗΧΑΝΙΣΜΟΣ CROSS-SELL (ΕΛΕΓΧΟΣ ΚΑΛΑΘΙΟΥ ΠΡΙΝ ΤΗΝ ΑΠΟΣΤΟΛΗ)
-  const handleCheckoutAttempt = () => {
-    // Ελέγχει αν υπάρχει ήδη Νερό στο καλάθι
-    const hasWater = cart.some(i => normalizeStr(i.name).includes("ΝΕΡΟ") || normalizeStr(i.name).includes("WATER"));
-    
-    if (!hasWater) {
-      setShowUpsellModal(true); // Αν δεν έχει νερό, βγάζει το pop-up!
-    } else {
-      proceedToGeofencing(cart); // Αλλιώς προχωράει κανονικά
-    }
-  };
-
-  // Αν ο πελάτης πει ΝΑΙ στο Νερό
-  const acceptUpsell = () => {
-    // Ψάχνει το νερό στα προϊόντα σου, αλλιώς φτιάχνει ένα virtual.
-    let waterProduct = products.find(p => normalizeStr(p.name).includes("ΝΕΡΟ") || normalizeStr(p.name).includes("WATER"));
-    if (!waterProduct) {
-      waterProduct = { id: 'upsell-water', name: "Εμφιαλωμένο Νερό 500ml", name_en: "Bottled Water 500ml", price: 0.50, is_available: true };
-    }
-    const waterItem = { ...waterProduct, cartId: Date.now() + Math.random(), quantity: 1, note: "", rawAddons: {} };
-    const newCart = [...cart, waterItem];
-    
-    setCart(newCart);
-    setShowUpsellModal(false);
-    proceedToGeofencing(newCart); // Στέλνει την παραγγελία με το νέο καλάθι!
-  };
-
-  // Αν ο πελάτης πει ΟΧΙ στο Νερό
-  const declineUpsell = () => {
-    setShowUpsellModal(false);
-    proceedToGeofencing(cart); // Στέλνει το παλιό καλάθι
-  };
-
-  // 3. Ο ΠΑΛΙΟΣ ΜΗΧΑΝΙΣΜΟΣ GEOFENCING (ΑΣΦΑΛΗΣ)
-  const proceedToGeofencing = (cartToProcess) => {
+  // Ο ΚΛΑΣΙΚΟΣ ΜΗΧΑΝΙΣΜΟΣ ΑΠΟΣΤΟΛΗΣ (GEOFENCING)
+  const proceedToGeofencing = () => {
     if (!store?.lat || !store?.lng) {
-      sendOrder(cartToProcess);
+      sendOrder();
       return;
     }
     if (!navigator.geolocation) return alert(t.locErrorSupport);
@@ -451,7 +415,7 @@ export default function Menu() {
         const radius = store.radius || 100;
         const dist = getDistance(latitude, longitude, store.lat, store.lng);
         setIsLocating(false);
-        if (dist <= radius) sendOrder(cartToProcess);
+        if (dist <= radius) sendOrder();
         else alert(t.locErrorFar);
       },
       (error) => { 
@@ -462,26 +426,23 @@ export default function Menu() {
     );
   };
 
-  const sendOrder = async (cartToProcess) => {
-    if (!paymentMethod || cartToProcess.length === 0 || !tableNum || !isAcceptingOrders) return;
+  const sendOrder = async () => {
+    if (!paymentMethod || cart.length === 0 || !tableNum || !isAcceptingOrders) return;
     
-    const finalTotal = cartToProcess.reduce((s, i) => s + i.price * (i.quantity || 1), 0);
-    const finalReward = finalTotal >= activeThreshold;
-
     const { data, error } = await supabase.from("orders").insert([{
       store_id: storeId, 
       table_number: tableNum, 
-      items: cartToProcess, 
-      total_price: finalTotal, 
+      items: cart, 
+      total_price: currentCartTotal, 
       payment_method: paymentMethod, 
       status: "pending", 
       general_note: removeAccents(generalNote), 
       customer_id: custId, 
-      is_loyalty_reward: finalReward,
+      is_loyalty_reward: isRewardOrder,
     }]).select();
     
     if (!error && data) {
-      const newHistoryOrder = { id: data[0].id, date: new Date().toISOString(), items: cartToProcess, total: finalTotal, status: "pending" };
+      const newHistoryOrder = { id: data[0].id, date: new Date().toISOString(), items: cart, total: currentCartTotal, status: "pending" };
       const updatedHistory = [newHistoryOrder, ...orderHistory].slice(0, 10);
       setOrderHistory(updatedHistory); 
       localStorage.setItem(`status_order_history_${storeId}`, JSON.stringify(updatedHistory)); 
@@ -795,32 +756,6 @@ export default function Menu() {
         </div>
       </div>
 
-      {/* --- UPSELL MODAL ΟΤΑΝ ΠΑΤΑΕΙ ΑΠΟΣΤΟΛΗ ΧΩΡΙΣ ΝΕΡΟ --- */}
-      {showUpsellModal && (
-        <div className="fixed inset-0 bg-black/80 z-[400] flex items-center justify-center p-6 animate-fade-in">
-          <div className={`p-8 rounded-3xl max-w-sm w-full shadow-2xl text-center ${isDark ? "bg-gray-800 text-white border border-gray-700" : "bg-white text-gray-900"}`}>
-            <div className="text-6xl mb-4 animate-bounce">💧</div>
-            <h2 className="font-black text-xl mb-2 uppercase italic">{t.upsellTitle}</h2>
-            <p className={`text-sm font-medium mb-8 ${isDark ? "text-gray-300" : "text-gray-600"}`}>{t.upsellMsg}</p>
-            <div className="space-y-3">
-              <button 
-                onClick={acceptUpsell} 
-                className="w-full py-4 text-white rounded-2xl font-black uppercase shadow-lg active:scale-95 transition-transform" 
-                style={{ backgroundColor: themeColor }}
-              >
-                {t.upsellYes}
-              </button>
-              <button 
-                onClick={declineUpsell} 
-                className={`w-full py-4 rounded-2xl font-black uppercase transition-colors ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-              >
-                {t.upsellNo}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <ProductModal 
         theme={theme} 
         activeProduct={activeProduct} 
@@ -856,6 +791,7 @@ export default function Menu() {
         </div>
       )}
 
+      {/* ΑΛΛΑΓΗ 2: ΠΕΡΝΑΜΕ ΤΑ ΝΕΑ ΔΕΔΟΜΕΝΑ ΣΤΟ ΚΑΛΑΘΙ */}
       <CartModal 
         theme={theme} 
         isCartOpen={isCartOpen} 
@@ -867,13 +803,20 @@ export default function Menu() {
         getItemDisplayName={getItemDisplayName} 
         themeColor={themeColor} 
         t={t} 
+        lang={lang} // Στέλνουμε τη γλώσσα
+        products={products} // Στέλνουμε τη λίστα προϊόντων για να βρει τι να προτείνει
+        handleProductClick={(p) => {
+          setIsCartOpen(false); // Κλείνει το καλάθι και ανοίγει το Modal του προϊόντος
+          handleProductClick(p);
+        }}
+        getSmartImage={getSmartImage} // Στέλνουμε το εργαλείο των φωτογραφιών
         generalNote={generalNote} 
         setGeneralNote={setGeneralNote} 
         paymentMethod={paymentMethod} 
         setPaymentMethod={setPaymentMethod} 
         isAcceptingOrders={isAcceptingOrders} 
         tableNum={tableNum} 
-        handleSendOrderClick={handleCheckoutAttempt} // <--- ΚΑΛΕΙ ΤΟΝ ΝΕΟ ΜΗΧΑΝΙΣΜΟ!
+        handleSendOrderClick={proceedToGeofencing} // Η αποστολή γίνεται κανονικά όπως παλιά
         isLocating={isLocating} 
         openPrivacy={() => setShowPrivacyModal(true)} 
         currentCartTotal={currentCartTotal} 
