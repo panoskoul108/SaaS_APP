@@ -1,6 +1,6 @@
 {
-  "short_name": "Status Staff",
-  "name": "Status POS Staff App",
+  "short_name": "Smart POS",
+  "name": "Smart POS System",
   "icons": [
     {
       "src": "logo192.png",
@@ -13,8 +13,8 @@
       "sizes": "512x512"
     }
   ],
-  "start_url": "/login", 
+  "start_url": ".",
   "display": "standalone",
   "theme_color": "#111827",
-  "background_color": "#111827"
+  "background_color": "#ffffff"
 }
