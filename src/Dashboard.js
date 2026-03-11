@@ -41,14 +41,19 @@ export default function Dashboard() {
   const [isPremium, setIsPremium] = useState(false);
   const [bellVisibility, setBellVisibility] = useState({ admin: false, staff: true, kitchen: false });
   
-  const [orders, setOrders] = useState([]);
+  // --- ΝΕΑ ΛΟΓΙΚΗ ΑΡΧΕΙΟΘΕΤΗΣΗΣ (PERFORMANCE) ---
+  const [orders, setOrders] = useState([]); // Εδώ μπαίνουν ΜΟΝΟ οι "ζωντανές" (τελευταίες 24 ώρες & εκκρεμείς)
+  const [archiveOrders, setArchiveOrders] = useState([]); // Εδώ μπαίνουν οι παλιές παραγγελίες (όταν τις ζητήσει ο χρήστης)
+  const [isArchiveLoaded, setIsArchiveLoaded] = useState(false);
+  const [isArchiveLoading, setIsArchiveLoading] = useState(false);
+  // ----------------------------------------------
+
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [tab, setTab] = useState("orders");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   
-  // Έγινε ρητά false για να μην μπερδεύεται
   const [backupMode, setBackupMode] = useState(false);
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
   
@@ -94,7 +99,18 @@ export default function Dashboard() {
 
   const fetchData = async () => {
     if (!isAuthenticated || !storeId) return;
-    const { data: ordersData } = await supabase.from("orders").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
+    
+    // FETCH ΜΟΝΟ ΤΙΣ ΕΝΕΡΓΕΣ ΚΑΙ ΤΙΣ ΠΡΟΣΦΑΤΕΣ (Τελευταίες 24 Ώρες) ΓΙΑ ΤΑΧΥΤΗΤΑ
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: ordersData } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("store_id", storeId)
+      // Φέρνει όσες δεν έχουν ολοκληρωθεί, Ή όσες φτιάχτηκαν τις τελευταίες 24 ώρες
+      .or(`status.neq.completed,created_at.gte.${yesterday}`)
+      .order("created_at", { ascending: false });
+      
     if (ordersData) setOrders(ordersData);
     
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
@@ -102,10 +118,8 @@ export default function Dashboard() {
     
     const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium, bell_visibility").eq("id", storeId).single();
     if (storeData) {
-      // Αυστηρός έλεγχος (Boolean) για να μην σπάει ποτέ
       setBackupMode(storeData.backup_mode === true || String(storeData.backup_mode) === "true"); 
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
-      
       setStoreName(storeData.name); 
       setStoreLogo(storeData.logo_url); 
       setIsPremium(storeData.is_premium || false);
@@ -113,6 +127,26 @@ export default function Dashboard() {
       if (storeData.tables) setStoreTables(storeData.tables);
       if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
+  };
+
+  // Η ΣΥΝΑΡΤΗΣΗ ΠΟΥ ΦΟΡΤΩΝΕΙ ΤΟ ΒΑΡΥ ΑΡΧΕΙΟ ΜΟΝΟ ΟΤΑΝ ΤΟ ΖΗΤΗΣΕΙ Ο ADMIN
+  const loadArchiveOrders = async () => {
+    setIsArchiveLoading(true);
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    
+    const { data: archiveData } = await supabase
+      .from("orders")
+      .select("*")
+      .eq("store_id", storeId)
+      .eq("status", "completed")
+      .lt("created_at", yesterday) // Λιγότερο από χθες
+      .order("created_at", { ascending: false });
+      
+    if (archiveData) {
+      setArchiveOrders(archiveData);
+      setIsArchiveLoaded(true);
+    }
+    setIsArchiveLoading(false);
   };
 
   const fetchProducts = async () => {
@@ -154,9 +188,17 @@ export default function Dashboard() {
   };
 
   const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
-  const deleteOrders = async (ids) => { if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { await supabase.from("orders").delete().in("id", ids); setSelectedOrderIds([]); fetchData(); } };
   
-  // --- ΔΙΟΡΘΩΜΕΝΟ & ΑΣΦΑΛΕΣ BACKUP TOGGLE ---
+  const deleteOrders = async (ids) => { 
+    if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { 
+      await supabase.from("orders").delete().in("id", ids); 
+      setSelectedOrderIds([]); 
+      fetchData(); 
+      // Αν διαγράψουμε από το αρχείο, αφαιρούμε και τοπικά:
+      setArchiveOrders(archiveOrders.filter(o => !ids.includes(o.id)));
+    } 
+  };
+  
   const toggleBackupMode = async () => {
     setBackupMode((prev) => {
       const newState = !prev;
@@ -249,7 +291,10 @@ export default function Dashboard() {
     const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `Z_Report_${new Date().toLocaleDateString("el-GR").replace(/\//g, "-")}.txt`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
   };
 
-  const historyOrdersList = orders.filter((o) => {
+  // ΣΥΓΧΩΝΕΥΣΗ LIVE & ARCHIVE ΠΑΡΑΓΓΕΛΙΩΝ ΓΙΑ ΤΟ ΙΣΤΟΡΙΚΟ
+  const combinedOrders = [...orders, ...archiveOrders];
+
+  const historyOrdersList = combinedOrders.filter((o) => {
     if (o.status !== "completed") return false;
     const date = new Date(o.created_at); const table = String(o.table_number || "").toLowerCase(); const matchesSearch = table.includes(historySearch.toLowerCase());
     let matchesTime = true; const now = new Date();
@@ -265,6 +310,8 @@ export default function Dashboard() {
   const avgOrderValue = totalOrdersCount ? totalRevenue / totalOrdersCount : 0;
   const cashTotal = historyOrdersList.filter((o) => o.payment_method === "ΜΕΤΡΗΤΑ").reduce((sum, o) => sum + (isKitchen ? o.items?.filter((it) => it.station === "kitchen").reduce((s, it) => s + it.price * it.quantity, 0) : o.total_price), 0);
   const cardTotal = totalRevenue - cashTotal;
+  
+  // Το active tables κοιτάει μόνο τα Live Orders
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
   const productCounts = {};
@@ -385,6 +432,7 @@ export default function Dashboard() {
       <main className="p-4 print:hidden">
         {tab === "orders" && (
           <OrderList 
+            // Εδώ περνάμε ΜΟΝΟ τα live orders για να μην βαραίνει η οθόνη
             orders={[...orders].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))} 
             isKitchen={isKitchen} 
             userRole={userRole} 
@@ -400,7 +448,35 @@ export default function Dashboard() {
         )}
         
         {tab === "history" && (
-          <HistoryPanel isKitchen={isKitchen} userRole={userRole} dateRange={dateRange} setDateRange={setDateRange} specificDate={specificDate} setSpecificDate={setSpecificDate} historySearch={historySearch} setHistorySearch={setHistorySearch} totalRevenue={totalRevenue} totalOrdersCount={totalOrdersCount} avgOrderValue={avgOrderValue} cashTotal={cashTotal} cardTotal={cardTotal} topProducts={topProducts} peakHours={peakHours} historyOrders={historyOrdersList} selectedOrderIds={selectedOrderIds} setSelectedOrderIds={setSelectedOrderIds} deleteOrders={deleteOrders} downloadReportFile={downloadReportFile} theme={theme} setViewingOrder={setViewingOrder} />
+          <HistoryPanel 
+            isKitchen={isKitchen} 
+            userRole={userRole} 
+            dateRange={dateRange} 
+            setDateRange={setDateRange} 
+            specificDate={specificDate} 
+            setSpecificDate={setSpecificDate} 
+            historySearch={historySearch} 
+            setHistorySearch={setHistorySearch} 
+            totalRevenue={totalRevenue} 
+            totalOrdersCount={totalOrdersCount} 
+            avgOrderValue={avgOrderValue} 
+            cashTotal={cashTotal} 
+            cardTotal={cardTotal} 
+            topProducts={topProducts} 
+            peakHours={peakHours} 
+            historyOrders={historyOrdersList} 
+            selectedOrderIds={selectedOrderIds} 
+            setSelectedOrderIds={setSelectedOrderIds} 
+            deleteOrders={deleteOrders} 
+            downloadReportFile={downloadReportFile} 
+            theme={theme} 
+            setViewingOrder={setViewingOrder} 
+            
+            // --- ΝΕΑ PROPS ΓΙΑ ΤΗ ΦΟΡΤΩΣΗ ΑΡΧΕΙΟΥ ---
+            isArchiveLoaded={isArchiveLoaded}
+            isArchiveLoading={isArchiveLoading}
+            loadArchiveOrders={loadArchiveOrders}
+          />
         )}
 
         {tab === "ai_manager" && userRole === "admin" && (
