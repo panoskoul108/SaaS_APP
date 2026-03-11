@@ -137,7 +137,20 @@ export default function Dashboard() {
     setPrevOrdersCount(pendingCount);
   }, [orders, isMuted, isKitchen, prevOrdersCount]);
 
-  const updateStatus = async (id, newStatus, forKitchen = false) => { await supabase.from("orders").update(forKitchen ? { kitchen_status: newStatus } : { status: newStatus }).eq("id", id); fetchData(); };
+  // --- ΝΕΟΣ ΜΗΧΑΝΙΣΜΟΣ ΚΛΕΙΔΩΜΑΤΟΣ ΧΡΟΝΟΥ KDS ---
+  const updateStatus = async (id, newStatus, forKitchen = false) => { 
+    const updateData = forKitchen ? { kitchen_status: newStatus } : { status: newStatus };
+    
+    // Αν η παραγγελία τελειώσει (ready για κουζίνα, completed για service), γράφουμε την ώρα
+    if (newStatus === "ready" || newStatus === "completed") {
+      updateData.completed_at = new Date().toISOString();
+    }
+
+    await supabase.from("orders").update(updateData).eq("id", id); 
+    fetchData(); 
+  };
+  // ----------------------------------------------
+
   const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
   const deleteOrders = async (ids) => { if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { await supabase.from("orders").delete().in("id", ids); setSelectedOrderIds([]); fetchData(); } };
   const toggleBackupMode = async () => { const s = !backupMode; await supabase.from("stores").update({ backup_mode: s }).eq("id", storeId); setBackupMode(s); };
@@ -236,7 +249,6 @@ export default function Dashboard() {
   const cardTotal = totalRevenue - cashTotal;
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
-  // ΕΠΑΝΑΦΟΡΑ ΤΩΝ ΑΠΑΡΑΙΤΗΤΩΝ ΜΕΤΑΒΛΗΤΩΝ ΓΙΑ ΤΟ ΙΣΤΟΡΙΚΟ
   const productCounts = {};
   historyOrdersList.forEach((o) => o.items?.forEach((it) => { if (!isKitchen || it.station === "kitchen") productCounts[it.name] = (productCounts[it.name] || 0) + it.quantity; }));
   const topProducts = Object.entries(productCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
