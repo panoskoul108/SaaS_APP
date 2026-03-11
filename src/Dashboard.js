@@ -39,8 +39,6 @@ export default function Dashboard() {
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
   
   const [isPremium, setIsPremium] = useState(false);
-  
-  // JSON STATE: Ελέγχει ποιοι ρόλοι βλέπουν το κουδούνι
   const [bellVisibility, setBellVisibility] = useState({ admin: false, staff: true, kitchen: false });
   
   const [orders, setOrders] = useState([]);
@@ -49,6 +47,8 @@ export default function Dashboard() {
   const [tab, setTab] = useState("orders");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
+  
+  // Έγινε ρητά false για να μην μπερδεύεται
   const [backupMode, setBackupMode] = useState(false);
   const [isAcceptingOrders, setIsAcceptingOrders] = useState(true);
   
@@ -102,14 +102,14 @@ export default function Dashboard() {
     
     const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium, bell_visibility").eq("id", storeId).single();
     if (storeData) {
-      setBackupMode(storeData.backup_mode); 
+      // Αυστηρός έλεγχος (Boolean) για να μην σπάει ποτέ
+      setBackupMode(storeData.backup_mode === true || String(storeData.backup_mode) === "true"); 
+      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
+      
       setStoreName(storeData.name); 
       setStoreLogo(storeData.logo_url); 
-      setIsAcceptingOrders(storeData.is_accepting_orders !== false);
       setIsPremium(storeData.is_premium || false);
-      
       if (storeData.bell_visibility) setBellVisibility(storeData.bell_visibility);
-      
       if (storeData.tables) setStoreTables(storeData.tables);
       if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
@@ -144,7 +144,6 @@ export default function Dashboard() {
     setPrevOrdersCount(pendingCount);
   }, [orders, isMuted, isKitchen, prevOrdersCount, bellVisibility, userRole]);
 
-  // Ο Μηχανισμός που κλειδώνει το χρονόμετρο
   const updateStatus = async (id, newStatus, forKitchen = false) => { 
     const updateData = forKitchen ? { kitchen_status: newStatus } : { status: newStatus };
     if (newStatus === "ready" || newStatus === "completed") {
@@ -157,18 +156,25 @@ export default function Dashboard() {
   const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
   const deleteOrders = async (ids) => { if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { await supabase.from("orders").delete().in("id", ids); setSelectedOrderIds([]); fetchData(); } };
   
-  // --- ΔΙΟΡΘΩΜΕΝΟ BACKUP TOGGLE ---
-  const toggleBackupMode = async () => { 
-    const newState = !backupMode; 
-    setBackupMode(newState); // Άμεσο update στο UI για να μην "κολλάει" το κουμπί
-    await supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId); 
+  // --- ΔΙΟΡΘΩΜΕΝΟ & ΑΣΦΑΛΕΣ BACKUP TOGGLE ---
+  const toggleBackupMode = async () => {
+    setBackupMode((prev) => {
+      const newState = !prev;
+      supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId).then(({ error }) => {
+        if (error) alert("Σφάλμα: " + error.message);
+      });
+      return newState;
+    });
   };
 
-  // --- ΔΙΟΡΘΩΜΕΝΟ ACCEPTING ORDERS TOGGLE ---
-  const toggleAcceptingOrders = async () => { 
-    const newState = !isAcceptingOrders; 
-    setIsAcceptingOrders(newState); // Άμεσο update στο UI
-    await supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId); 
+  const toggleAcceptingOrders = async () => {
+    setIsAcceptingOrders((prev) => {
+      const newState = !prev;
+      supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId).then(({ error }) => {
+        if (error) alert("Σφάλμα: " + error.message);
+      });
+      return newState;
+    });
   };
 
   const getQrUrl = (table) => {
@@ -379,7 +385,6 @@ export default function Dashboard() {
       <main className="p-4 print:hidden">
         {tab === "orders" && (
           <OrderList 
-            // --- Η ΑΛΛΑΓΗ ΣΟΥ: ΤΑΞΙΝΟΜΗΣΗ ΑΠΟ ΤΟ ΠΑΛΑΙΟΤΕΡΟ (ΠΑΝΩ) ΣΤΟ ΝΕΟΤΕΡΟ (ΚΑΤΩ) ---
             orders={[...orders].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))} 
             isKitchen={isKitchen} 
             userRole={userRole} 
