@@ -29,7 +29,7 @@ export default function CartModal({
   if (!isCartOpen) return null;
   const isDark = theme === "dark";
 
-  // ΛΟΓΙΚΗ ΕΞΥΠΝΟΥ UPSELLING: Βρίσκει τα 4 top προτεινόμενα που ΔΕΝ έχει ο πελάτης στο καλάθι!
+  // ΛΟΓΙΚΗ ΕΞΥΠΝΟΥ UPSELLING
   const cartItemIds = cart.map(item => item.id);
   const recommendations = (products || [])
     .filter(p => p.is_available && p.is_recommended && !cartItemIds.includes(p.id))
@@ -38,7 +38,7 @@ export default function CartModal({
   return (
     <div className={`fixed inset-0 z-[200] flex flex-col animate-slide-up ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
       {/* HEADER */}
-      <div className={`p-4 flex justify-between items-center shadow-sm border-b shrink-0 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+      <div className={`p-4 flex justify-between items-center shadow-sm border-b shrink-0 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
         <h2 className={`font-black uppercase text-lg ${isDark ? "text-white" : "text-gray-800"}`}>
           {t.yourOrder}
         </h2>
@@ -52,77 +52,68 @@ export default function CartModal({
         </button>
       </div>
 
-      {/* ΚΥΡΙΩΣ ΣΩΜΑ - ΕΔΩ ΡΟΛΑΡΟΥΝ ΟΛΑ (Προϊόντα, Upsell, Σημειώσεις, Πληρωμή) */}
+      {/* ΚΥΡΙΩΣ ΣΩΜΑ - ΕΔΩ ΡΟΛΑΡΟΥΝ ΟΛΑ */}
       <div className={`flex-1 overflow-y-auto p-4 no-scrollbar pb-32 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
         
-        {/* ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ */}
-        <div className="space-y-4 mb-8">
+        {/* ΜΙΝΙΜΑΛ ΛΙΣΤΑ ΠΡΟΪΟΝΤΩΝ (ΧΩΡΙΣ ΠΛΑΙΣΙΑ) */}
+        <div className={`mb-8 bg-transparent rounded-2xl ${isDark ? "divide-gray-800" : "divide-gray-200"} divide-y`}>
           {cart.map((item) => (
-            <div
-              key={item.cartId}
-              className={`p-4 rounded-3xl shadow-sm border flex flex-col gap-2 relative overflow-hidden ${
-                isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
-              }`}
-            >
+            <div key={item.cartId} className="py-4 flex flex-col gap-2">
+              
+              {/* Όνομα και Τιμή */}
               <div className="flex justify-between items-start">
                 <div className="flex-1 pr-3">
                   <h4 className={`font-black uppercase text-sm leading-tight ${isDark ? "text-white" : "text-gray-800"}`}>
                     {getItemDisplayName(item)}
                   </h4>
                   {item.note && (
-                    <p
-                      className={`text-[10px] font-bold italic mt-1 p-2 rounded-xl inline-block border ${
-                        isDark ? "bg-gray-900 border-gray-700 text-gray-400" : "bg-gray-50 border-gray-100 text-gray-500"
-                      }`}
-                    >
+                    <p className={`text-[10px] font-bold italic mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
                       📝 {item.note}
                     </p>
                   )}
                 </div>
-                <span className="font-black text-base" style={{ color: themeColor }}>
+                <span className="font-black text-sm pt-0.5" style={{ color: themeColor }}>
                   {(item.price * (item.quantity || 1)).toFixed(2)}€
                 </span>
               </div>
 
-              <div className={`flex justify-between items-center mt-2 pt-3 border-t ${isDark ? "border-gray-700" : "border-gray-50"}`}>
-                <div className={`flex items-center rounded-xl p-1 shadow-inner ${isDark ? "bg-gray-900" : "bg-gray-100"}`}>
+              {/* Κουμπιά Ελέγχου (Ποσότητα & Ενέργειες) */}
+              <div className="flex justify-between items-center mt-1">
+                <div className={`flex items-center rounded-lg border shadow-sm ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
                   <button
                     onClick={() => updateCartItemQuantity(item.cartId, -1)}
-                    className={`w-8 h-8 flex items-center justify-center font-black active:scale-90 transition-transform ${
-                      isDark ? "text-gray-400" : "text-gray-600"
-                    }`}
+                    className={`w-9 h-8 flex items-center justify-center font-black active:scale-90 transition-transform ${isDark ? "text-gray-400" : "text-gray-600"}`}
                   >
                     −
                   </button>
-                  <span className={`font-black text-sm w-6 text-center ${isDark ? "text-white" : "text-gray-800"}`}>
+                  <span className={`font-black text-xs w-6 text-center ${isDark ? "text-white" : "text-gray-800"}`}>
                     {item.quantity || 1}
                   </span>
                   <button
                     onClick={() => updateCartItemQuantity(item.cartId, 1)}
-                    className="w-8 h-8 flex items-center justify-center font-black text-blue-500 active:scale-90 transition-transform"
+                    className="w-9 h-8 flex items-center justify-center font-black active:scale-90 transition-transform"
+                    style={{ color: themeColor }}
                   >
                     +
                   </button>
                 </div>
-                <div className="flex gap-2">
+                
+                <div className="flex gap-4 pr-1">
                   <button
                     onClick={() => handleEditCartItem(item)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-transform border ${
-                      isDark ? "bg-blue-900/30 text-blue-400 border-blue-900/50" : "bg-blue-50 text-blue-500 border-blue-100"
-                    }`}
+                    className={`text-lg active:scale-90 transition-transform opacity-80 hover:opacity-100`}
                   >
                     ✏️
                   </button>
                   <button
                     onClick={() => removeFromCart(item.cartId)}
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-sm active:scale-95 transition-transform border ${
-                      isDark ? "bg-red-900/30 text-red-400 border-red-900/50" : "bg-red-50 text-red-500 border-red-100"
-                    }`}
+                    className={`text-lg active:scale-90 transition-transform opacity-80 hover:opacity-100`}
                   >
                     🗑️
                   </button>
                 </div>
               </div>
+              
             </div>
           ))}
         </div>
@@ -153,7 +144,7 @@ export default function CartModal({
           </div>
         )}
 
-        {/* ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (Μπήκε στο scroll) */}
+        {/* ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ */}
         <div className="mb-6">
           <p className="font-black text-[10px] uppercase text-gray-400 mb-2 tracking-widest px-1">{t.genNoteTitle}</p>
           <textarea
@@ -167,7 +158,7 @@ export default function CartModal({
           ></textarea>
         </div>
 
-        {/* ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ (Μπήκε στο scroll) */}
+        {/* ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ */}
         <div className={`flex flex-col mb-4 p-3 rounded-2xl border shadow-sm ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
           <span className="font-black text-[9px] uppercase text-gray-500 tracking-widest mb-2 text-center">
             {t.payMethod} <span className="text-red-500">*</span>
