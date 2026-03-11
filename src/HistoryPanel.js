@@ -22,7 +22,10 @@ export default function HistoryPanel({
   deleteOrders,
   downloadReportFile,
   theme,
-  setViewingOrder, 
+  setViewingOrder,
+  isArchiveLoaded,
+  isArchiveLoading,
+  loadArchiveOrders
 }) {
   const [paymentFilter, setPaymentFilter] = useState("ALL"); 
 
@@ -37,6 +40,23 @@ export default function HistoryPanel({
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
+      
+      {/* ΝΕΟ: ΕΙΔΟΠΟΙΗΣΗ ΑΡΧΕΙΟΘΕΤΗΣΗΣ */}
+      {!isArchiveLoaded && dateRange !== "today" && (
+        <div className={`p-4 rounded-2xl border flex flex-col md:flex-row items-center justify-between gap-4 shadow-sm animate-fade-in ${isDark ? "bg-blue-900/30 border-blue-800" : "bg-blue-50 border-blue-200"}`}>
+          <p className={`text-xs font-bold uppercase tracking-widest ${isDark ? "text-blue-300" : "text-blue-800"}`}>
+            ℹ️ ΓΙΑ ΤΑΧΥΤΗΤΑ, ΦΟΡΤΩΘΗΚΑΝ ΜΟΝΟ ΟΙ ΤΕΛΕΥΤΑΙΕΣ 24 ΩΡΕΣ.
+          </p>
+          <button 
+            onClick={loadArchiveOrders} 
+            disabled={isArchiveLoading}
+            className={`px-6 py-3 rounded-xl font-black text-[10px] uppercase transition-transform active:scale-95 whitespace-nowrap shadow-md ${isArchiveLoading ? "opacity-50 cursor-not-allowed" : ""} ${isDark ? "bg-blue-600 text-white hover:bg-blue-500" : "bg-blue-600 text-white hover:bg-blue-700"}`}
+          >
+            {isArchiveLoading ? "ΦΟΡΤΩΣΗ ΑΡΧΕΙΟΥ..." : "📥 ΛΗΨΗ ΠΑΛΑΙΟΤΕΡΩΝ ΠΑΡΑΓΓΕΛΙΩΝ"}
+          </button>
+        </div>
+      )}
+
       <div
         className={`p-4 rounded-[2rem] shadow-sm flex flex-col md:flex-row gap-4 justify-between border transition-colors ${
           isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"
@@ -280,7 +300,7 @@ export default function HistoryPanel({
                     : (isDark ? "bg-gray-800 text-gray-600" : "bg-gray-100 text-gray-300")
                 }`}
               >
-                ΔΙΑΓΡΑΦΗ ΕΠΙΛΕΓΜΕΝΩΝ ({selectedOrderIds.length})
+                ΔΙΑΓΡΑΦΗ ({selectedOrderIds.length})
               </button>
             )}
           </div>
@@ -288,7 +308,6 @@ export default function HistoryPanel({
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {displayedOrders.map((o) => {
-            // Υπολογισμός χρόνου προετοιμασίας (αν υπάρχει completed_at)
             let prepTimeText = "";
             if (o.completed_at && o.created_at) {
               const diffMs = new Date(o.completed_at) - new Date(o.created_at);
@@ -324,7 +343,6 @@ export default function HistoryPanel({
                     <p className="text-[9px] font-bold text-gray-500 uppercase mt-1">
                       {new Date(o.created_at).toLocaleTimeString("el-GR")} • {o.payment_method}
                     </p>
-                    {/* ΝΕΟ: Εμφάνιση του χρόνου προετοιμασίας */}
                     {prepTimeText && (
                       <p className={`text-[9px] font-black uppercase mt-1 ${isDark ? "text-orange-400" : "text-orange-500"}`}>
                         {prepTimeText}
