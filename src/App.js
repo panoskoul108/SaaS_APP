@@ -1,29 +1,29 @@
 import React, { useState, useEffect } from "react";
 import Menu from "./Menu";
 import Dashboard from "./Dashboard";
+import SuperAdmin from "./SuperAdmin"; // Η νέα κρυφή σελίδα
 
 export default function App() {
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [route, setRoute] = useState("menu");
 
   useEffect(() => {
-    // Διαβάζει το URL και ελέγχει αν υπάρχει η παράμετρος admin
     const params = new URLSearchParams(window.location.search);
 
-    // Αν το URL έχει ?admin τότε isAdmin = true
-    if (params.has("admin")) {
-      setIsAdmin(true);
+    // Ελέγχει ποιο περιβάλλον πρέπει να φορτώσει
+    if (params.has("boss")) {
+      setRoute("superadmin");
+    } else if (params.has("admin")) {
+      setRoute("dashboard");
     } else {
-      setIsAdmin(false);
+      setRoute("menu");
     }
   }, []);
 
   return (
     <div>
-      {/* Σωστή Λογική: 
-         Αν isAdmin είναι true -> Dashboard
-         Αν isAdmin είναι false -> Menu 
-      */}
-      {isAdmin === true ? <Dashboard /> : <Menu />}
+      {route === "superadmin" && <SuperAdmin />}
+      {route === "dashboard" && <Dashboard />}
+      {route === "menu" && <Menu />}
     </div>
   );
 }
