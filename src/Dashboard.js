@@ -41,12 +41,10 @@ export default function Dashboard() {
   const [isPremium, setIsPremium] = useState(false);
   const [bellVisibility, setBellVisibility] = useState({ admin: false, staff: true, kitchen: false });
   
-  // --- ΝΕΑ ΛΟΓΙΚΗ ΑΡΧΕΙΟΘΕΤΗΣΗΣ (PERFORMANCE) ---
-  const [orders, setOrders] = useState([]); // Εδώ μπαίνουν ΜΟΝΟ οι "ζωντανές" (τελευταίες 24 ώρες & εκκρεμείς)
-  const [archiveOrders, setArchiveOrders] = useState([]); // Εδώ μπαίνουν οι παλιές παραγγελίες (όταν τις ζητήσει ο χρήστης)
+  const [orders, setOrders] = useState([]); 
+  const [archiveOrders, setArchiveOrders] = useState([]); 
   const [isArchiveLoaded, setIsArchiveLoaded] = useState(false);
   const [isArchiveLoading, setIsArchiveLoading] = useState(false);
-  // ----------------------------------------------
 
   const [products, setProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
@@ -100,14 +98,12 @@ export default function Dashboard() {
   const fetchData = async () => {
     if (!isAuthenticated || !storeId) return;
     
-    // FETCH ΜΟΝΟ ΤΙΣ ΕΝΕΡΓΕΣ ΚΑΙ ΤΙΣ ΠΡΟΣΦΑΤΕΣ (Τελευταίες 24 Ώρες) ΓΙΑ ΤΑΧΥΤΗΤΑ
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     
     const { data: ordersData } = await supabase
       .from("orders")
       .select("*")
       .eq("store_id", storeId)
-      // Φέρνει όσες δεν έχουν ολοκληρωθεί, Ή όσες φτιάχτηκαν τις τελευταίες 24 ώρες
       .or(`status.neq.completed,created_at.gte.${yesterday}`)
       .order("created_at", { ascending: false });
       
@@ -118,7 +114,7 @@ export default function Dashboard() {
     
     const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium, bell_visibility").eq("id", storeId).single();
     if (storeData) {
-      setBackupMode(storeData.backup_mode === true || String(storeData.backup_mode) === "true"); 
+      setBackupMode(!!storeData.backup_mode); 
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
       setStoreName(storeData.name); 
       setStoreLogo(storeData.logo_url); 
@@ -129,7 +125,6 @@ export default function Dashboard() {
     }
   };
 
-  // Η ΣΥΝΑΡΤΗΣΗ ΠΟΥ ΦΟΡΤΩΝΕΙ ΤΟ ΒΑΡΥ ΑΡΧΕΙΟ ΜΟΝΟ ΟΤΑΝ ΤΟ ΖΗΤΗΣΕΙ Ο ADMIN
   const loadArchiveOrders = async () => {
     setIsArchiveLoading(true);
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -139,7 +134,7 @@ export default function Dashboard() {
       .select("*")
       .eq("store_id", storeId)
       .eq("status", "completed")
-      .lt("created_at", yesterday) // Λιγότερο από χθες
+      .lt("created_at", yesterday)
       .order("created_at", { ascending: false });
       
     if (archiveData) {
@@ -162,8 +157,25 @@ export default function Dashboard() {
     }
   };
 
+  // --- ΕΝΣΩΜΑΤΩΣΗ REALTIME WEBSOCKETS (ΤΕΛΟΣ ΤΟ POLLING) ---
   useEffect(() => {
-    if (isAuthenticated) { fetchData(); fetchProducts(); const interval = setInterval(fetchData, 5000); return () => clearInterval(interval); }
+    if (!isAuthenticated || !storeId) return;
+
+    fetchData(); 
+    fetchProducts();
+
+    const realtimeChannel = supabase
+      .channel('custom-store-channel')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` },
+        () => { fetchData(); } // Ανανεώνει ακαριαία όταν υπάρχει αλλαγή
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(realtimeChannel);
+    };
   }, [isAuthenticated, storeId]);
 
   useEffect(() => {
@@ -184,39 +196,41 @@ export default function Dashboard() {
       updateData.completed_at = new Date().toISOString();
     }
     await supabase.from("orders").update(updateData).eq("id", id); 
-    fetchData(); 
   };
 
-  const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
+  const toggleReceipt = async (id, isPrinted) => { 
+    setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); 
+    await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); 
+  };
   
   const deleteOrders = async (ids) => { 
     if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { 
       await supabase.from("orders").delete().in("id", ids); 
       setSelectedOrderIds([]); 
-      fetchData(); 
-      // Αν διαγράψουμε από το αρχείο, αφαιρούμε και τοπικά:
       setArchiveOrders(archiveOrders.filter(o => !ids.includes(o.id)));
     } 
   };
   
+  // --- ΔΙΟΡΘΩΜΕΝΟ OPTIMISTIC UI BACKUP TOGGLE ---
   const toggleBackupMode = async () => {
-    setBackupMode((prev) => {
-      const newState = !prev;
-      supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId).then(({ error }) => {
-        if (error) alert("Σφάλμα: " + error.message);
-      });
-      return newState;
-    });
+    const newState = !backupMode;
+    setBackupMode(newState); // Ακαριαία αλλαγή στο UI
+    const { error } = await supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId);
+    if (error) {
+      alert("Σφάλμα: " + error.message);
+      setBackupMode(!newState); // Επαναφορά αν αποτύχει η βάση
+    }
   };
 
+  // --- ΔΙΟΡΘΩΜΕΝΟ OPTIMISTIC UI ACCEPTING ORDERS TOGGLE ---
   const toggleAcceptingOrders = async () => {
-    setIsAcceptingOrders((prev) => {
-      const newState = !prev;
-      supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId).then(({ error }) => {
-        if (error) alert("Σφάλμα: " + error.message);
-      });
-      return newState;
-    });
+    const newState = !isAcceptingOrders;
+    setIsAcceptingOrders(newState);
+    const { error } = await supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId);
+    if (error) {
+      alert("Σφάλμα: " + error.message);
+      setIsAcceptingOrders(!newState);
+    }
   };
 
   const getQrUrl = (table) => {
@@ -281,7 +295,7 @@ export default function Dashboard() {
 
     if (error) { alert("Σφάλμα κατά την αποστολή παραγγελίας: " + error.message); return; }
 
-    setPosCart([]); setPosTable("ΠΑΚΕΤΟ"); setPosGeneralNote(""); setPosPayment(""); setIsPosOpen(false); setIsPosCartOpen(false); fetchData();
+    setPosCart([]); setPosTable("ΠΑΚΕΤΟ"); setPosGeneralNote(""); setPosPayment(""); setIsPosOpen(false); setIsPosCartOpen(false);
   };
 
   const downloadReportFile = () => {
@@ -291,7 +305,6 @@ export default function Dashboard() {
     const url = URL.createObjectURL(blob); const link = document.createElement("a"); link.href = url; link.download = `Z_Report_${new Date().toLocaleDateString("el-GR").replace(/\//g, "-")}.txt`; document.body.appendChild(link); link.click(); document.body.removeChild(link); URL.revokeObjectURL(url);
   };
 
-  // ΣΥΓΧΩΝΕΥΣΗ LIVE & ARCHIVE ΠΑΡΑΓΓΕΛΙΩΝ ΓΙΑ ΤΟ ΙΣΤΟΡΙΚΟ
   const combinedOrders = [...orders, ...archiveOrders];
 
   const historyOrdersList = combinedOrders.filter((o) => {
@@ -310,8 +323,6 @@ export default function Dashboard() {
   const avgOrderValue = totalOrdersCount ? totalRevenue / totalOrdersCount : 0;
   const cashTotal = historyOrdersList.filter((o) => o.payment_method === "ΜΕΤΡΗΤΑ").reduce((sum, o) => sum + (isKitchen ? o.items?.filter((it) => it.station === "kitchen").reduce((s, it) => s + it.price * it.quantity, 0) : o.total_price), 0);
   const cardTotal = totalRevenue - cashTotal;
-  
-  // Το active tables κοιτάει μόνο τα Live Orders
   const activeTables = [...new Set(orders.filter((o) => o.status !== "completed").map((o) => o.table_number))];
 
   const productCounts = {};
@@ -412,7 +423,7 @@ export default function Dashboard() {
               </button>
             )}
             {userRole === "admin" && (
-              <button onClick={toggleBackupMode} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase ${backupMode ? "bg-orange-500 text-white shadow-lg" : (isDark ? "bg-gray-800 text-gray-400 border border-gray-700" : "bg-gray-100 text-gray-500")}`}>
+              <button onClick={toggleBackupMode} className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all ${backupMode ? "bg-orange-500 text-white shadow-md" : (isDark ? "bg-gray-800 text-gray-400 border border-gray-700" : "bg-gray-200 text-gray-600")}`}>
                 Backup: {backupMode ? "ON" : "OFF"}
               </button>
             )}
@@ -432,7 +443,6 @@ export default function Dashboard() {
       <main className="p-4 print:hidden">
         {tab === "orders" && (
           <OrderList 
-            // Εδώ περνάμε ΜΟΝΟ τα live orders για να μην βαραίνει η οθόνη
             orders={[...orders].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))} 
             isKitchen={isKitchen} 
             userRole={userRole} 
@@ -471,8 +481,6 @@ export default function Dashboard() {
             downloadReportFile={downloadReportFile} 
             theme={theme} 
             setViewingOrder={setViewingOrder} 
-            
-            // --- ΝΕΑ PROPS ΓΙΑ ΤΗ ΦΟΡΤΩΣΗ ΑΡΧΕΙΟΥ ---
             isArchiveLoaded={isArchiveLoaded}
             isArchiveLoading={isArchiveLoading}
             loadArchiveOrders={loadArchiveOrders}
