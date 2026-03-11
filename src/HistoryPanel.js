@@ -22,15 +22,14 @@ export default function HistoryPanel({
   deleteOrders,
   downloadReportFile,
   theme,
-  setViewingOrder, // ΝΕΟ PROP: Για να ανοίγει τις λεπτομέρειες
+  setViewingOrder, 
 }) {
-  const [paymentFilter, setPaymentFilter] = useState("ALL"); // ΝΕΟ STATE ΓΙΑ ΤΑ ΓΡΗΓΟΡΑ ΦΙΛΤΡΑ
+  const [paymentFilter, setPaymentFilter] = useState("ALL"); 
 
   const maxProductCount = topProducts.length > 0 ? topProducts[0][1] : 1;
   const maxHourCount = peakHours.length > 0 ? peakHours[0][1] : 1;
   const isDark = theme === "dark" || isKitchen;
 
-  // Εφαρμογή του γρήγορου φίλτρου Πληρωμής
   const displayedOrders = historyOrders.filter((o) => {
     if (paymentFilter !== "ALL" && o.payment_method !== paymentFilter) return false;
     return true;
@@ -90,7 +89,7 @@ export default function HistoryPanel({
         </div>
         <input
           type="text"
-          placeholder="Αναζήτηση Τράπεζας..."
+          placeholder="Αναζήτηση Τραπεζιού..."
           className={`px-4 py-3 rounded-2xl text-sm font-bold shadow-inner outline-none transition-colors ${
             isDark 
               ? "bg-gray-900 text-white placeholder-gray-500 border border-gray-700 focus:border-blue-500" 
@@ -256,7 +255,6 @@ export default function HistoryPanel({
             Λίστα Παραγγελιών
           </h3>
           
-          {/* --- ΓΡΗΓΟΡΑ ΦΙΛΤΡΑ ΠΛΗΡΩΜΗΣ --- */}
           <div className="flex items-center gap-2">
             {["ALL", "ΜΕΤΡΗΤΑ", "ΚΑΡΤΑ"].map((f) => (
               <button
@@ -289,76 +287,91 @@ export default function HistoryPanel({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-          {displayedOrders.map((o) => (
-            <div
-              key={o.id}
-              className={`p-4 rounded-[2rem] flex justify-between items-center transition-all border-2 ${
-                selectedOrderIds.includes(o.id)
-                  ? (isDark ? "border-blue-500 bg-blue-900/30" : "border-blue-500 bg-blue-50")
-                  : isDark
-                  ? "border-gray-700 bg-gray-800 shadow-sm hover:border-gray-600"
-                  : "border-gray-50 bg-white shadow-sm hover:border-gray-200"
-              }`}
-            >
-              {/* Το κλικ εδώ ΑΝΟΙΓΕΙ ΤΗΝ ΠΑΡΑΓΓΕΛΙΑ */}
-              <div 
-                className="flex-1 cursor-pointer flex justify-between items-center pr-4"
-                onClick={() => setViewingOrder(o)}
+          {displayedOrders.map((o) => {
+            // Υπολογισμός χρόνου προετοιμασίας (αν υπάρχει completed_at)
+            let prepTimeText = "";
+            if (o.completed_at && o.created_at) {
+              const diffMs = new Date(o.completed_at) - new Date(o.created_at);
+              const diffMins = Math.floor(diffMs / 60000);
+              if (diffMins > 0) {
+                prepTimeText = `⏱️ ${diffMins} λεπτά`;
+              }
+            }
+
+            return (
+              <div
+                key={o.id}
+                className={`p-4 rounded-[2rem] flex justify-between items-center transition-all border-2 ${
+                  selectedOrderIds.includes(o.id)
+                    ? (isDark ? "border-blue-500 bg-blue-900/30" : "border-blue-500 bg-blue-50")
+                    : isDark
+                    ? "border-gray-700 bg-gray-800 shadow-sm hover:border-gray-600"
+                    : "border-gray-50 bg-white shadow-sm hover:border-gray-200"
+                }`}
               >
-                <div>
+                <div 
+                  className="flex-1 cursor-pointer flex justify-between items-center pr-4"
+                  onClick={() => setViewingOrder(o)}
+                >
+                  <div>
+                    <span
+                      className={`font-black italic text-base ${
+                        isDark ? "text-blue-400" : "text-blue-600"
+                      }`}
+                    >
+                      #{o.table_number}
+                    </span>
+                    <p className="text-[9px] font-bold text-gray-500 uppercase mt-1">
+                      {new Date(o.created_at).toLocaleTimeString("el-GR")} • {o.payment_method}
+                    </p>
+                    {/* ΝΕΟ: Εμφάνιση του χρόνου προετοιμασίας */}
+                    {prepTimeText && (
+                      <p className={`text-[9px] font-black uppercase mt-1 ${isDark ? "text-orange-400" : "text-orange-500"}`}>
+                        {prepTimeText}
+                      </p>
+                    )}
+                  </div>
                   <span
-                    className={`font-black italic text-base ${
-                      isDark ? "text-blue-400" : "text-blue-600"
+                    className={`font-black text-lg tracking-tighter ${
+                      isDark ? "text-gray-100" : "text-gray-800"
                     }`}
                   >
-                    #{o.table_number}
+                    {(isKitchen
+                      ? o.items
+                          ?.filter((it) => it.station === "kitchen")
+                          .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
+                      : o.total_price
+                    )?.toFixed(2)}
+                    €
                   </span>
-                  <p className="text-[9px] font-bold text-gray-500 uppercase mt-1">
-                    {new Date(o.created_at).toLocaleTimeString("el-GR")} •{" "}
-                    {o.payment_method}
-                  </p>
                 </div>
-                <span
-                  className={`font-black text-lg tracking-tighter ${
-                    isDark ? "text-gray-100" : "text-gray-800"
-                  }`}
-                >
-                  {(isKitchen
-                    ? o.items
-                        ?.filter((it) => it.station === "kitchen")
-                        .reduce((s, it) => s + it.price * (it.quantity || 1), 0)
-                    : o.total_price
-                  )?.toFixed(2)}
-                  €
-                </span>
-              </div>
 
-              {/* Το κλικ εδώ ΕΠΙΛΕΓΕΙ ΓΙΑ ΔΙΑΓΡΑΦΗ (Μόνο Admin) */}
-              {userRole === "admin" && (
-                <div
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedOrderIds((prev) =>
-                      prev.includes(o.id)
-                        ? prev.filter((i) => i !== o.id)
-                        : [...prev, o.id]
-                    );
-                  }}
-                  className={`w-8 h-8 rounded-full border-2 flex items-center justify-center cursor-pointer transition-colors ${
-                    selectedOrderIds.includes(o.id) 
-                      ? "bg-blue-500 border-blue-500 text-white" 
-                      : (isDark ? "border-gray-600 text-transparent hover:border-gray-400" : "border-gray-300 text-transparent hover:border-gray-400")
-                  }`}
-                >
-                  ✓
-                </div>
-              )}
-            </div>
-          ))}
+                {userRole === "admin" && (
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedOrderIds((prev) =>
+                        prev.includes(o.id)
+                          ? prev.filter((i) => i !== o.id)
+                          : [...prev, o.id]
+                      );
+                    }}
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center cursor-pointer transition-colors ${
+                      selectedOrderIds.includes(o.id) 
+                        ? "bg-blue-500 border-blue-500 text-white" 
+                        : (isDark ? "border-gray-600 text-transparent hover:border-gray-400" : "border-gray-300 text-transparent hover:border-gray-400")
+                    }`}
+                  >
+                    ✓
+                  </div>
+                )}
+              </div>
+            );
+          })}
           
           {displayedOrders.length === 0 && (
              <div className={`col-span-full text-center py-10 text-xs font-black uppercase tracking-widest ${isDark ? "text-gray-600" : "text-gray-400"}`}>
-                Δεν υπαρχουν παραγγελιες
+               Δεν υπαρχουν παραγγελιες
              </div>
           )}
         </div>
