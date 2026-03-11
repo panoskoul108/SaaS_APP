@@ -8,13 +8,11 @@ import OrderList from "./OrderList";
 import HistoryPanel from "./HistoryPanel";
 import AiManagerTab from "./AiManagerTab";
 
-// Κεντρική Βάση (SaaS_APP - Παραγγελίες & Κατάλογος)
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-
 const REWARD_THRESHOLD = 40;
 
 const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
@@ -41,6 +39,9 @@ export default function Dashboard() {
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
   
   const [isPremium, setIsPremium] = useState(false);
+  
+  // JSON STATE: Ελέγχει ποιοι ρόλοι βλέπουν το κουδούνι
+  const [bellVisibility, setBellVisibility] = useState({ admin: false, staff: true, kitchen: false });
   
   const [orders, setOrders] = useState([]);
   const [products, setProducts] = useState([]);
@@ -99,13 +100,16 @@ export default function Dashboard() {
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
     
-    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium").eq("id", storeId).single();
+    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium, bell_visibility").eq("id", storeId).single();
     if (storeData) {
       setBackupMode(storeData.backup_mode); 
       setStoreName(storeData.name); 
       setStoreLogo(storeData.logo_url); 
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
       setIsPremium(storeData.is_premium || false);
+      
+      if (storeData.bell_visibility) setBellVisibility(storeData.bell_visibility);
+      
       if (storeData.tables) setStoreTables(storeData.tables);
       if (storeData.category_order) setStoreCategoryOrder(storeData.category_order);
     }
@@ -131,25 +135,24 @@ export default function Dashboard() {
   useEffect(() => {
     const pendingCount = orders.filter((o) => {
       if (o.status === "completed") return false;
+      const isBell = o.payment_method === "ΚΛΗΣΗ ΣΕΡΒΙΤΟΡΟΥ";
+      if (isBell && !bellVisibility[userRole]) return false; 
       return isKitchen ? (o.kitchen_status || "pending") === "pending" && o.items?.some((i) => i.station === "kitchen") : (o.status || "pending") === "pending";
     }).length;
+    
     if (pendingCount > prevOrdersCount && !isMuted) new Audio(NOTIFICATION_SOUND).play().catch(() => {});
     setPrevOrdersCount(pendingCount);
-  }, [orders, isMuted, isKitchen, prevOrdersCount]);
+  }, [orders, isMuted, isKitchen, prevOrdersCount, bellVisibility, userRole]);
 
-  // --- ΝΕΟΣ ΜΗΧΑΝΙΣΜΟΣ ΚΛΕΙΔΩΜΑΤΟΣ ΧΡΟΝΟΥ KDS ---
+  // Ο Μηχανισμός που κλειδώνει το χρονόμετρο
   const updateStatus = async (id, newStatus, forKitchen = false) => { 
     const updateData = forKitchen ? { kitchen_status: newStatus } : { status: newStatus };
-    
-    // Αν η παραγγελία τελειώσει (ready για κουζίνα, completed για service), γράφουμε την ώρα
     if (newStatus === "ready" || newStatus === "completed") {
       updateData.completed_at = new Date().toISOString();
     }
-
     await supabase.from("orders").update(updateData).eq("id", id); 
     fetchData(); 
   };
-  // ----------------------------------------------
 
   const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
   const deleteOrders = async (ids) => { if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { await supabase.from("orders").delete().in("id", ids); setSelectedOrderIds([]); fetchData(); } };
@@ -216,10 +219,7 @@ export default function Dashboard() {
       general_note: removeAccents(posGeneralNote)
     }]);
 
-    if (error) {
-      alert("Σφάλμα κατά την αποστολή παραγγελίας: " + error.message);
-      return;
-    }
+    if (error) { alert("Σφάλμα κατά την αποστολή παραγγελίας: " + error.message); return; }
 
     setPosCart([]); setPosTable("ΠΑΚΕΤΟ"); setPosGeneralNote(""); setPosPayment(""); setIsPosOpen(false); setIsPosCartOpen(false); fetchData();
   };
@@ -366,7 +366,20 @@ export default function Dashboard() {
 
       <main className="p-4 print:hidden">
         {tab === "orders" && (
-          <OrderList orders={orders} isKitchen={isKitchen} userRole={userRole} updateStatus={updateStatus} deleteOrders={deleteOrders} setViewingOrder={setViewingOrder} setActivePrintOrder={setActivePrintOrder} setIsPrinting={setIsPrinting} toggleReceipt={toggleReceipt} theme={theme} />
+          <OrderList 
+            // --- Η ΑΛΛΑΓΗ ΣΟΥ: ΤΑΞΙΝΟΜΗΣΗ ΑΠΟ ΤΟ ΠΑΛΑΙΟΤΕΡΟ (ΠΑΝΩ) ΣΤΟ ΝΕΟΤΕΡΟ (ΚΑΤΩ) ---
+            orders={[...orders].sort((a, b) => new Date(a.created_at) - new Date(b.created_at))} 
+            isKitchen={isKitchen} 
+            userRole={userRole} 
+            updateStatus={updateStatus} 
+            deleteOrders={deleteOrders} 
+            setViewingOrder={setViewingOrder} 
+            setActivePrintOrder={setActivePrintOrder} 
+            setIsPrinting={setIsPrinting} 
+            toggleReceipt={toggleReceipt} 
+            theme={theme} 
+            bellVisibility={bellVisibility} 
+          />
         )}
         
         {tab === "history" && (
