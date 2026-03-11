@@ -156,8 +156,20 @@ export default function Dashboard() {
 
   const toggleReceipt = async (id, isPrinted) => { setOrders(orders.map(o => o.id === id ? { ...o, receipt_printed: isPrinted } : o)); await supabase.from("orders").update({ receipt_printed: isPrinted }).eq("id", id); };
   const deleteOrders = async (ids) => { if (ids.length && window.confirm(`Διαγραφή ${ids.length} παραγγελιών;`)) { await supabase.from("orders").delete().in("id", ids); setSelectedOrderIds([]); fetchData(); } };
-  const toggleBackupMode = async () => { const s = !backupMode; await supabase.from("stores").update({ backup_mode: s }).eq("id", storeId); setBackupMode(s); };
-  const toggleAcceptingOrders = async () => { const s = !isAcceptingOrders; await supabase.from("stores").update({ is_accepting_orders: s }).eq("id", storeId); setIsAcceptingOrders(s); };
+  
+  // --- ΔΙΟΡΘΩΜΕΝΟ BACKUP TOGGLE ---
+  const toggleBackupMode = async () => { 
+    const newState = !backupMode; 
+    setBackupMode(newState); // Άμεσο update στο UI για να μην "κολλάει" το κουμπί
+    await supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId); 
+  };
+
+  // --- ΔΙΟΡΘΩΜΕΝΟ ACCEPTING ORDERS TOGGLE ---
+  const toggleAcceptingOrders = async () => { 
+    const newState = !isAcceptingOrders; 
+    setIsAcceptingOrders(newState); // Άμεσο update στο UI
+    await supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId); 
+  };
 
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
