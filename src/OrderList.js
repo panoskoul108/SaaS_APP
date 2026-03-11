@@ -11,11 +11,11 @@ export default function OrderList({
   setIsPrinting,
   toggleReceipt,
   theme,
+  bellVisibility // <-- Διαβάζει πλέον το JSON
 }) {
   const statuses = ["pending", "preparing", "ready"];
   const isDark = theme === "dark";
 
-  // --- ΕΞΥΠΝΟ LIVE TIMER (KDS) ---
   const LiveTimer = ({ createdAt, completedAt }) => {
     const [elapsedTime, setElapsedTime] = useState(0);
 
@@ -55,8 +55,10 @@ export default function OrderList({
   };
 
   const OrderCard = ({ order }) => {
-    // --- ΝΕΟ: ΕΛΕΓΧΟΣ ΑΝ ΕΙΝΑΙ ΚΟΥΔΟΥΝΙ (SMART BELL) ---
     const isBell = order.payment_method === "ΚΛΗΣΗ ΣΕΡΒΙΤΟΡΟΥ";
+
+    // --- ΑΠΟΤΡΟΠΗ ΕΜΦΑΝΙΣΗΣ ΑΝ ΤΟ JSON ΛΕΕΙ FALSE ΓΙΑ ΑΥΤΟΝ ΤΟΝ ΡΟΛΟ ---
+    if (isBell && (!bellVisibility || !bellVisibility[userRole])) return null;
 
     const sortedItems = [...(order.items || [])].sort((a, b) => {
       if (a.station === "kitchen" && b.station !== "kitchen") return 1;
@@ -68,7 +70,6 @@ export default function OrderList({
       ? sortedItems.filter((it) => it.station === "kitchen")
       : sortedItems;
     
-    // Η κουζίνα αγνοεί τελείως τα κουδούνια και τις άδειες παραγγελίες
     if (isKitchen && (displayItems.length === 0 || isBell)) return null;
 
     const currentStatus = isKitchen
@@ -77,7 +78,6 @@ export default function OrderList({
     const hasKitchenItem = order.items?.some((it) => it.station === "kitchen");
     const kitchenIsReady = (order.kitchen_status || "pending") === "ready";
 
-    // --- ΕΙΔΙΚΗ ΚΑΡΤΑ ΓΙΑ ΤΟ ΚΟΥΔΟΥΝΙ ---
     if (isBell) {
       return (
         <div className={`rounded-2xl p-5 mb-4 shadow-lg border-2 relative overflow-hidden ${isDark ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-400"}`}>
@@ -100,7 +100,6 @@ export default function OrderList({
       );
     }
 
-    // --- ΚΑΝΟΝΙΚΗ ΚΑΡΤΑ ΠΑΡΑΓΓΕΛΙΑΣ ---
     return (
       <div
         onClick={() => setViewingOrder(order)}
@@ -237,6 +236,10 @@ export default function OrderList({
       {statuses.map((s, idx) => {
         const columnOrders = orders.filter((o) => {
           if (o.status === "completed") return false;
+          
+          const isBell = o.payment_method === "ΚΛΗΣΗ ΣΕΡΒΙΤΟΡΟΥ";
+          if (isBell && (!bellVisibility || !bellVisibility[userRole])) return false; // ΝΕΟΣ ΕΛΕΓΧΟΣ
+
           const stat = isKitchen ? o.kitchen_status || "pending" : o.status || "pending";
           if (isKitchen && !o.items?.some((it) => it.station === "kitchen")) return false;
           return stat === s;
