@@ -22,14 +22,11 @@ export default function OrderList({
     useEffect(() => {
       const calculateTime = () => {
         const start = new Date(createdAt).getTime();
-        // Αν έχει ολοκληρωθεί (έχει completedAt), κλειδώνει το χρόνο. Αλλιώς τρέχει ζωντανά.
         const end = completedAt ? new Date(completedAt).getTime() : new Date().getTime();
         setElapsedTime(Math.floor((end - start) / 1000));
       };
 
       calculateTime();
-      
-      // Αν δεν έχει ολοκληρωθεί, ανανεώνει κάθε δευτερόλεπτο
       if (!completedAt) {
         const interval = setInterval(calculateTime, 1000);
         return () => clearInterval(interval);
@@ -40,17 +37,13 @@ export default function OrderList({
     const seconds = elapsedTime % 60;
     const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-    // Χρώματα ανάλογα με την ώρα
     let timerColorClass = isDark ? "text-green-400 bg-green-900/30 border-green-800" : "text-green-700 bg-green-100 border-green-200";
 
     if (minutes >= 15 && !completedAt) {
-      // Μετά τα 15 λεπτά (Κρίσιμη Καθυστέρηση)
       timerColorClass = "text-red-600 bg-red-100 animate-pulse font-black border-red-400 shadow-[0_0_10px_rgba(220,38,38,0.5)]"; 
     } else if (minutes >= 10 && !completedAt) {
-      // Μεταξύ 10 και 15 λεπτών (Προειδοποίηση)
       timerColorClass = "text-orange-600 bg-orange-100 font-bold border-orange-300"; 
     } else if (completedAt) {
-      // Όταν τελειώσει, γίνεται γκρι (κλειδωμένο)
       timerColorClass = isDark ? "text-gray-400 bg-gray-800 border-gray-700" : "text-gray-500 bg-gray-100 border-gray-200";
     }
 
@@ -62,7 +55,9 @@ export default function OrderList({
   };
 
   const OrderCard = ({ order }) => {
-    // ΤΑΞΙΝΟΜΗΣΗ - ΠΡΩΤΑ ΤΟ ΜΠΑΡ, ΜΕΤΑ Η ΚΟΥΖΙΝΑ
+    // --- ΝΕΟ: ΕΛΕΓΧΟΣ ΑΝ ΕΙΝΑΙ ΚΟΥΔΟΥΝΙ (SMART BELL) ---
+    const isBell = order.payment_method === "ΚΛΗΣΗ ΣΕΡΒΙΤΟΡΟΥ";
+
     const sortedItems = [...(order.items || [])].sort((a, b) => {
       if (a.station === "kitchen" && b.station !== "kitchen") return 1;
       if (a.station !== "kitchen" && b.station === "kitchen") return -1;
@@ -73,7 +68,8 @@ export default function OrderList({
       ? sortedItems.filter((it) => it.station === "kitchen")
       : sortedItems;
     
-    if (isKitchen && displayItems.length === 0) return null;
+    // Η κουζίνα αγνοεί τελείως τα κουδούνια και τις άδειες παραγγελίες
+    if (isKitchen && (displayItems.length === 0 || isBell)) return null;
 
     const currentStatus = isKitchen
       ? order.kitchen_status || "pending"
@@ -81,6 +77,30 @@ export default function OrderList({
     const hasKitchenItem = order.items?.some((it) => it.station === "kitchen");
     const kitchenIsReady = (order.kitchen_status || "pending") === "ready";
 
+    // --- ΕΙΔΙΚΗ ΚΑΡΤΑ ΓΙΑ ΤΟ ΚΟΥΔΟΥΝΙ ---
+    if (isBell) {
+      return (
+        <div className={`rounded-2xl p-5 mb-4 shadow-lg border-2 relative overflow-hidden ${isDark ? "bg-yellow-900/20 border-yellow-600" : "bg-yellow-50 border-yellow-400"}`}>
+          <div className="flex justify-between items-center mb-2">
+            <span className={`font-black text-2xl ${isDark ? "text-yellow-400" : "text-yellow-700"}`}>
+              🛎️ TΡΑΠΕΖΙ {order.table_number}
+            </span>
+            <LiveTimer createdAt={order.created_at} completedAt={order.completed_at} />
+          </div>
+          <p className={`text-lg font-black uppercase italic mb-6 ${isDark ? "text-yellow-200" : "text-yellow-900"}`}>
+            {order.general_note}
+          </p>
+          <button 
+            onClick={() => updateStatus(order.id, "completed", false)} 
+            className="w-full bg-yellow-500 text-white py-4 rounded-xl font-black text-sm uppercase shadow-md active:scale-95 hover:bg-yellow-600"
+          >
+            ✅ ΕΞΥΠΗΡΕΤΗΘΗΚΕ
+          </button>
+        </div>
+      );
+    }
+
+    // --- ΚΑΝΟΝΙΚΗ ΚΑΡΤΑ ΠΑΡΑΓΓΕΛΙΑΣ ---
     return (
       <div
         onClick={() => setViewingOrder(order)}
