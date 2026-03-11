@@ -1,12 +1,31 @@
 <!DOCTYPE html>
 <html lang="el">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover">
-    <meta name="theme-color" content="#111827">
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
+    <meta name="theme-color" content="#111827" />
     
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="Smart POS">
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Smart POS" />
+    
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
+
+    <script>
+      var manifestLink = document.createElement('link');
+      manifestLink.rel = 'manifest';
+      
+      // Αν το link περιέχει τη λέξη admin, κατέβασε την εφαρμογή του Ταμείου
+      if (window.location.search.includes('admin')) {
+        manifestLink.href = '%PUBLIC_URL%/manifest-admin.json';
+      } else {
+        // Αλλιώς, κατέβασε την εφαρμογή του Πελάτη
+        manifestLink.href = '%PUBLIC_URL%/manifest.json';
+      }
+      
+      document.head.appendChild(manifestLink);
+    </script>
     
     <style>
       * {
@@ -16,27 +35,14 @@
         overscroll-behavior-y: none; /* Αποτρέπει το "τράβηγμα" της σελίδας προς τα κάτω/πάνω */
       }
     </style>
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no, user-scalable=no"
-    />
-    <meta name="theme-color" content="#111827" />
     
-    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <link rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
-
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <script src="https://cdn.tailwindcss.com"></script>
 
     <title>Smart POS System</title>
   </head>
 
   <body>
-    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
   </body>
 </html>
