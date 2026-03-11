@@ -15,43 +15,54 @@ export default function OrderList({
   const statuses = ["pending", "preparing", "ready"];
   const isDark = theme === "dark";
 
-  // --- LIVE TIMER ---
-  const LiveTimer = ({ createdAt }) => {
+  // --- ΕΞΥΠΝΟ LIVE TIMER (KDS) ---
+  const LiveTimer = ({ createdAt, completedAt }) => {
     const [elapsedTime, setElapsedTime] = useState(0);
 
     useEffect(() => {
       const calculateTime = () => {
         const start = new Date(createdAt).getTime();
-        const now = new Date().getTime();
-        setElapsedTime(Math.floor((now - start) / 1000));
+        // Αν έχει ολοκληρωθεί (έχει completedAt), κλειδώνει το χρόνο. Αλλιώς τρέχει ζωντανά.
+        const end = completedAt ? new Date(completedAt).getTime() : new Date().getTime();
+        setElapsedTime(Math.floor((end - start) / 1000));
       };
 
       calculateTime();
-      const interval = setInterval(calculateTime, 1000);
-      return () => clearInterval(interval);
-    }, [createdAt]);
+      
+      // Αν δεν έχει ολοκληρωθεί, ανανεώνει κάθε δευτερόλεπτο
+      if (!completedAt) {
+        const interval = setInterval(calculateTime, 1000);
+        return () => clearInterval(interval);
+      }
+    }, [createdAt, completedAt]);
 
     const minutes = Math.floor(elapsedTime / 60);
     const seconds = elapsedTime % 60;
     const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 
-    let timerColorClass = isDark ? "text-gray-300 bg-gray-700" : "text-gray-500 bg-gray-100";
+    // Χρώματα ανάλογα με την ώρα
+    let timerColorClass = isDark ? "text-green-400 bg-green-900/30 border-green-800" : "text-green-700 bg-green-100 border-green-200";
 
-    if (minutes >= 15) {
-      timerColorClass = "text-red-600 bg-red-100 animate-pulse font-black border border-red-300"; 
-    } else if (minutes >= 8) {
-      timerColorClass = "text-orange-600 bg-orange-100 font-bold border border-orange-200"; 
+    if (minutes >= 15 && !completedAt) {
+      // Μετά τα 15 λεπτά (Κρίσιμη Καθυστέρηση)
+      timerColorClass = "text-red-600 bg-red-100 animate-pulse font-black border-red-400 shadow-[0_0_10px_rgba(220,38,38,0.5)]"; 
+    } else if (minutes >= 10 && !completedAt) {
+      // Μεταξύ 10 και 15 λεπτών (Προειδοποίηση)
+      timerColorClass = "text-orange-600 bg-orange-100 font-bold border-orange-300"; 
+    } else if (completedAt) {
+      // Όταν τελειώσει, γίνεται γκρι (κλειδωμένο)
+      timerColorClass = isDark ? "text-gray-400 bg-gray-800 border-gray-700" : "text-gray-500 bg-gray-100 border-gray-200";
     }
 
     return (
-      <span className={`text-[10px] px-2 py-1 rounded-lg flex items-center gap-1 ${timerColorClass}`}>
+      <span className={`text-[10px] px-2 py-1 rounded-lg flex items-center gap-1 border ${timerColorClass}`}>
         ⏱️ {formattedTime}
       </span>
     );
   };
 
   const OrderCard = ({ order }) => {
-    // --- ΝΕΟ: ΤΑΞΙΝΟΜΗΣΗ - ΠΡΩΤΑ ΤΟ ΜΠΑΡ, ΜΕΤΑ Η ΚΟΥΖΙΝΑ ---
+    // ΤΑΞΙΝΟΜΗΣΗ - ΠΡΩΤΑ ΤΟ ΜΠΑΡ, ΜΕΤΑ Η ΚΟΥΖΙΝΑ
     const sortedItems = [...(order.items || [])].sort((a, b) => {
       if (a.station === "kitchen" && b.station !== "kitchen") return 1;
       if (a.station !== "kitchen" && b.station === "kitchen") return -1;
@@ -93,9 +104,7 @@ export default function OrderList({
               <span className={`font-black text-xl ${isKitchen ? "text-orange-500" : (isDark ? "text-blue-400" : "text-blue-600")}`}>
                 #{order.table_number || "---"}
               </span>
-              {currentStatus !== "ready" && currentStatus !== "completed" && (
-                <LiveTimer createdAt={order.created_at} />
-              )}
+              <LiveTimer createdAt={order.created_at} completedAt={order.completed_at} />
             </div>
             <p className={`text-[9px] font-black uppercase tracking-widest mt-1 ${isDark ? "text-gray-400" : "text-gray-500"}`}>
               {order.payment_method}
@@ -157,7 +166,7 @@ export default function OrderList({
                 onClick={() => {
                   const orderToPrint = isKitchen 
                     ? { ...order, items: sortedItems.filter(it => it.station === "kitchen") }
-                    : { ...order, items: sortedItems }; // Περνάει ταξινομημένα είδη
+                    : { ...order, items: sortedItems };
                   setActivePrintOrder(orderToPrint);
                   setIsPrinting(true);
                   setTimeout(() => {
