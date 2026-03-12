@@ -13,6 +13,8 @@ const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
+
 const REWARD_THRESHOLD = 40;
 
 // PREDEFINED PREMIUM COLORS FOR SETTINGS
@@ -590,7 +592,7 @@ export default function Dashboard() {
             <div className={`flex flex-col sm:flex-row justify-between items-center p-4 rounded-2xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
                <h3 className={`font-black uppercase text-lg italic ${isDark ? "text-white" : "text-gray-800"}`}>Διαχειριση QR</h3>
                <button onClick={handlePrintAllQRs} className="mt-3 sm:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs shadow-lg hover:bg-blue-500 transition-colors w-full sm:w-auto">
-                  🖨️ ΕΚΤΥΠΩΣΗ ΟΛΩΝ ΣΕ PDF
+                 🖨️ ΕΚΤΥΠΩΣΗ ΟΛΩΝ ΣΕ PDF
                </button>
             </div>
             
@@ -660,16 +662,37 @@ export default function Dashboard() {
 
                     <div className={`flex items-center gap-4 mt-6 pt-6 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}>
                       <span className={`text-xs font-bold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Το δικό σας χρώμα:</span>
-                      <input 
-                        type="color" 
-                        value={storeThemeColor} 
-                        onChange={(e) => setStoreThemeColor(e.target.value)}
-                        onBlur={(e) => handleColorUpdate(e.target.value)}
-                        className="w-12 h-12 rounded-xl cursor-pointer border-0 outline-none p-0 bg-transparent"
-                      />
-                      <span className={`text-xs font-black px-3 py-1 rounded-lg border ${isDark ? "bg-gray-900 border-gray-700 text-gray-200" : "bg-gray-100 border-gray-200 text-gray-800"}`}>
-                        {storeThemeColor.toUpperCase()}
-                      </span>
+                      <div className={`flex items-center gap-3 p-2 rounded-xl border focus-within:ring-2 transition-all ${isDark ? "bg-gray-900 border-gray-700 focus-within:ring-gray-600" : "bg-white border-gray-200 focus-within:ring-gray-300"}`}>
+                        <input 
+                          type="color" 
+                          value={storeThemeColor.length === 7 ? storeThemeColor : "#000000"} 
+                          onChange={(e) => {
+                            setStoreThemeColor(e.target.value.toUpperCase());
+                            handleColorUpdate(e.target.value);
+                          }}
+                          className="w-10 h-10 rounded-lg cursor-pointer border-0 outline-none p-0 bg-transparent shrink-0"
+                        />
+                        <input 
+                          type="text" 
+                          value={storeThemeColor} 
+                          onChange={(e) => {
+                            let val = e.target.value;
+                            if (!val.startsWith('#')) val = '#' + val;
+                            setStoreThemeColor(val.slice(0, 7).toUpperCase());
+                          }}
+                          onBlur={(e) => {
+                            const isValidHex = /^#[0-9A-F]{6}$/i.test(e.target.value);
+                            if(isValidHex) handleColorUpdate(e.target.value);
+                            else {
+                              setStoreThemeColor("#2563EB");
+                              handleColorUpdate("#2563EB");
+                            }
+                          }}
+                          className={`w-24 bg-transparent text-sm font-black uppercase outline-none ${isDark ? "text-white" : "text-gray-900"}`}
+                          placeholder="#HEX"
+                          maxLength={7}
+                        />
+                      </div>
                     </div>
                   </div>
 
