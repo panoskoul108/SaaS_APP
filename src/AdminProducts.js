@@ -15,7 +15,6 @@ export default function AdminProducts({ storeId, theme }) {
   const [activeCategory, setActiveCategory] = useState("ΟΛΑ"); 
   const [searchQuery, setSearchQuery] = useState("");
 
-  // ΝΕΑ STATES ΓΙΑ ΜΑΖΙΚΕΣ ΕΝΕΡΓΕΙΕΣ
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [bulkCategory, setBulkCategory] = useState("ΚΑΦΕΔΕΣ");
   const [bulkPriceChange, setBulkPriceChange] = useState(0);
@@ -52,14 +51,12 @@ export default function AdminProducts({ storeId, theme }) {
     if (storeId) fetchProducts();
   }, [storeId]);
 
-  // --- ΝΕΑ ΛΕΙΤΟΥΡΓΙΑ 1: ΓΡΗΓΟΡΗ ΤΑΞΙΝΟΜΗΣΗ (QUICK SORT) ---
   const handleQuickSort = async (product, changeAmount) => {
     const newSortOrder = (product.sort_order || 0) + changeAmount;
     await supabase.from("products").update({ sort_order: newSortOrder }).eq("id", product.id);
     fetchProducts();
   };
 
-  // --- ΝΕΑ ΛΕΙΤΟΥΡΓΙΑ 2: ΜΑΖΙΚΕΣ ΕΝΕΡΓΕΙΕΣ (BULK ACTIONS) ---
   const handleBulkPriceUpdate = async () => {
     if (!bulkCategory || bulkPriceChange === 0) return alert("Επιλέξτε κατηγορία και ποσό αλλαγής.");
     if (window.confirm(`Είστε σίγουροι ότι θέλετε να αλλάξετε τις τιμές στην κατηγορία "${bulkCategory}" κατά ${bulkPriceChange > 0 ? '+' : ''}${bulkPriceChange}€;`)) {
@@ -149,13 +146,22 @@ export default function AdminProducts({ storeId, theme }) {
     setIsUploading(false);
   };
 
-  // Addons Logic
   const addAddonGroup = () => setEditForm({ ...editForm, addons: [...(editForm.addons || []), { id: Date.now(), name: "", name_en: "", name_tr: "", isRequired: false, maxSelections: 1, options: [] }] });
   const removeAddonGroup = (groupId) => setEditForm({ ...editForm, addons: editForm.addons.filter((g) => g.id !== groupId) });
   const updateAddonGroup = (groupId, field, value) => setEditForm({ ...editForm, addons: editForm.addons.map((g) => g.id === groupId ? { ...g, [field]: value } : g) });
   const addAddonOption = (groupId) => setEditForm({ ...editForm, addons: editForm.addons.map((g) => g.id === groupId ? { ...g, options: [...g.options, { name: "", name_en: "", name_tr: "", price: 0 }] } : g) });
   const removeAddonOption = (groupId, optionIndex) => setEditForm({ ...editForm, addons: editForm.addons.map((g) => { if (g.id === groupId) { const newOptions = [...g.options]; newOptions.splice(optionIndex, 1); return { ...g, options: newOptions }; } return g; }) });
   const updateAddonOption = (groupId, optionIndex, field, value) => setEditForm({ ...editForm, addons: editForm.addons.map((g) => { if (g.id === groupId) { const newOptions = [...g.options]; newOptions[optionIndex][field] = value; return { ...g, options: newOptions }; } return g; }) });
+
+  // Η ΣΥΝΑΡΤΗΣΗ ΠΟΥ ΕΛΕΙΠΕ
+  const copyAddonsToCategory = async () => {
+    if (!editForm.category) return alert("Ορίστε κατηγορία πρώτα.");
+    if (window.confirm(`Αντιγραφή επιλογών σε όλη την κατηγορία "${editForm.category}"; Προσοχή, αυτό θα αντικαταστήσει τις υπάρχουσες επιλογές των άλλων προϊόντων.`)) {
+      await supabase.from("products").update({ addons: editForm.addons || [] }).eq("store_id", storeId).eq("category", editForm.category);
+      alert("Επιτυχία! Όλα τα προϊόντα της κατηγορίας ενημερώθηκαν.");
+      fetchProducts();
+    }
+  };
 
   const categories = [...new Set(products.map((p) => p.category))].filter(Boolean).sort((a, b) => {
     let idxA = CATEGORY_ORDER.indexOf(a); let idxB = CATEGORY_ORDER.indexOf(b);
@@ -170,7 +176,6 @@ export default function AdminProducts({ storeId, theme }) {
 
   return (
     <div className="max-w-5xl mx-auto pb-24 px-2">
-      {/* HEADER & BUTTONS */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
         <h2 className={`text-2xl font-black italic uppercase tracking-tighter ${isDark ? "text-blue-400" : "text-blue-600"}`}>
           Διαχειριση Καταλογου
@@ -205,7 +210,6 @@ export default function AdminProducts({ storeId, theme }) {
         </div>
       </div>
 
-      {/* ΝΕΟ: ΜΑΖΙΚΕΣ ΕΝΕΡΓΕΙΕΣ (BULK ACTIONS PANEL) */}
       {showBulkActions && (
         <div className={`mb-6 p-6 rounded-[2rem] border-2 border-dashed shadow-sm animate-fade-in ${isDark ? "bg-purple-900/10 border-purple-900/50" : "bg-purple-50/50 border-purple-200"}`}>
           <h3 className={`text-sm font-black uppercase mb-4 ${isDark ? "text-purple-400" : "text-purple-700"}`}>⚡ Εργαλεια Κατηγοριας</h3>
@@ -219,7 +223,6 @@ export default function AdminProducts({ storeId, theme }) {
             </div>
             
             <div className={`w-full md:w-2/3 flex flex-col md:flex-row gap-4 p-4 rounded-2xl border ${isDark ? "bg-gray-900/50 border-gray-800" : "bg-white border-gray-100 shadow-sm"}`}>
-              {/* Αλλαγή Τιμής */}
               <div className="flex-1 flex flex-col gap-2 border-r-0 md:border-r border-b md:border-b-0 pb-4 md:pb-0 pr-0 md:pr-4 dark:border-gray-700">
                 <label className={`text-[10px] font-black uppercase ${isDark ? "text-gray-400" : "text-gray-600"}`}>2A. Αλλαγη Τιμων (€)</label>
                 <div className="flex gap-2">
@@ -228,7 +231,6 @@ export default function AdminProducts({ storeId, theme }) {
                 </div>
               </div>
               
-              {/* Αλλαγή Διαθεσιμότητας */}
               <div className="flex-1 flex flex-col gap-2">
                 <label className={`text-[10px] font-black uppercase ${isDark ? "text-gray-400" : "text-gray-600"}`}>2B. Διαθεσιμοτητα</label>
                 <div className="flex gap-2">
@@ -241,7 +243,6 @@ export default function AdminProducts({ storeId, theme }) {
         </div>
       )}
 
-      {/* --- ΦΙΛΤΡΑ ΚΑΤΗΓΟΡΙΩΝ --- */}
       <div className={`flex overflow-x-auto gap-2 pb-4 mb-6 border-b no-scrollbar transition-colors ${isDark ? "border-gray-800" : "border-gray-200"}`}>
         <button
           onClick={() => setActiveCategory("ΟΛΑ")}
@@ -260,7 +261,6 @@ export default function AdminProducts({ storeId, theme }) {
         ))}
       </div>
 
-      {/* --- ΦΟΡΜΑ ΠΡΟΣΘΗΚΗΣ / ΕΠΕΞΕΡΓΑΣΙΑΣ --- */}
       {(isAdding || editingId) && (
         <div className={`p-6 md:p-8 rounded-[2.5rem] mb-8 shadow-2xl transition-colors border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
           <div className="flex justify-between items-center mb-6 border-b pb-4 border-gray-200 dark:border-gray-700">
@@ -284,10 +284,7 @@ export default function AdminProducts({ storeId, theme }) {
               )}
             </div>
 
-            {/* ΠΛΗΡΗΣ ΔΙΑΧΩΡΙΣΜΟΣ ΓΛΩΣΣΩΝ - GR ΠΡΩΤΑ */}
             <div className="flex-1 space-y-5">
-              
-              {/* ΕΛΛΗΝΙΚΑ (Βασική Γλώσσα) */}
               <div className={`p-4 rounded-2xl border-2 ${isDark ? "bg-gray-900 border-blue-900/50" : "bg-blue-50/30 border-blue-100"}`}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-blue-500 mb-3">ΕΛΛΗΝΙΚΑ (Βασικη Γλωσσα)</p>
                 <div className="space-y-3">
@@ -296,17 +293,14 @@ export default function AdminProducts({ storeId, theme }) {
                 </div>
               </div>
 
-              {/* ΜΕΤΑΦΡΑΣΕΙΣ (Αγγλικά / Τουρκικά) */}
               <div className={`p-4 rounded-2xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50 border-gray-200"}`}>
                 <p className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-3">Μεταφρασεις (Προαιρετικο)</p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Αγγλικά */}
                   <div className="space-y-2">
                     <span className="text-[9px] font-bold text-gray-400 uppercase">🇬🇧 English</span>
                     <input type="text" placeholder="Name" className={`w-full p-2.5 rounded-lg font-bold border text-xs outline-none ${isDark ? "bg-gray-800 border-gray-600 text-white focus:border-blue-500" : "bg-white border-gray-200 focus:border-blue-500"}`} value={editForm.name_en || ""} onChange={(e) => setEditForm({ ...editForm, name_en: e.target.value })} />
                     <input type="text" placeholder="Description" className={`w-full p-2.5 rounded-lg font-medium border text-xs outline-none ${isDark ? "bg-gray-800 border-gray-600 text-white focus:border-blue-500" : "bg-white border-gray-200 focus:border-blue-500"}`} value={editForm.description_en || ""} onChange={(e) => setEditForm({ ...editForm, description_en: e.target.value })} />
                   </div>
-                  {/* Τουρκικά */}
                   <div className="space-y-2">
                     <span className="text-[9px] font-bold text-gray-400 uppercase">🇹🇷 Türkçe</span>
                     <input type="text" placeholder="İsim" className={`w-full p-2.5 rounded-lg font-bold border text-xs outline-none ${isDark ? "bg-gray-800 border-gray-600 text-white focus:border-blue-500" : "bg-white border-gray-200 focus:border-blue-500"}`} value={editForm.name_tr || ""} onChange={(e) => setEditForm({ ...editForm, name_tr: e.target.value })} />
@@ -349,7 +343,6 @@ export default function AdminProducts({ storeId, theme }) {
             </div>
           </div>
 
-          {/* ADDONS ΣΕ ΑΡΜΟΝΙΑ ΜΕ ΤΙΣ ΓΛΩΣΣΕΣ */}
           <div className={`mb-8 border-t pt-6 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
             <div className="flex justify-between items-center mb-6">
               <h3 className={`font-black uppercase tracking-widest text-sm ${isDark ? "text-gray-300" : "text-gray-800"}`}>Επιλογες (Add-ons)</h3>
@@ -421,7 +414,6 @@ export default function AdminProducts({ storeId, theme }) {
         </div>
       )}
 
-      {/* --- ΕΜΦΑΝΙΣΗ ΛΙΣΤΑΣ ΜΕ QUICK SORT (ΒΕΛΑΚΙΑ) --- */}
       <div className="space-y-4">
         {filteredProducts.length === 0 ? (
           <div className="text-center text-gray-500 font-bold uppercase mt-10">Δεν βρέθηκαν προϊόντα.</div>
@@ -454,7 +446,6 @@ export default function AdminProducts({ storeId, theme }) {
               </div>
 
               <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0 dark:border-gray-700 items-center">
-                {/* ΒΕΛΑΚΙΑ QUICK SORT */}
                 <div className={`flex flex-col bg-gray-50 dark:bg-gray-900 rounded-xl border ${isDark ? "border-gray-700" : "border-gray-200"}`}>
                   <button onClick={() => handleQuickSort(p, -1)} className={`w-10 h-6 flex items-center justify-center text-xs font-black transition-colors ${isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-black"}`}>▲</button>
                   <div className={`h-[1px] w-full ${isDark ? "bg-gray-700" : "bg-gray-200"}`}></div>
