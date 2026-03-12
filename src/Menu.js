@@ -11,8 +11,27 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const CATEGORY_ORDER_FALLBACK = [
   "ΠΡΟΤΕΙΝΟΜΕΝΑ", "ΚΑΦΕΔΕΣ", "ΑΝΑΨΥΚΤΙΚΑ", "ΡΟΦΗΜΑΤΑ", "ΠΡΩΙΝΟ", "ΜΠΥΡΕΣ", "ΣΝΑΚΣ",
-  "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ"
+  "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ", "ΠΟΤΑ"
 ];
+
+// ΑΥΤΟΜΑΤΗ ΜΕΤΑΦΡΑΣΗ ΚΑΤΗΓΟΡΙΩΝ!
+const CATEGORY_TRANSLATIONS = {
+  "ΠΡΟΤΕΙΝΟΜΕΝΑ": { en: "RECOMMENDED", tr: "ÖNERİLENLER" },
+  "ΚΑΦΕΔΕΣ": { en: "COFFEES", tr: "KAHVELER" },
+  "ΑΝΑΨΥΚΤΙΚΑ": { en: "SOFT DRINKS", tr: "İÇECEKLER" },
+  "ΡΟΦΗΜΑΤΑ": { en: "BEVERAGES", tr: "SICAK İÇECEKLER" },
+  "ΠΡΩΙΝΟ": { en: "BREAKFAST", tr: "KAHVALTI" },
+  "ΜΠΥΡΕΣ": { en: "BEERS", tr: "BİRALAR" },
+  "ΣΝΑΚΣ": { en: "SNACKS", tr: "ATIŞTIRMALIKLAR" },
+  "ΣΥΝΟΔΕΥΤΙΚΑ": { en: "SIDE DISHES", tr: "YAN LEZZETLER" },
+  "ΣΑΛΑΤΕΣ": { en: "SALADS", tr: "SALATALAR" },
+  "ΖΥΜΑΡΙΚΑ": { en: "PASTA", tr: "MAKARNALAR" },
+  "ΠΙΤΣΕΣ": { en: "PIZZAS", tr: "PİZZALAR" },
+  "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ": { en: "SAVORY CREPES", tr: "TUZLU KREPLER" },
+  "ΓΛΥΚΕΣ ΚΡΕΠΕΣ": { en: "SWEET CREPES", tr: "TATLI KREPLER" },
+  "ΓΛΥΚΑ": { en: "DESSERTS", tr: "TATLILAR" },
+  "ΠΟΤΑ": { en: "DRINKS", tr: "İÇKİLER" }
+};
 
 const DEFAULT_TABLES = [...Array.from({ length: 20 }, (_, i) => `A${i + 1}`), ...Array.from({ length: 6 }, (_, i) => `Γ${i + 1}`), ...Array.from({ length: 20 }, (_, i) => `Δ${i + 1}`), "ΠΑΚΕΤΟ"];
 
@@ -67,7 +86,6 @@ const normalizeForSearch = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/ς/g, "σ");
 };
 
-// ΝΕΟ: ΕΝΣΩΜΑΤΩΣΗ ΤΟΥΡΚΙΚΟΥ ΛΕΞΙΚΟΥ (tr)
 const DICT = {
   gr: {
     requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
@@ -102,7 +120,6 @@ export default function Menu() {
     return "en";
   });
 
-  // Κυκλική εναλλαγή γλωσσών: gr -> en -> tr -> gr
   const cycleLanguage = () => {
     if (lang === "gr") setLang("en");
     else if (lang === "en") setLang("tr");
@@ -191,7 +208,7 @@ export default function Menu() {
           ...prod, 
           name: removeAccents(prod.name), 
           name_en: removeAccents(prod.name_en), 
-          name_tr: removeAccents(prod.name_tr), // Για να διαβάζει και Τουρκικά (αν βάλεις στήλη)
+          name_tr: removeAccents(prod.name_tr), // Διαβάζει και Τουρκικά αν τα βάλεις στη βάση
           description: removeAccents(prod.description), 
           description_en: removeAccents(prod.description_en),
           description_tr: removeAccents(prod.description_tr),
@@ -295,11 +312,20 @@ export default function Menu() {
     }
   };
 
+  // ΑΥΤΟΜΑΤΗ ΜΕΤΑΦΡΑΣΗ ΚΑΤΗΓΟΡΙΩΝ
   const getCategoryDisplayName = (cat) => {
     if (cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ") return `⭐ ${t.rec}`;
     if (lang === "gr") return cat;
+    
+    // Αν υπάρχει στο λεξικό, το μεταφράζει αυτόματα!
+    if (CATEGORY_TRANSLATIONS[cat] && CATEGORY_TRANSLATIONS[cat][lang]) {
+      return CATEGORY_TRANSLATIONS[cat][lang];
+    }
+    
     const sampleProduct = visibleProducts.find((p) => p.category === cat);
-    return sampleProduct && sampleProduct.category_en ? sampleProduct.category_en : cat;
+    if (lang === "tr" && sampleProduct && sampleProduct.category_tr) return sampleProduct.category_tr;
+    if (lang === "en" && sampleProduct && sampleProduct.category_en) return sampleProduct.category_en;
+    return cat;
   };
 
   const handleProductClick = (product) => {
@@ -371,14 +397,19 @@ export default function Menu() {
       if (required && sels.length === 0) isValid = false;
       
       if (sels.length > 0) {
-        const names = sels.map((idx) => (lang === "en" || lang === "tr") && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
-        addonTexts.push(`${names.join(", ")}`);
+        const names = sels.map((idx) => {
+          if (lang === "tr" && g.options[idx].name_tr) return g.options[idx].name_tr;
+          if (lang === "en" && g.options[idx].name_en) return g.options[idx].name_en;
+          return g.options[idx].name;
+        });
+        addonTexts.push(names.join(", "));
         sels.forEach((idx) => (extraPrice += g.options[idx].price));
       }
     });
     
     if (!isValid) return alert(lang === "gr" ? "Παρακαλώ συμπληρώστε όλες τις υποχρεωτικές επιλογές!" : "Please fill all required options!");
     
+    // Αποθηκεύει το όνομα στη γλώσσα που το επέλεξε ο χρήστης
     const finalName = addonTexts.length > 0 ? `${activeProduct.name} (${addonTexts.join(" | ")})` : activeProduct.name;
     const finalPrice = activeProduct.price + extraPrice;
     const newItem = { 
@@ -514,12 +545,16 @@ export default function Menu() {
   const getItemDisplayName = (item) => {
     const orig = products.find((p) => p.id === item.id);
     if (!orig) return item.name;
-    const baseName = (lang === "en" || lang === "tr") && orig.name_en ? orig.name_en : orig.name;
+    const baseName = lang === "tr" && orig.name_tr ? orig.name_tr : (lang === "en" && orig.name_en ? orig.name_en : orig.name);
     let addonTexts = [];
     (orig.addons || []).forEach((g) => {
       const sels = item.rawAddons?.[g.id] || [];
       if (sels.length > 0) {
-        const names = sels.map((idx) => (lang === "en" || lang === "tr") && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
+        const names = sels.map((idx) => {
+          if (lang === "tr" && g.options[idx].name_tr) return g.options[idx].name_tr;
+          if (lang === "en" && g.options[idx].name_en) return g.options[idx].name_en;
+          return g.options[idx].name;
+        });
         addonTexts.push(names.join(", "));
       }
     });
@@ -565,7 +600,7 @@ export default function Menu() {
     <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       
       <div className="sticky top-0 z-50 flex flex-col w-full">
-        {/* ΤΟ ΝΕΟ ΜΑΣ ΕΞΥΠΝΟ HEADER ΜΕ ΚΥΚΛΙΚΗ ΑΛΛΑΓΗ ΓΛΩΣΣΑΣ */}
+        {/* HEADER */}
         <CustomerHeader 
           storeLogo={store?.logo_url}
           storeName={store?.name}
