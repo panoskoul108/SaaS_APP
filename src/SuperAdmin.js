@@ -31,9 +31,10 @@ export default function SuperAdmin() {
       const storePins = pinsData.filter(p => p.store_id === store.id);
       return {
         ...store,
-        admin_pin: storePins.find(p => p.role === 'admin')?.pin || "0000",
-        staff_pin: storePins.find(p => p.role === 'staff')?.pin || "1111",
-        kitchen_pin: storePins.find(p => p.role === 'kitchen')?.pin || "2222",
+        // Αν δεν υπάρχει PIN, το αφήνουμε ΚΕΝΟ ("") αντί να βάζουμε προεπιλογές
+        admin_pin: storePins.find(p => p.role === 'admin')?.pin || "",
+        staff_pin: storePins.find(p => p.role === 'staff')?.pin || "",
+        kitchen_pin: storePins.find(p => p.role === 'kitchen')?.pin || "",
       };
     });
 
@@ -56,7 +57,7 @@ export default function SuperAdmin() {
       name: "",
       admin_pin: "0000",
       staff_pin: "1111",
-      kitchen_pin: "2222",
+      kitchen_pin: "", // Στα νέα μαγαζιά η κουζίνα ξεκινάει χωρίς PIN
       theme_color: "#2563EB",
       logo_url: "",
       is_active: true,
@@ -78,6 +79,7 @@ export default function SuperAdmin() {
       const { admin_pin, staff_pin, kitchen_pin, ...storeDataToSave } = editForm;
       let currentStoreId = editForm.id;
 
+      // 1. Αποθήκευση στοιχείων καταστήματος
       if (currentStoreId) {
         const { error } = await supabase.from("stores").update(storeDataToSave).eq("id", currentStoreId);
         if (error) throw error;
@@ -87,6 +89,7 @@ export default function SuperAdmin() {
         currentStoreId = data[0].id; 
       }
 
+      // 2. Έξυπνη διαχείριση των PINs
       const { data: existingPins } = await supabase.from("staff_pins").select("id, role").eq("store_id", currentStoreId);
       
       const getPinId = (roleName) => {
@@ -94,14 +97,39 @@ export default function SuperAdmin() {
         return found ? found.id : undefined;
       };
 
-      const pinsPayload = [
-        { ...(getPinId("admin") && { id: getPinId("admin") }), store_id: currentStoreId, role: "admin", pin: admin_pin },
-        { ...(getPinId("staff") && { id: getPinId("staff") }), store_id: currentStoreId, role: "staff", pin: staff_pin },
-        { ...(getPinId("kitchen") && { id: getPinId("kitchen") }), store_id: currentStoreId, role: "kitchen", pin: kitchen_pin }
-      ];
-      
-      const { error: pinsError } = await supabase.from("staff_pins").upsert(pinsPayload);
-      if (pinsError) throw pinsError;
+      const pinsToUpsert = [];
+      const pinIdsToDelete = [];
+
+      // Συνάρτηση που ελέγχει αν το πεδίο είναι άδειο
+      const processPin = (role, pinValue) => {
+        const existingId = getPinId(role);
+        if (pinValue && pinValue.trim() !== "") {
+          // Αν έχει συμπληρωθεί PIN, το ετοιμάζουμε για αποθήκευση/ενημέρωση
+          pinsToUpsert.push({
+            ...(existingId && { id: existingId }),
+            store_id: currentStoreId,
+            role: role,
+            pin: pinValue.trim()
+          });
+        } else if (existingId) {
+          // Αν το πεδίο είναι άδειο ΑΛΛΑ υπήρχε κωδικός πριν, τον βάζουμε για διαγραφή
+          pinIdsToDelete.push(existingId);
+        }
+      };
+
+      processPin("admin", admin_pin);
+      processPin("staff", staff_pin);
+      processPin("kitchen", kitchen_pin);
+
+      if (pinsToUpsert.length > 0) {
+        const { error: upsertError } = await supabase.from("staff_pins").upsert(pinsToUpsert);
+        if (upsertError) throw upsertError;
+      }
+
+      if (pinIdsToDelete.length > 0) {
+        const { error: deleteError } = await supabase.from("staff_pins").delete().in("id", pinIdsToDelete);
+        if (deleteError) throw deleteError;
+      }
 
       alert("Οι αλλαγές αποθηκεύτηκαν επιτυχώς!");
       setIsEditing(false);
@@ -216,8 +244,9 @@ export default function SuperAdmin() {
                     </div>
                     <div className="text-xs font-bold text-gray-400 flex flex-wrap gap-3 mt-2">
                       <span className="bg-gray-900 px-2 py-1 rounded-md">ID: {store.id}</span>
-                      <span className="bg-gray-900 px-2 py-1 rounded-md text-red-400">Admin: {store.admin_pin}</span>
-                      <span className="bg-gray-900 px-2 py-1 rounded-md text-blue-400">Staff: {store.staff_pin}</span>
+                      {store.admin_pin && <span className="bg-gray-900 px-2 py-1 rounded-md text-red-400">Admin: {store.admin_pin}</span>}
+                      {store.staff_pin && <span className="bg-gray-900 px-2 py-1 rounded-md text-blue-400">Staff: {store.staff_pin}</span>}
+                      {store.kitchen_pin && <span className="bg-gray-900 px-2 py-1 rounded-md text-orange-400">Κουζίνα: {store.kitchen_pin}</span>}
                     </div>
                   </div>
                 </div>
@@ -277,15 +306,15 @@ export default function SuperAdmin() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[10px] font-black text-red-400 mb-1">Admin</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-red-400" value={editForm.admin_pin} onChange={(e) => setEditForm({...editForm, admin_pin: e.target.value})} />
+                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-red-400" value={editForm.admin_pin || ""} onChange={(e) => setEditForm({...editForm, admin_pin: e.target.value})} placeholder="π.χ. 0000" />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-blue-400 mb-1">Staff</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-blue-400" value={editForm.staff_pin} onChange={(e) => setEditForm({...editForm, staff_pin: e.target.value})} />
+                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-blue-400" value={editForm.staff_pin || ""} onChange={(e) => setEditForm({...editForm, staff_pin: e.target.value})} placeholder="π.χ. 1111" />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-orange-400 mb-1">Κουζίνα</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-orange-400" value={editForm.kitchen_pin} onChange={(e) => setEditForm({...editForm, kitchen_pin: e.target.value})} />
+                    <label className="block text-[10px] font-black text-orange-400 mb-1">Κουζίνα (Προαιρετικό)</label>
+                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-orange-400" value={editForm.kitchen_pin || ""} onChange={(e) => setEditForm({...editForm, kitchen_pin: e.target.value})} placeholder="Κενό" />
                   </div>
                 </div>
               </div>
