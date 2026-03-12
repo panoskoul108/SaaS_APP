@@ -15,6 +15,7 @@ export default function SuperAdmin() {
   useEffect(() => {
     if (isAuthenticated) fetchStores();
   }, [isAuthenticated]);
+  const REWARD_THRESHOLD = 40;
 
   const fetchStores = async () => {
     const { data, error } = await supabase.from("stores").select("*").order("id", { ascending: true });
@@ -33,7 +34,6 @@ export default function SuperAdmin() {
   };
 
   const handleEditClick = (store) => {
-    // Εξασφαλίζουμε ότι όλα τα πεδία περνάνε στη φόρμα ώστε να μην σβηστούν κατά το Save
     setEditForm({ ...store });
     setIsEditing(true);
   };
@@ -55,7 +55,7 @@ export default function SuperAdmin() {
       lat: null,
       lng: null,
       tables: ["A1", "A2", "A3", "A4", "ΠΑΚΕΤΟ"],
-      reward_threshold: 40
+      reward_threshold: REWARD_THRESHOLD
     });
     setIsEditing(true);
   };
@@ -63,12 +63,10 @@ export default function SuperAdmin() {
   const saveStore = async () => {
     try {
       if (editForm.id) {
-        // Ενημέρωση υπάρχοντος καταστήματος
         const { error } = await supabase.from("stores").update(editForm).eq("id", editForm.id);
         if (error) throw error;
         alert("Το κατάστημα ενημερώθηκε επιτυχώς!");
       } else {
-        // Δημιουργία νέου καταστήματος
         const { error } = await supabase.from("stores").insert([editForm]);
         if (error) throw error;
         alert("Το νέο κατάστημα δημιουργήθηκε επιτυχώς!");
@@ -95,7 +93,6 @@ export default function SuperAdmin() {
     }
   };
 
-  // --- ΛΟΓΙΚΗ ΓΙΑ ΤΑ ΠΑΚΕΤΑ (TIERS) ---
   const getTierInfo = (store) => {
     if (store.has_premium_ai) return { name: "PREMIUM", price: 70, color: "bg-purple-500", text: "text-purple-900" };
     if (store.enable_ordering !== false) return { name: "PRO", price: 40, color: "bg-blue-500", text: "text-blue-900" };
@@ -133,7 +130,6 @@ export default function SuperAdmin() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 font-sans pb-24">
-      {/* HEADER */}
       <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-40 shadow-sm">
         <div className="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -143,18 +139,13 @@ export default function SuperAdmin() {
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Master Control Panel</p>
             </div>
           </div>
-          <button 
-            onClick={handleNewStoreClick} 
-            className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-transform active:scale-95"
-          >
+          <button onClick={handleNewStoreClick} className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-transform active:scale-95">
             + Νεος Πελατης
           </button>
         </div>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8">
-        
-        {/* ΣΤΑΤΙΣΤΙΚΑ ΕΣΟΔΩΝ (MRR) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
           <div className="bg-gray-800 p-6 rounded-[2rem] border border-gray-700 shadow-lg flex items-center justify-between">
             <div>
@@ -163,7 +154,6 @@ export default function SuperAdmin() {
             </div>
             <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center text-3xl">🏪</div>
           </div>
-          
           <div className="bg-gradient-to-br from-blue-600 to-purple-600 p-6 rounded-[2rem] shadow-xl shadow-blue-500/20 flex items-center justify-between md:col-span-2">
             <div>
               <p className="text-xs font-black uppercase text-blue-200 tracking-widest mb-1">Μηνιαιος Τζιρος (MRR)</p>
@@ -173,7 +163,6 @@ export default function SuperAdmin() {
           </div>
         </div>
 
-        {/* ΛΙΣΤΑ ΜΑΓΑΖΙΩΝ */}
         <div className="space-y-4">
           {stores.map((store) => {
             const tier = getTierInfo(store);
@@ -181,7 +170,6 @@ export default function SuperAdmin() {
 
             return (
               <div key={store.id} className={`p-6 rounded-[2.5rem] flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm border transition-all ${isLocked ? "bg-red-900/10 border-red-900/50 opacity-75" : "bg-gray-800 border-gray-700 hover:border-gray-600"}`}>
-                
                 <div className="flex items-center gap-5 w-full md:w-auto">
                   <div className={`w-20 h-20 shrink-0 rounded-2xl bg-cover bg-center shadow-inner flex items-center justify-center text-2xl border border-gray-700 ${isLocked ? "grayscale" : ""}`} style={store.logo_url ? { backgroundImage: `url(${store.logo_url})` } : { backgroundColor: store.theme_color || '#374151' }}>
                     {!store.logo_url && "🍽️"}
@@ -189,7 +177,6 @@ export default function SuperAdmin() {
                   <div>
                     <div className="flex items-center gap-3 mb-1">
                       <h3 className={`font-black text-xl uppercase ${isLocked ? "text-red-400 line-through" : "text-white"}`}>{store.name}</h3>
-                      {/* ΤΑΜΠΕΛΑ ΠΑΚΕΤΟΥ (TIER) */}
                       <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${tier.color} ${tier.text} shadow-sm`}>
                         {tier.name}
                       </span>
@@ -216,7 +203,6 @@ export default function SuperAdmin() {
         </div>
       </main>
 
-      {/* ΦΟΡΜΑ ΕΠΕΞΕΡΓΑΣΙΑΣ ΠΕΛΑΤΗ (MODAL) */}
       {isEditing && editForm && (
         <div className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={() => setIsEditing(false)}>
           <div className="bg-gray-800 p-8 rounded-[3rem] max-w-2xl w-full border border-gray-700 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
@@ -224,7 +210,6 @@ export default function SuperAdmin() {
             <h2 className="text-2xl font-black uppercase text-white mb-6 italic">{editForm.id ? "Επεξεργασια Πελατη" : "Νεος Πελατης"}</h2>
             
             <div className="space-y-6">
-              {/* Γενικά */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Ονομα Καταστηματος</label>
@@ -232,11 +217,7 @@ export default function SuperAdmin() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Πακετο Συνδρομης</label>
-                  <select 
-                    className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500" 
-                    value={getTierInfo(editForm).name} 
-                    onChange={(e) => handleTierChange(e.target.value)}
-                  >
+                  <select className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500" value={getTierInfo(editForm).name} onChange={(e) => handleTierChange(e.target.value)}>
                     <option value="BASIC">Basic (20€) - Μόνο Κατάλογος</option>
                     <option value="PRO">Pro (40€) - Παραγγελιοληψία</option>
                     <option value="PREMIUM">Premium (70€) - AI Manager</option>
@@ -244,7 +225,6 @@ export default function SuperAdmin() {
                 </div>
               </div>
 
-              {/* Εμφάνιση */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Λογοτυπο (URL Εικονας)</label>
@@ -259,7 +239,6 @@ export default function SuperAdmin() {
                 </div>
               </div>
 
-              {/* Κωδικοί Πρόσβασης */}
               <div className="bg-gray-900 p-5 rounded-3xl border border-gray-700">
                 <p className="text-[10px] font-black uppercase text-gray-500 mb-4 tracking-widest border-b border-gray-800 pb-2">Κωδικοι Προσβασης (PINs)</p>
                 <div className="grid grid-cols-3 gap-4">
@@ -278,19 +257,13 @@ export default function SuperAdmin() {
                 </div>
               </div>
 
-              {/* Ρυθμίσεις Λειτουργίας */}
               <div className="bg-gray-900 p-5 rounded-3xl border border-gray-700 space-y-4">
-                 <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-800 pb-2">Ρυθμισεις Λειτουργιας</p>
+                 <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-800 pb-2">Ρυθμισεις Λειτουργιας & Overrides</p>
                  
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <div>
                      <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Τραπέζια (Κόμμα διαχωρισμός)</label>
-                     <textarea 
-                       className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none text-sm resize-none" 
-                       rows="2"
-                       value={(editForm.tables || []).join(", ")} 
-                       onChange={(e) => setEditForm({...editForm, tables: e.target.value.split(",").map(t => t.trim()).filter(Boolean)})} 
-                     />
+                     <textarea className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none text-sm resize-none" rows="2" value={(editForm.tables || []).join(", ")} onChange={(e) => setEditForm({...editForm, tables: e.target.value.split(",").map(t => t.trim()).filter(Boolean)})} />
                    </div>
                    <div>
                      <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Όριο Πόντων Δώρου (€)</label>
@@ -298,13 +271,32 @@ export default function SuperAdmin() {
                    </div>
                  </div>
 
-                 <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                 {/* Εδώ προστέθηκαν οι διακόπτες που δίνουν τον απόλυτο έλεγχο στο Super Admin */}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                      <span className="text-xs font-bold text-gray-300">Παραγγελιοληψία</span>
+                      <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_ordering} onChange={(e) => setEditForm({...editForm, enable_ordering: e.target.checked})} />
+                   </div>
+                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                      <span className="text-xs font-bold text-gray-300">Κλήση Σερβιτόρου</span>
+                      <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_call_waiter} onChange={(e) => setEditForm({...editForm, enable_call_waiter: e.target.checked})} />
+                   </div>
+                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                      <span className="text-xs font-bold text-gray-300">Premium AI Manager</span>
+                      <input type="checkbox" className="w-5 h-5 accent-purple-500 cursor-pointer" checked={editForm.has_premium_ai} onChange={(e) => setEditForm({...editForm, has_premium_ai: e.target.checked})} />
+                   </div>
+                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                      <span className="text-xs font-bold text-gray-300">Ενεργό Κατάστημα</span>
+                      <input type="checkbox" className="w-5 h-5 accent-green-500 cursor-pointer" checked={editForm.is_active !== false} onChange={(e) => setEditForm({...editForm, is_active: e.target.checked})} />
+                   </div>
+                 </div>
+
+                 <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700 mt-2">
                     <span className="text-xs font-bold text-gray-300">Backup Mode (Χειροκίνητη Επιλογή)</span>
-                    <input type="checkbox" className="w-5 h-5 accent-blue-500" checked={editForm.backup_mode} onChange={(e) => setEditForm({...editForm, backup_mode: e.target.checked})} />
+                    <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.backup_mode} onChange={(e) => setEditForm({...editForm, backup_mode: e.target.checked})} />
                  </div>
               </div>
 
-              {/* Κουμπιά Αποθήκευσης */}
               <div className="flex gap-3 pt-4">
                 <button onClick={saveStore} className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20">
                   Αποθηκευση Πελατη
