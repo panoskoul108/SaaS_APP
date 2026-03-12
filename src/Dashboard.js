@@ -612,7 +612,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* --- ΝΕΑ ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΚΑΡΤΕΛΑ: ΕΞΑΤΟΜΙΚΕΥΣΗ BRAND --- */}
         {tab === "settings" && userRole === "admin" && (
           <div className="max-w-6xl mx-auto pb-20 animate-fade-in">
              <h2 className={`font-black text-2xl uppercase italic tracking-tighter border-b pb-4 mb-8 ${isDark ? "text-white border-gray-800" : "text-gray-800 border-gray-200"}`}>
@@ -621,10 +620,8 @@ export default function Dashboard() {
              
              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                {/* ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ - ΡΥΘΜΙΣΕΙΣ (Πιάνει 2 στήλες) */}
                 <div className="lg:col-span-2 space-y-6">
                   
-                  {/* 1. Ρύθμιση Λογότυπου */}
                   <div className={`p-8 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
                     <h3 className={`font-black uppercase text-sm mb-2 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>1. Λογότυπο Καταστήματος</h3>
                     <p className={`text-xs font-bold mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>Εισάγετε το URL της εικόνας (προτείνεται αρχείο .PNG με διαφανές φόντο).</p>
@@ -644,7 +641,6 @@ export default function Dashboard() {
                     </div>
                   </div>
 
-                  {/* 2. Ρύθμιση Χρώματος (Premium Palette) */}
                   <div className={`p-8 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
                     <h3 className={`font-black uppercase text-sm mb-2 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>2. Χρώμα Εφαρμογής</h3>
                     <p className={`text-xs font-bold mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>Επιλέξτε ένα χρώμα που ταιριάζει με το λογότυπό σας. Αυτό θα χρωματίσει τον κατάλογο των πελατών.</p>
@@ -662,8 +658,8 @@ export default function Dashboard() {
                       ))}
                     </div>
 
-                    <div className="flex items-center gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                      <span className={`text-xs font-bold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Η δικο σας χρωμα:</span>
+                    <div className={`flex items-center gap-4 mt-6 pt-6 border-t ${isDark ? "border-gray-700" : "border-gray-200"}`}>
+                      <span className={`text-xs font-bold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Το δικό σας χρώμα:</span>
                       <input 
                         type="color" 
                         value={storeThemeColor} 
@@ -671,7 +667,7 @@ export default function Dashboard() {
                         onBlur={(e) => handleColorUpdate(e.target.value)}
                         className="w-12 h-12 rounded-xl cursor-pointer border-0 outline-none p-0 bg-transparent"
                       />
-                      <span className="text-xs font-black bg-gray-100 dark:bg-gray-900 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                      <span className={`text-xs font-black px-3 py-1 rounded-lg border ${isDark ? "bg-gray-900 border-gray-700 text-gray-200" : "bg-gray-100 border-gray-200 text-gray-800"}`}>
                         {storeThemeColor.toUpperCase()}
                       </span>
                     </div>
@@ -679,15 +675,12 @@ export default function Dashboard() {
 
                 </div>
 
-                {/* ΔΕΞΙΑ ΠΛΕΥΡΑ - LIVE PREVIEW KINHTOY */}
                 <div className="flex justify-center lg:justify-end">
                    <div className="w-[300px] h-[600px] bg-white rounded-[3rem] border-[8px] border-gray-900 shadow-2xl relative overflow-hidden flex flex-col">
-                      {/* Κάμερα Notch */}
                       <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-50">
                          <div className="w-32 h-5 bg-gray-900 rounded-b-2xl"></div>
                       </div>
 
-                      {/* Mockup Header */}
                       <div className="pt-10 pb-4 px-4 shadow-sm flex flex-col items-center bg-gray-50 z-10 relative">
                          {storeLogo ? (
                            <img src={storeLogo} alt="Logo" className="h-10 object-contain drop-shadow-sm mb-2" />
@@ -698,20 +691,17 @@ export default function Dashboard() {
                          <div className="text-[8px] font-bold mt-2 text-gray-400 tracking-widest">ΤΡΑΠΕΖΙ Α1</div>
                       </div>
 
-                      {/* Mockup Body (Categories & Products) */}
                       <div className="flex-1 bg-gray-50 p-4 space-y-4">
-                         {/* Categories Fake Scroll */}
                          <div className="flex gap-2 border-b border-gray-200 pb-2">
                             <div className="px-3 py-1.5 rounded-xl text-[8px] font-black text-white shadow-sm" style={{ backgroundColor: storeThemeColor }}>ΚΑΦΕΔΕΣ</div>
                             <div className="px-3 py-1.5 rounded-xl text-[8px] font-black bg-white text-gray-500 border border-gray-200">ΣΝΑΚΣ</div>
                             <div className="px-3 py-1.5 rounded-xl text-[8px] font-black bg-white text-gray-500 border border-gray-200">ΓΛΥΚΑ</div>
                          </div>
                          
-                         {/* Fake Product 1 */}
                          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex gap-3">
                            <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
                            <div className="flex-1 flex flex-col justify-between">
-                             <div className="text-[10px] font-black">FREDDO ESPRESSO</div>
+                             <div className="text-[10px] font-black text-gray-800">FREDDO ESPRESSO</div>
                              <div className="flex justify-between items-center">
                                <span className="text-xs font-black" style={{ color: storeThemeColor }}>2.50€</span>
                                <div className="w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-xs" style={{ backgroundColor: storeThemeColor }}>+</div>
@@ -719,11 +709,10 @@ export default function Dashboard() {
                            </div>
                          </div>
                          
-                         {/* Fake Product 2 */}
                          <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex gap-3">
                            <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
                            <div className="flex-1 flex flex-col justify-between">
-                             <div className="text-[10px] font-black">CLUB SANDWICH</div>
+                             <div className="text-[10px] font-black text-gray-800">CLUB SANDWICH</div>
                              <div className="flex justify-between items-center">
                                <span className="text-xs font-black" style={{ color: storeThemeColor }}>6.00€</span>
                                <div className="w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-xs" style={{ backgroundColor: storeThemeColor }}>+</div>
@@ -732,7 +721,6 @@ export default function Dashboard() {
                          </div>
                       </div>
 
-                      {/* Mockup Floating Cart */}
                       <div className="absolute bottom-6 left-4 right-4">
                          <div className="py-3 px-4 rounded-full shadow-lg flex justify-between items-center text-white" style={{ backgroundColor: storeThemeColor }}>
                            <div className="flex items-center gap-2">
