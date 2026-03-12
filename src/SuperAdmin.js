@@ -87,15 +87,20 @@ export default function SuperAdmin() {
         currentStoreId = data[0].id; 
       }
 
-      await supabase.from("staff_pins").delete().eq("store_id", currentStoreId);
+      const { data: existingPins } = await supabase.from("staff_pins").select("id, role").eq("store_id", currentStoreId);
       
-      const newPins = [
-        { store_id: currentStoreId, role: "admin", pin: admin_pin },
-        { store_id: currentStoreId, role: "staff", pin: staff_pin },
-        { store_id: currentStoreId, role: "kitchen", pin: kitchen_pin }
+      const getPinId = (roleName) => {
+        const found = existingPins?.find(p => p.role === roleName);
+        return found ? found.id : undefined;
+      };
+
+      const pinsPayload = [
+        { ...(getPinId("admin") && { id: getPinId("admin") }), store_id: currentStoreId, role: "admin", pin: admin_pin },
+        { ...(getPinId("staff") && { id: getPinId("staff") }), store_id: currentStoreId, role: "staff", pin: staff_pin },
+        { ...(getPinId("kitchen") && { id: getPinId("kitchen") }), store_id: currentStoreId, role: "kitchen", pin: kitchen_pin }
       ];
       
-      const { error: pinsError } = await supabase.from("staff_pins").insert(newPins);
+      const { error: pinsError } = await supabase.from("staff_pins").upsert(pinsPayload);
       if (pinsError) throw pinsError;
 
       alert("Οι αλλαγές αποθηκεύτηκαν επιτυχώς!");
