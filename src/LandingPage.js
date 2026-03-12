@@ -1,8 +1,21 @@
 import React from "react";
 
 export default function LandingPage() {
-  // Βάλε εδώ το πραγματικό σου email!
-  const myEmail = "panoskou108@gmail.com"; 
+  const myEmail = "info@smartpos.gr"; 
+
+  // Το νέο, επαγγελματικό SVG Logo Component
+  const BrandLogo = () => (
+    <div className="flex items-center gap-2.5 hover:opacity-90 transition-opacity cursor-pointer">
+      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+        <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+        </svg>
+      </div>
+      <span className="font-black text-2xl tracking-tighter text-white">
+        Smart<span className="text-gray-400 font-medium">POS</span>
+      </span>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-blue-500 selection:text-white overflow-x-hidden">
@@ -10,14 +23,12 @@ export default function LandingPage() {
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-gray-900/80 backdrop-blur-lg border-b border-gray-800">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="font-black text-2xl tracking-tighter flex items-center gap-2">
-            <span className="text-blue-500">🍽️ Smart</span>POS
-          </div>
+          <BrandLogo />
           <div className="hidden md:flex gap-8 text-sm font-bold text-gray-300">
             <a href="#features" className="hover:text-white transition-colors">Λειτουργίες</a>
             <a href="#pricing" className="hover:text-white transition-colors">Πακέτα</a>
           </div>
-          <a href="#demo" className="bg-blue-600 text-white px-5 py-2.5 rounded-full text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/30">
+          <a href="#demo" className="bg-blue-600 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/30">
             Live Demo
           </a>
         </div>
@@ -55,8 +66,6 @@ export default function LandingPage() {
           <p className="text-gray-400 mb-12 max-w-xl mx-auto">Μπείτε στο εικονικό μας εστιατόριο (Sandbox) και δείτε πώς λειτουργεί το σύστημα, τόσο από την πλευρά του πελάτη όσο και του προσωπικού.</p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            
-            {/* Demo Πελάτη */}
             <div className="bg-gray-900 p-8 rounded-[3rem] border border-gray-700 shadow-2xl flex flex-col items-center hover:border-blue-500/50 transition-colors">
               <div className="text-6xl mb-6">📱</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Πελατη</h3>
@@ -66,7 +75,6 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Demo Ταμείου */}
             <div className="bg-gray-900 p-8 rounded-[3rem] border border-gray-700 shadow-2xl flex flex-col items-center hover:border-purple-500/50 transition-colors">
               <div className="text-6xl mb-6">💻</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Ταμειου</h3>
@@ -75,7 +83,6 @@ export default function LandingPage() {
                 Ανοιγμα Ταμείου
               </a>
             </div>
-
           </div>
         </div>
       </section>
@@ -112,8 +119,6 @@ export default function LandingPage() {
           <p className="text-gray-400 mb-16">Χωρίς κρυφές χρεώσεις, χωρίς ποσοστά επί των πωλήσεων.</p>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-            
-            {/* Basic */}
             <div className="bg-gray-900 p-8 rounded-[3rem] border border-gray-700 shadow-xl flex flex-col">
               <h3 className="text-xl font-black uppercase text-gray-400 mb-2">Basic</h3>
               <div className="text-4xl font-black mb-6">20€<span className="text-base text-gray-500 font-medium">/μήνα</span></div>
@@ -129,7 +134,6 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Pro */}
             <div className="bg-blue-600 p-8 rounded-[3rem] shadow-2xl shadow-blue-500/20 transform md:-translate-y-4 relative flex flex-col">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Most Popular</div>
               <h3 className="text-xl font-black uppercase text-blue-200 mb-2">Pro</h3>
@@ -146,7 +150,6 @@ export default function LandingPage() {
               </a>
             </div>
 
-            {/* Premium */}
             <div className="bg-gray-900 p-8 rounded-[3rem] border border-purple-500/30 shadow-xl relative overflow-hidden flex flex-col">
               <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 blur-3xl"></div>
               <h3 className="text-xl font-black uppercase text-purple-400 mb-2">Premium</h3>
@@ -161,15 +164,13 @@ export default function LandingPage() {
                 Επικοινωνια
               </a>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="py-12 border-t border-gray-800 text-center">
-        <div className="font-black text-xl tracking-tighter mb-4 opacity-50">
-          <span>🍽️ Smart</span>POS
+      <footer className="py-12 border-t border-gray-800 text-center flex flex-col items-center">
+        <div className="mb-6 opacity-50 grayscale">
+           <BrandLogo />
         </div>
         <p className="text-xs text-gray-500 font-bold uppercase tracking-widest">© 2026 Smart POS Solutions. All rights reserved.</p>
       </footer>
