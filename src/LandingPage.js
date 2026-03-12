@@ -58,8 +58,7 @@ export default function LandingPage() {
               <div className="text-6xl mb-6">📱</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Πελατη</h3>
               <p className="text-gray-400 text-sm mb-8 text-center">Σκανάρετε το QR ή πατήστε το κουμπί για να δείτε πώς παραγγέλνει ο πελάτης από το τραπέζι του.</p>
-              {/* Το Link πάει στο store 1 ως πελάτης */}
-              <a href="/?store=1&table=Demo" target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 text-center">
+              <a href="/?store=4&table=Demo" target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 text-center">
                 Ανοιγμα Μενού
               </a>
             </div>
@@ -69,8 +68,7 @@ export default function LandingPage() {
               <div className="text-6xl mb-6">💻</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Ταμειου</h3>
               <p className="text-gray-400 text-sm mb-8 text-center">Δείτε πώς εμφανίζονται οι παραγγελίες στο bar/κουζίνα. <br/><span className="text-purple-400 font-bold">PIN Δοκιμής: 1111</span></p>
-              {/* Το Link πάει στο store 1 ως admin */}
-              <a href="/?admin=true&store=1" target="_blank" rel="noreferrer" className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-transform active:scale-95 text-center">
+              <a href="/?admin&store=4" target="_blank" rel="noreferrer" className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-transform active:scale-95 text-center">
                 Ανοιγμα Ταμείου
               </a>
             </div>
