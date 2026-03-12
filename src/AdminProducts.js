@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
@@ -37,6 +37,10 @@ export default function AdminProducts({ storeId, theme }) {
   const [isAdding, setIsAdding] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  // --- DRAG AND DROP REFS ---
+  const dragItem = useRef();
+  const dragOverItem = useRef();
+
   const fetchProducts = async () => {
     const { data } = await supabase
       .from("products")
@@ -51,10 +55,46 @@ export default function AdminProducts({ storeId, theme }) {
     if (storeId) fetchProducts();
   }, [storeId]);
 
-  const handleQuickSort = async (product, changeAmount) => {
-    const newSortOrder = (product.sort_order || 0) + changeAmount;
-    await supabase.from("products").update({ sort_order: newSortOrder }).eq("id", product.id);
-    fetchProducts();
+  // --- ΣΥΝΑΡΤΗΣΕΙΣ DRAG & DROP ---
+  const handleDragStart = (e, index) => {
+    dragItem.current = index;
+    e.dataTransfer.effectAllowed = "move";
+    // Κάνει ελαφρώς διαφανές το προϊόν που σέρνουμε
+    setTimeout(() => {
+      e.target.style.opacity = "0.4";
+    }, 0);
+  };
+
+  const handleDragEnter = (e, index) => {
+    dragOverItem.current = index;
+  };
+
+  const handleDragEnd = async (e) => {
+    e.target.style.opacity = "1"; // Επαναφορά εμφάνισης
+    
+    if (dragItem.current !== null && dragOverItem.current !== null && dragItem.current !== dragOverItem.current) {
+      setIsUploading(true); // Κλειδώνει τα κουμπιά όσο σώζει
+
+      // Αντιγράφουμε τη φιλτραρισμένη λίστα που βλέπει ο χρήστης
+      const _products = [...filteredProducts];
+      const draggedItemContent = _products.splice(dragItem.current, 1)[0];
+      
+      // Βάζουμε το προϊόν στη νέα του θέση
+      _products.splice(dragOverItem.current, 0, draggedItemContent);
+
+      // Μαζική ενημέρωση της σειράς (sort_order) στη βάση
+      const updates = _products.map((p, idx) => {
+        return supabase.from("products").update({ sort_order: idx }).eq("id", p.id);
+      });
+
+      await Promise.all(updates);
+      await fetchProducts(); // Ανανεώνει τη λίστα
+      setIsUploading(false);
+    }
+    
+    // Καθαρισμός των Refs
+    dragItem.current = null;
+    dragOverItem.current = null;
   };
 
   const handleBulkPriceUpdate = async () => {
@@ -153,7 +193,6 @@ export default function AdminProducts({ storeId, theme }) {
   const removeAddonOption = (groupId, optionIndex) => setEditForm({ ...editForm, addons: editForm.addons.map((g) => { if (g.id === groupId) { const newOptions = [...g.options]; newOptions.splice(optionIndex, 1); return { ...g, options: newOptions }; } return g; }) });
   const updateAddonOption = (groupId, optionIndex, field, value) => setEditForm({ ...editForm, addons: editForm.addons.map((g) => { if (g.id === groupId) { const newOptions = [...g.options]; newOptions[optionIndex][field] = value; return { ...g, options: newOptions }; } return g; }) });
 
-  // Η ΣΥΝΑΡΤΗΣΗ ΠΟΥ ΕΛΕΙΠΕ
   const copyAddonsToCategory = async () => {
     if (!editForm.category) return alert("Ορίστε κατηγορία πρώτα.");
     if (window.confirm(`Αντιγραφή επιλογών σε όλη την κατηγορία "${editForm.category}"; Προσοχή, αυτό θα αντικαταστήσει τις υπάρχουσες επιλογές των άλλων προϊόντων.`)) {
@@ -414,19 +453,32 @@ export default function AdminProducts({ storeId, theme }) {
         </div>
       )}
 
+      {/* --- ΕΜΦΑΝΙΣΗ ΛΙΣΤΑΣ ΜΕ ΛΕΙΤΟΥΡΓΙΑ DRAG & DROP --- */}
       <div className="space-y-4">
         {filteredProducts.length === 0 ? (
           <div className="text-center text-gray-500 font-bold uppercase mt-10">Δεν βρέθηκαν προϊόντα.</div>
         ) : (
-          filteredProducts.map((p) => (
+          filteredProducts.map((p, index) => (
             <div
               key={p.id}
-              className={`border p-4 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm transition-all hover:shadow-md ${
+              draggable // ΕΝΕΡΓΟΠΟΙΗΣΗ DRAG
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragEnter={(e) => handleDragEnter(e, index)}
+              onDragEnd={handleDragEnd}
+              onDragOver={(e) => e.preventDefault()}
+              className={`border p-4 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm transition-all hover:shadow-md cursor-grab active:cursor-grabbing ${
                 !p.is_available ? (isDark ? "opacity-60 border-red-900/50 bg-red-900/10" : "opacity-60 border-red-100 bg-red-50/20") : (isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100")
               }`}
             >
-              <div className="flex items-center gap-4 w-full sm:w-auto">
-                <div className={`w-20 h-20 shrink-0 rounded-2xl bg-cover bg-center shadow-inner flex items-center justify-center text-2xl ${isDark ? "bg-gray-900" : "bg-gray-100"}`} style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}>
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                
+                {/* Εικονίδιο 'Πιάσε και Σύρε' */}
+                <div className="flex flex-col justify-center items-center px-2 text-gray-400 opacity-60 hover:opacity-100 hover:text-blue-500 transition-colors">
+                  <span className="text-2xl leading-none h-3">⋮</span>
+                  <span className="text-2xl leading-none h-3">⋮</span>
+                </div>
+
+                <div className={`w-16 h-16 shrink-0 rounded-2xl bg-cover bg-center shadow-inner flex items-center justify-center text-2xl ${isDark ? "bg-gray-900" : "bg-gray-100"}`} style={p.image_url ? { backgroundImage: `url(${p.image_url})` } : {}}>
                   {!p.image_url && "🍽️"}
                 </div>
                 <div className="flex-1">
@@ -446,14 +498,6 @@ export default function AdminProducts({ storeId, theme }) {
               </div>
 
               <div className="flex gap-2 w-full sm:w-auto justify-end border-t sm:border-t-0 pt-3 sm:pt-0 mt-1 sm:mt-0 dark:border-gray-700 items-center">
-                <div className={`flex flex-col bg-gray-50 dark:bg-gray-900 rounded-xl border ${isDark ? "border-gray-700" : "border-gray-200"}`}>
-                  <button onClick={() => handleQuickSort(p, -1)} className={`w-10 h-6 flex items-center justify-center text-xs font-black transition-colors ${isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-black"}`}>▲</button>
-                  <div className={`h-[1px] w-full ${isDark ? "bg-gray-700" : "bg-gray-200"}`}></div>
-                  <button onClick={() => handleQuickSort(p, 1)} className={`w-10 h-6 flex items-center justify-center text-xs font-black transition-colors ${isDark ? "text-gray-400 hover:text-white" : "text-gray-500 hover:text-black"}`}>▼</button>
-                </div>
-
-                <div className={`h-10 w-[1px] mx-1 ${isDark ? "bg-gray-700" : "bg-gray-200"}`}></div>
-
                 <button onClick={() => handleToggleRecommended(p)} className={`w-12 h-12 rounded-xl flex items-center justify-center text-xl transition-colors ${p.is_recommended ? (isDark ? "bg-yellow-900/30 text-yellow-400" : "bg-yellow-50 text-yellow-500") : (isDark ? "bg-gray-900 text-gray-500" : "bg-gray-100 text-gray-400")}`}>⭐</button>
                 <button onClick={() => handleToggleAvailable(p)} className={`w-12 h-12 rounded-xl flex items-center justify-center font-black text-[10px] transition-colors ${p.is_available ? (isDark ? "bg-green-900/30 text-green-500" : "bg-green-50 text-green-600") : (isDark ? "bg-red-900/30 text-red-500" : "bg-red-50 text-red-500")}`}>{p.is_available ? "ON" : "OFF"}</button>
                 <button onClick={() => handleDuplicate(p)} className={`w-12 h-12 rounded-xl flex items-center justify-center text-lg transition-colors ${isDark ? "bg-purple-900/30 text-purple-400" : "bg-purple-50 text-purple-500"}`}>📋</button>
