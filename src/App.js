@@ -1,29 +1,33 @@
-import React, { useState, useEffect } from "react";
-import Menu from "./Menu";
-import Dashboard from "./Dashboard";
-import SuperAdmin from "./SuperAdmin"; // Η νέα κρυφή σελίδα
+import React from 'react';
+import Menu from './Menu';
+import Dashboard from './Dashboard';
+import SuperAdmin from './SuperAdmin';
+import LandingPage from './LandingPage'; // <-- Φορτώνουμε τη Βιτρίνα
 
-export default function App() {
-  const [route, setRoute] = useState("menu");
+function App() {
+  // Διαβάζουμε το URL
+  const params = new URLSearchParams(window.location.search);
+  const storeId = params.get('store');
+  const isAdmin = params.get('admin');
+  const isBoss = params.get('boss');
 
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
+  // 1. Αν γράψει /?boss=true -> Πάει στο Super Admin σου
+  if (isBoss) {
+    return <SuperAdmin />;
+  }
 
-    // Ελέγχει ποιο περιβάλλον πρέπει να φορτώσει
-    if (params.has("boss")) {
-      setRoute("superadmin");
-    } else if (params.has("admin")) {
-      setRoute("dashboard");
-    } else {
-      setRoute("menu");
-    }
-  }, []);
+  // 2. Αν γράψει /?admin=true&store=X -> Πάει στο Ταμείο του μαγαζιού
+  if (isAdmin && storeId) {
+    return <Dashboard />;
+  }
 
-  return (
-    <div>
-      {route === "superadmin" && <SuperAdmin />}
-      {route === "dashboard" && <Dashboard />}
-      {route === "menu" && <Menu />}
-    </div>
-  );
+  // 3. Αν γράψει /?store=X&table=Y -> Πάει στο Μενού του πελάτη
+  if (storeId) {
+    return <Menu />;
+  }
+
+  // 4. ΑΝ ΤΟ URL ΕΙΝΑΙ ΣΚΕΤΟ (π.χ. smartpos.gr) -> ΔΕΙΞΕ ΤΗ ΒΙΤΡΙΝΑ!
+  return <LandingPage />;
 }
+
+export default App;
