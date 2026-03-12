@@ -13,9 +13,19 @@ const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
-
-
 const REWARD_THRESHOLD = 40;
+
+// PREDEFINED PREMIUM COLORS FOR SETTINGS
+const PREMIUM_COLORS = [
+  { name: 'Royal Blue', hex: '#2563EB' },
+  { name: 'Midnight Black', hex: '#111827' },
+  { name: 'Emerald Green', hex: '#059669' },
+  { name: 'Sunset Orange', hex: '#EA580C' },
+  { name: 'Ruby Red', hex: '#DC2626' },
+  { name: 'Luxury Purple', hex: '#7C3AED' },
+  { name: 'Gold', hex: '#D97706' },
+  { name: 'Hot Pink', hex: '#DB2777' }
+];
 
 const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
 const normalizeStr = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
@@ -37,7 +47,7 @@ export default function Dashboard() {
   const [storeId, setStoreId] = useState(null);
   const [storeName, setStoreName] = useState("");
   const [storeLogo, setStoreLogo] = useState("");
-  const [storeThemeColor, setStoreThemeColor] = useState("#2563EB"); // ΝΕΟ: Χρώμα Καταστήματος
+  const [storeThemeColor, setStoreThemeColor] = useState("#2563EB");
   const [storeTables, setStoreTables] = useState(DEFAULT_TABLES);
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
   
@@ -122,10 +132,7 @@ export default function Dashboard() {
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
       setStoreName(storeData.name); 
       setStoreLogo(storeData.logo_url || ""); 
-      
-      // Διαβάζουμε το χρώμα (αν δεν έχει, βάζουμε το default)
       if (storeData.theme_color) setStoreThemeColor(storeData.theme_color);
-
       setIsPremium(storeData.is_premium || false);
       if (storeData.bell_visibility) setBellVisibility(storeData.bell_visibility);
       if (storeData.tables) setStoreTables(storeData.tables);
@@ -238,7 +245,6 @@ export default function Dashboard() {
     });
   };
 
-  // --- ΝΕΕΣ ΣΥΝΑΡΤΗΣΕΙΣ ΑΠΟΘΗΚΕΥΣΗΣ ΡΥΘΜΙΣΕΩΝ ---
   const handleColorUpdate = async (newColor) => {
     setStoreThemeColor(newColor);
     await supabase.from("stores").update({ theme_color: newColor }).eq("id", storeId);
@@ -397,7 +403,7 @@ export default function Dashboard() {
     { id: "history", label: "ΙΣΤΟΡΙΚΟ (Z)", icon: "📈" },
     { id: "reviews", label: "ΚΡΙΤΙΚΕΣ", icon: "⭐" },
     { id: "ai_manager", label: isPremium ? "AI MANAGER" : "AI MANAGER PRO", icon: isPremium ? "✨" : "🔒" },
-    { id: "settings", label: "ΡΥΘΜΙΣΕΙΣ", icon: "⚙️" } // ΝΕΗ ΚΑΡΤΕΛΑ ΡΥΘΜΙΣΕΩΝ
+    { id: "settings", label: "ΕΞΑΤΟΜΙΚΕΥΣΗ BRAND", icon: "🎨" }
   ];
 
   return (
@@ -606,59 +612,139 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* ΝΕΑ ΚΑΡΤΕΛΑ: ΡΥΘΜΙΣΕΙΣ ΚΑΤΑΣΤΗΜΑΤΟΣ */}
+        {/* --- ΝΕΑ ΕΠΑΓΓΕΛΜΑΤΙΚΗ ΚΑΡΤΕΛΑ: ΕΞΑΤΟΜΙΚΕΥΣΗ BRAND --- */}
         {tab === "settings" && userRole === "admin" && (
-          <div className="max-w-4xl mx-auto space-y-6 pb-20">
-             <h2 className={`font-black text-2xl uppercase italic tracking-tighter border-b pb-4 ${isDark ? "text-white border-gray-800" : "text-gray-800 border-gray-200"}`}>
-               Ρυθμίσεις Καταστήματος
+          <div className="max-w-6xl mx-auto pb-20 animate-fade-in">
+             <h2 className={`font-black text-2xl uppercase italic tracking-tighter border-b pb-4 mb-8 ${isDark ? "text-white border-gray-800" : "text-gray-800 border-gray-200"}`}>
+               Εξατομίκευση Brand
              </h2>
              
-             {/* Ρύθμιση Χρώματος */}
-             <div className={`p-6 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
-               <h3 className={`font-black uppercase text-sm mb-4 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>Χρώμα Μενού (Πελατών)</h3>
-               <div className="flex flex-col md:flex-row md:items-center gap-6">
-                 <input 
-                   type="color" 
-                   value={storeThemeColor} 
-                   onChange={(e) => setStoreThemeColor(e.target.value)}
-                   onBlur={(e) => handleColorUpdate(e.target.value)}
-                   className="w-24 h-24 rounded-2xl cursor-pointer border-0 outline-none p-0 bg-transparent shrink-0"
-                 />
-                 <div className="space-y-3">
-                   <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>
-                     Αυτό το χρώμα θα εφαρμοστεί στα κουμπιά "Προσθήκη στο Καλάθι", στις τιμές και στις ενδείξεις του ψηφιακού σας καταλόγου, για να ταιριάζει με το Brand σας.
-                   </p>
-                   <button 
-                     onClick={() => handleColorUpdate(storeThemeColor)} 
-                     className="bg-blue-600 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg transition-transform active:scale-95"
-                   >
-                     Αποθήκευση Χρώματος
-                   </button>
-                 </div>
-               </div>
-             </div>
-
-             {/* Ρύθμιση Λογότυπου */}
-             <div className={`p-6 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
-               <h3 className={`font-black uppercase text-sm mb-4 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>Λογότυπο Καταστήματος</h3>
-               <div className="space-y-4">
-                  <input 
-                    type="text" 
-                    placeholder="Επικολλήστε εδώ το URL (link) της εικόνας του λογοτύπου σας..." 
-                    value={storeLogo} 
-                    onChange={(e) => setStoreLogo(e.target.value)}
-                    className={`w-full p-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-gray-50 border-gray-200 text-gray-900"}`}
-                  />
-                  <div className="flex items-center gap-4">
-                    {storeLogo && <img src={storeLogo} alt="Logo Preview" className="h-16 object-contain bg-white rounded-lg p-1 border shadow-sm" />}
-                    <button 
-                      onClick={() => handleLogoUpdate(storeLogo)} 
-                      className="bg-blue-600 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg transition-transform active:scale-95"
-                    >
-                      Αποθήκευση Logo
-                    </button>
+             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                {/* ΑΡΙΣΤΕΡΗ ΠΛΕΥΡΑ - ΡΥΘΜΙΣΕΙΣ (Πιάνει 2 στήλες) */}
+                <div className="lg:col-span-2 space-y-6">
+                  
+                  {/* 1. Ρύθμιση Λογότυπου */}
+                  <div className={`p-8 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+                    <h3 className={`font-black uppercase text-sm mb-2 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>1. Λογότυπο Καταστήματος</h3>
+                    <p className={`text-xs font-bold mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>Εισάγετε το URL της εικόνας (προτείνεται αρχείο .PNG με διαφανές φόντο).</p>
+                    
+                    <div className="flex flex-col md:flex-row gap-4">
+                        <input 
+                          type="text" 
+                          placeholder="π.χ. https://imgur.com/mylogo.png" 
+                          value={storeLogo} 
+                          onChange={(e) => {
+                            setStoreLogo(e.target.value);
+                            handleLogoUpdate(e.target.value);
+                          }}
+                          className={`flex-1 p-4 rounded-2xl border font-bold focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-900 border-gray-700 text-white focus:ring-gray-600" : "bg-gray-50 border-gray-200 text-gray-900 focus:ring-gray-300"}`}
+                          style={{ focusRingColor: storeThemeColor }}
+                        />
+                    </div>
                   </div>
-               </div>
+
+                  {/* 2. Ρύθμιση Χρώματος (Premium Palette) */}
+                  <div className={`p-8 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+                    <h3 className={`font-black uppercase text-sm mb-2 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>2. Χρώμα Εφαρμογής</h3>
+                    <p className={`text-xs font-bold mb-6 ${isDark ? "text-gray-500" : "text-gray-400"}`}>Επιλέξτε ένα χρώμα που ταιριάζει με το λογότυπό σας. Αυτό θα χρωματίσει τον κατάλογο των πελατών.</p>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                      {PREMIUM_COLORS.map((colorObj) => (
+                        <button
+                          key={colorObj.hex}
+                          onClick={() => handleColorUpdate(colorObj.hex)}
+                          className={`flex items-center gap-3 p-3 rounded-2xl border-2 transition-all hover:scale-105 active:scale-95 ${storeThemeColor === colorObj.hex ? "border-gray-900 shadow-md" : isDark ? "border-gray-700 hover:border-gray-500" : "border-gray-100 hover:border-gray-300"}`}
+                        >
+                          <div className="w-8 h-8 rounded-full shadow-inner" style={{ backgroundColor: colorObj.hex }}></div>
+                          <span className={`text-[10px] font-black uppercase ${isDark ? "text-gray-300" : "text-gray-700"}`}>{colorObj.name}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                      <span className={`text-xs font-bold uppercase ${isDark ? "text-gray-400" : "text-gray-500"}`}>Η δικο σας χρωμα:</span>
+                      <input 
+                        type="color" 
+                        value={storeThemeColor} 
+                        onChange={(e) => setStoreThemeColor(e.target.value)}
+                        onBlur={(e) => handleColorUpdate(e.target.value)}
+                        className="w-12 h-12 rounded-xl cursor-pointer border-0 outline-none p-0 bg-transparent"
+                      />
+                      <span className="text-xs font-black bg-gray-100 dark:bg-gray-900 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-700">
+                        {storeThemeColor.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* ΔΕΞΙΑ ΠΛΕΥΡΑ - LIVE PREVIEW KINHTOY */}
+                <div className="flex justify-center lg:justify-end">
+                   <div className="w-[300px] h-[600px] bg-white rounded-[3rem] border-[8px] border-gray-900 shadow-2xl relative overflow-hidden flex flex-col">
+                      {/* Κάμερα Notch */}
+                      <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-50">
+                         <div className="w-32 h-5 bg-gray-900 rounded-b-2xl"></div>
+                      </div>
+
+                      {/* Mockup Header */}
+                      <div className="pt-10 pb-4 px-4 shadow-sm flex flex-col items-center bg-gray-50 z-10 relative">
+                         {storeLogo ? (
+                           <img src={storeLogo} alt="Logo" className="h-10 object-contain drop-shadow-sm mb-2" />
+                         ) : (
+                           <h1 className="text-lg font-black uppercase tracking-widest text-black mb-2">{storeName || "LOGO"}</h1>
+                         )}
+                         <div className="w-6 h-1 rounded-full" style={{ backgroundColor: storeThemeColor }}></div>
+                         <div className="text-[8px] font-bold mt-2 text-gray-400 tracking-widest">ΤΡΑΠΕΖΙ Α1</div>
+                      </div>
+
+                      {/* Mockup Body (Categories & Products) */}
+                      <div className="flex-1 bg-gray-50 p-4 space-y-4">
+                         {/* Categories Fake Scroll */}
+                         <div className="flex gap-2 border-b border-gray-200 pb-2">
+                            <div className="px-3 py-1.5 rounded-xl text-[8px] font-black text-white shadow-sm" style={{ backgroundColor: storeThemeColor }}>ΚΑΦΕΔΕΣ</div>
+                            <div className="px-3 py-1.5 rounded-xl text-[8px] font-black bg-white text-gray-500 border border-gray-200">ΣΝΑΚΣ</div>
+                            <div className="px-3 py-1.5 rounded-xl text-[8px] font-black bg-white text-gray-500 border border-gray-200">ΓΛΥΚΑ</div>
+                         </div>
+                         
+                         {/* Fake Product 1 */}
+                         <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex gap-3">
+                           <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
+                           <div className="flex-1 flex flex-col justify-between">
+                             <div className="text-[10px] font-black">FREDDO ESPRESSO</div>
+                             <div className="flex justify-between items-center">
+                               <span className="text-xs font-black" style={{ color: storeThemeColor }}>2.50€</span>
+                               <div className="w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-xs" style={{ backgroundColor: storeThemeColor }}>+</div>
+                             </div>
+                           </div>
+                         </div>
+                         
+                         {/* Fake Product 2 */}
+                         <div className="bg-white p-3 rounded-2xl shadow-sm border border-gray-100 flex gap-3">
+                           <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
+                           <div className="flex-1 flex flex-col justify-between">
+                             <div className="text-[10px] font-black">CLUB SANDWICH</div>
+                             <div className="flex justify-between items-center">
+                               <span className="text-xs font-black" style={{ color: storeThemeColor }}>6.00€</span>
+                               <div className="w-6 h-6 rounded-full text-white flex items-center justify-center font-bold text-xs" style={{ backgroundColor: storeThemeColor }}>+</div>
+                             </div>
+                           </div>
+                         </div>
+                      </div>
+
+                      {/* Mockup Floating Cart */}
+                      <div className="absolute bottom-6 left-4 right-4">
+                         <div className="py-3 px-4 rounded-full shadow-lg flex justify-between items-center text-white" style={{ backgroundColor: storeThemeColor }}>
+                           <div className="flex items-center gap-2">
+                             <div className="bg-white text-black w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black">2</div>
+                             <span className="text-[9px] font-black uppercase">Προβολη</span>
+                           </div>
+                           <span className="text-xs font-black">8.50€</span>
+                         </div>
+                      </div>
+                   </div>
+                </div>
+
              </div>
           </div>
         )}
