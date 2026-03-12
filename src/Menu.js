@@ -3,7 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import OrderStatus from "./OrderStatus";
 import CartModal from "./CartModal";
 import ProductModal from "./ProductModal";
-import CustomerHeader from "./CustomerHeader"; // Εισαγωγή του νέου Header
+import CustomerHeader from "./CustomerHeader";
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -67,6 +67,7 @@ const normalizeForSearch = (str) => {
   return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/ς/g, "σ");
 };
 
+// ΝΕΟ: ΕΝΣΩΜΑΤΩΣΗ ΤΟΥΡΚΙΚΟΥ ΛΕΞΙΚΟΥ (tr)
 const DICT = {
   gr: {
     requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
@@ -78,6 +79,11 @@ const DICT = {
     freqBought: "🔥 FREQUENTLY ADDED TOGETHER",
     bellCall: "CALL", bellOrder: "🙋‍♂️ Ready to order", bellCard: "💳 Bill (Card)", bellCash: "💵 Bill (Cash)", bellClean: "🧽 Clean Table", bellSent: "Waiter notified successfully!"
   },
+  tr: {
+    requiredTable: "MASA SEÇİN", table: "MASA", selectManual: "Manuel Masa Seçimi", btnSelectTable: "MASA SEÇ", rec: "ÖNERİLEN", outOfStock: "Tükendi", unavail: "MEVCUT DEĞİL", add: "EKLE", req: "ZORUNLU", opt: "İSTEĞE BAĞLI", upTo: "KADAR", select1: "1 SEÇİN", free: "ÜCRETSİZ", addToCart: "SEPETE EKLE", viewCart: "SEPETİ GÖR", yourOrder: "SİPARİŞİNİZ", note: "NOT", itemNotePlaceholder: "Örn. Şekersiz, ekstra buzlu...", genNoteTitle: "GENEL NOT (İSTEĞE BAĞLI)", payMethod: "ÖDEME YÖNTEMİ", cash: "NAKİT", card: "KART", send: "SİPARİŞİ GÖNDER", selPay: "ÖDEME SEÇ", history: "ÖNCEKİ SİPARİŞLER", noHistory: "Önceki siparişiniz yok", reorder: "TEKRAR SİPARİŞ VER", hasOptions: "Seçenekler mevcut", search: "Ürün ara...", qty: "MİKTAR", noResults: "Ürün bulunamadı.", pausedBanner: "YOĞUNLUK NEDENİYLE SİPARİŞLER DURDURULDU", pausedCartMsg: "Şu anda yeni sipariş gönderilemiyor.", edit: "DÜZENLE", save: "KAYDET", loyaltyTitle: "SİPARİŞLE HEDİYE", loyaltyReward: "ÜCRETSİZ İKRAM KAZANDINIZ! 🎁", privacyTitle: "Gizlilik Politikası", privacyLink: "Gizlilik Politikası (GDPR)", locErrorSupport: "Cihazınız konum izlemeyi desteklemiyor.", locErrorDenied: "Sipariş göndermek için lütfen konuma izin verin.", locErrorFar: "Mağazanın dışındasınız! Siparişler sadece mekanımızdan gönderilebilir.", locFinding: "KONUM KONTROL EDİLİYOR...",
+    freqBought: "🔥 SIKLIKLA BİRLİKTE ALINANLAR",
+    bellCall: "ÇAĞIR", bellOrder: "🙋‍♂️ Sipariş vermek istiyorum", bellCard: "💳 Hesap (Kart)", bellCash: "💵 Hesap (Nakit)", bellClean: "🧽 Masayı Temizle", bellSent: "Garsona haber verildi!"
+  }
 };
 
 export default function Menu() {
@@ -91,8 +97,17 @@ export default function Menu() {
   
   const [lang, setLang] = useState(() => {
     const browserLang = navigator.language || navigator.userLanguage || "el";
-    return browserLang.toLowerCase().startsWith("el") ? "gr" : "en";
+    if (browserLang.toLowerCase().startsWith("el")) return "gr";
+    if (browserLang.toLowerCase().startsWith("tr")) return "tr";
+    return "en";
   });
+
+  // Κυκλική εναλλαγή γλωσσών: gr -> en -> tr -> gr
+  const cycleLanguage = () => {
+    if (lang === "gr") setLang("en");
+    else if (lang === "en") setLang("tr");
+    else setLang("gr");
+  };
   
   const t = DICT[lang];
   
@@ -176,8 +191,10 @@ export default function Menu() {
           ...prod, 
           name: removeAccents(prod.name), 
           name_en: removeAccents(prod.name_en), 
+          name_tr: removeAccents(prod.name_tr), // Για να διαβάζει και Τουρκικά (αν βάλεις στήλη)
           description: removeAccents(prod.description), 
-          description_en: removeAccents(prod.description_en), 
+          description_en: removeAccents(prod.description_en),
+          description_tr: removeAccents(prod.description_tr),
           category: removeAccents(prod.category) 
         };
         if (cP.addons) {
@@ -354,7 +371,7 @@ export default function Menu() {
       if (required && sels.length === 0) isValid = false;
       
       if (sels.length > 0) {
-        const names = sels.map((idx) => lang === "en" && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
+        const names = sels.map((idx) => (lang === "en" || lang === "tr") && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
         addonTexts.push(`${names.join(", ")}`);
         sels.forEach((idx) => (extraPrice += g.options[idx].price));
       }
@@ -497,12 +514,12 @@ export default function Menu() {
   const getItemDisplayName = (item) => {
     const orig = products.find((p) => p.id === item.id);
     if (!orig) return item.name;
-    const baseName = lang === "en" && orig.name_en ? orig.name_en : orig.name;
+    const baseName = (lang === "en" || lang === "tr") && orig.name_en ? orig.name_en : orig.name;
     let addonTexts = [];
     (orig.addons || []).forEach((g) => {
       const sels = item.rawAddons?.[g.id] || [];
       if (sels.length > 0) {
-        const names = sels.map((idx) => lang === "en" && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
+        const names = sels.map((idx) => (lang === "en" || lang === "tr") && g.options[idx].name_en ? g.options[idx].name_en : g.options[idx].name);
         addonTexts.push(names.join(", "));
       }
     });
@@ -548,7 +565,7 @@ export default function Menu() {
     <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       
       <div className="sticky top-0 z-50 flex flex-col w-full">
-        {/* ΤΟ ΝΕΟ ΜΑΣ ΕΞΥΠΝΟ HEADER */}
+        {/* ΤΟ ΝΕΟ ΜΑΣ ΕΞΥΠΝΟ HEADER ΜΕ ΚΥΚΛΙΚΗ ΑΛΛΑΓΗ ΓΛΩΣΣΑΣ */}
         <CustomerHeader 
           storeLogo={store?.logo_url}
           storeName={store?.name}
@@ -556,14 +573,13 @@ export default function Menu() {
           isDark={isDark}
           toggleTheme={toggleTheme}
           lang={lang}
-          toggleLanguage={() => setLang(lang === "gr" ? "en" : "gr")}
+          toggleLanguage={cycleLanguage}
           storeThemeColor={themeColor}
           t={t}
           canOrder={canOrder}
           setIsHistoryOpen={setIsHistoryOpen}
         />
 
-        {/* BANNER ΓΙΑ ΚΛΕΙΣΤΕΣ ΠΑΡΑΓΓΕΛΙΕΣ */}
         {!isAcceptingOrders && (
           <div className="w-full bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest shadow-md">
             ⚠️ {t.pausedBanner}
@@ -573,7 +589,6 @@ export default function Menu() {
 
       <main className="flex-1 w-full max-w-5xl mx-auto">
         
-        {/* ΛΕΙΤΟΥΡΓΙΑ ΧΕΙΡΟΚΙΝΗΤΗΣ ΕΠΙΛΟΓΗΣ ΤΡΑΠΕΖΙΟΥ */}
         {(!tableNum || tableNum === "") && backupMode === true && (
           <div className={`mx-4 mt-6 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
             <p className="text-xs font-black uppercase mb-3" style={{ color: themeColor }}>{t.selectManual}</p>
@@ -668,8 +683,8 @@ export default function Menu() {
                 <p className="text-center text-gray-400 font-bold uppercase mt-10">{t.noResults}</p>
               ) : (
                 filteredProducts.map((p) => {
-                  const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
-                  const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
+                  const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
+                  const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
                   return (
                     <div 
                       key={p.id} 
@@ -713,8 +728,8 @@ export default function Menu() {
                   {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
                     <div ref={carouselRef} className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory no-scrollbar">
                       {sectionProducts.map((p) => {
-                        const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
-                        const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
+                        const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
+                        const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
                         return (
                           <div 
                             key={p.id} 
@@ -748,8 +763,8 @@ export default function Menu() {
                   ) : (
                     <div className="space-y-3">
                       {sectionProducts.map((p) => {
-                        const dispName = lang === "en" && p.name_en ? p.name_en : p.name;
-                        const dispDesc = lang === "en" && p.description_en ? p.description_en : p.description;
+                        const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
+                        const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
                         return (
                           <div 
                             key={p.id} 
