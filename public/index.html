@@ -34,6 +34,8 @@
       }
       body {
         overscroll-behavior-y: none; /* Αποτρέπει το "τράβηγμα" της σελίδας προς τα κάτω/πάνω */
+        margin: 0;
+        padding: 0;
       }
     </style>
     
@@ -44,6 +46,79 @@
 
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    <div id="root"></div>
+    
+    <div id="root">
+      <style>
+        .splash-screen {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          height: 100vh;
+          background-color: #f9fafb;
+          font-family: sans-serif;
+        }
+        .splash-logo {
+          max-width: 180px;
+          max-height: 180px;
+          object-fit: contain;
+          margin-bottom: 24px;
+          display: none; /* Είναι κρυφό μέχρι να βρει το σωστό logo */
+          animation: pulse 2s infinite ease-in-out;
+        }
+        .spinner {
+          width: 40px;
+          height: 40px;
+          border: 4px solid #e5e7eb;
+          border-top: 4px solid #3b82f6; /* Μπλε χρώμα φόρτωσης */
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+        
+        /* Υποστήριξη για Dark Mode στον Browser */
+        @media (prefers-color-scheme: dark) {
+          .splash-screen { background-color: #111827; }
+          .spinner { border-color: #374151; border-top-color: #3b82f6; }
+        }
+      </style>
+      
+      <div class="splash-screen">
+        <img id="splash-logo" class="splash-logo" alt="Loading..." />
+        <div class="spinner"></div>
+      </div>
+
+      <script>
+        (function() {
+          // 1. Διαβάζουμε το ID του μαγαζιού κατευθείαν από το Link
+          const urlParams = new URLSearchParams(window.location.search);
+          const storeId = urlParams.get('store');
+          
+          if (storeId) {
+            // 2. Επικοινωνούμε ακαριαία με το Supabase
+            const supabaseUrl = '%REACT_APP_SUPABASE_URL%';
+            const anonKey = '%REACT_APP_SUPABASE_ANON_KEY%';
+            
+            fetch(supabaseUrl + '/rest/v1/stores?id=eq.' + storeId + '&select=logo_url', {
+              headers: {
+                'apikey': anonKey,
+                'Authorization': 'Bearer ' + anonKey
+              }
+            })
+            .then(res => res.json())
+            .then(data => {
+              // 3. Εμφανίζουμε το σωστό λογότυπο πριν φορτώσει η εφαρμογή!
+              if (data && data[0] && data[0].logo_url) {
+                const logoEl = document.getElementById('splash-logo');
+                logoEl.src = data[0].logo_url;
+                logoEl.style.display = 'block';
+              }
+            })
+            .catch(err => console.error('Splash error:', err));
+          }
+        })();
+      </script>
+    </div>
   </body>
 </html>
