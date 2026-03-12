@@ -18,13 +18,26 @@ export default function SuperAdmin() {
   const REWARD_THRESHOLD = 40;
 
   const fetchStores = async () => {
-    const { data, error } = await supabase.from("stores").select("*").order("id", { ascending: true });
-    if (error) {
-      console.error("Error fetching stores:", error);
-      alert("Σφάλμα κατά τη φόρτωση των καταστημάτων.");
-    } else {
-      setStores(data || []);
+    const { data: storesData, error: storesError } = await supabase.from("stores").select("*").order("id", { ascending: true });
+    const { data: pinsData, error: pinsError } = await supabase.from("staff_pins").select("*");
+
+    if (storesError || pinsError) {
+      console.error("Fetch error:", storesError || pinsError);
+      alert("Σφάλμα κατά τη φόρτωση των δεδομένων.");
+      return;
     }
+
+    const mergedStores = storesData.map(store => {
+      const storePins = pinsData.filter(p => p.store_id === store.id);
+      return {
+        ...store,
+        admin_pin: storePins.find(p => p.role === 'admin')?.pin || "0000",
+        staff_pin: storePins.find(p => p.role === 'staff')?.pin || "1111",
+        kitchen_pin: storePins.find(p => p.role === 'kitchen')?.pin || "2222",
+      };
+    });
+
+    setStores(mergedStores || []);
   };
 
   const handleLogin = (e) => {
@@ -62,15 +75,30 @@ export default function SuperAdmin() {
 
   const saveStore = async () => {
     try {
-      if (editForm.id) {
-        const { error } = await supabase.from("stores").update(editForm).eq("id", editForm.id);
+      const { admin_pin, staff_pin, kitchen_pin, ...storeDataToSave } = editForm;
+      let currentStoreId = editForm.id;
+
+      if (currentStoreId) {
+        const { error } = await supabase.from("stores").update(storeDataToSave).eq("id", currentStoreId);
         if (error) throw error;
-        alert("Το κατάστημα ενημερώθηκε επιτυχώς!");
       } else {
-        const { error } = await supabase.from("stores").insert([editForm]);
+        const { data, error } = await supabase.from("stores").insert([storeDataToSave]).select();
         if (error) throw error;
-        alert("Το νέο κατάστημα δημιουργήθηκε επιτυχώς!");
+        currentStoreId = data[0].id; 
       }
+
+      await supabase.from("staff_pins").delete().eq("store_id", currentStoreId);
+      
+      const newPins = [
+        { store_id: currentStoreId, role: "admin", pin: admin_pin },
+        { store_id: currentStoreId, role: "staff", pin: staff_pin },
+        { store_id: currentStoreId, role: "kitchen", pin: kitchen_pin }
+      ];
+      
+      const { error: pinsError } = await supabase.from("staff_pins").insert(newPins);
+      if (pinsError) throw pinsError;
+
+      alert("Οι αλλαγές αποθηκεύτηκαν επιτυχώς!");
       setIsEditing(false);
       setEditForm(null);
       fetchStores();
@@ -271,7 +299,6 @@ export default function SuperAdmin() {
                    </div>
                  </div>
 
-                 {/* Εδώ προστέθηκαν οι διακόπτες που δίνουν τον απόλυτο έλεγχο στο Super Admin */}
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
                    <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
                       <span className="text-xs font-bold text-gray-300">Παραγγελιοληψία</span>
