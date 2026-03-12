@@ -10,14 +10,17 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Menu" />
     
+    <link id="dynamic-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>" />
+    <link id="dynamic-apple-icon" rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>" />
+
     <script>
       var manifestLink = document.createElement('link');
       manifestLink.rel = 'manifest';
       
       if (window.location.search.includes('admin') || window.location.search.includes('boss')) {
-        manifestLink.href = '%PUBLIC_URL%/manifest-admin.json';
+        manifestLink.href = '%PUBLIC_URL%/manifest-admin.json?v=3';
       } else {
-        manifestLink.href = '%PUBLIC_URL%/manifest.json';
+        manifestLink.href = '%PUBLIC_URL%/manifest.json?v=3';
       }
       
       document.head.appendChild(manifestLink);
@@ -68,7 +71,7 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <title>Φόρτωση...</title>
+    <title id="dynamic-title">Φόρτωση...</title>
   </head>
 
   <body>
@@ -82,23 +85,12 @@
 
       <script>
         (function() {
-          // Συνάρτηση για δυναμική δημιουργία εικονιδίου
           function setFavicons(iconUrl) {
-            let link = document.querySelector("link[rel~='icon']");
-            if (!link) {
-              link = document.createElement('link');
-              link.rel = 'icon';
-              document.head.appendChild(link);
-            }
-            link.href = iconUrl;
+            let link = document.getElementById("dynamic-favicon");
+            if (link) link.href = iconUrl;
 
-            let appleLink = document.querySelector("link[rel~='apple-touch-icon']");
-            if (!appleLink) {
-              appleLink = document.createElement('link');
-              appleLink.rel = 'apple-touch-icon';
-              document.head.appendChild(appleLink);
-            }
-            appleLink.href = iconUrl;
+            let appleLink = document.getElementById("dynamic-apple-icon");
+            if (appleLink) appleLink.href = iconUrl;
           }
 
           const urlParams = new URLSearchParams(window.location.search);
@@ -118,23 +110,19 @@
             .then(data => {
               if (data && data[0]) {
                 if (data[0].logo_url) {
-                  // Αλλάζει την εικόνα της οθόνης
                   const logoEl = document.getElementById('splash-logo');
                   logoEl.src = data[0].logo_url;
                   logoEl.style.display = 'block';
-                  
-                  // Αλλάζει το εικονίδιο στην καρτέλα του browser!
                   setFavicons(data[0].logo_url);
                 }
                 if (data[0].name) {
-                  document.title = data[0].name;
+                  document.getElementById('dynamic-title').innerText = data[0].name;
                 }
               }
             })
             .catch(err => console.error('Splash error:', err));
           } else {
-            document.title = "Smart POS";
-            setFavicons('%PUBLIC_URL%/favicon.ico');
+            document.getElementById('dynamic-title').innerText = "Smart POS";
           }
         })();
       </script>
