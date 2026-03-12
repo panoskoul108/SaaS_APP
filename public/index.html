@@ -10,14 +10,11 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Menu" />
     
-    <link id="dynamic-apple-icon" rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <link id="dynamic-favicon" rel="shortcut icon" href="%PUBLIC_URL%/favicon.ico" />
-
     <script>
       var manifestLink = document.createElement('link');
       manifestLink.rel = 'manifest';
       
-      if (window.location.search.includes('admin')) {
+      if (window.location.search.includes('admin') || window.location.search.includes('boss')) {
         manifestLink.href = '%PUBLIC_URL%/manifest-admin.json';
       } else {
         manifestLink.href = '%PUBLIC_URL%/manifest.json';
@@ -35,52 +32,49 @@
         margin: 0;
         padding: 0;
       }
+      .splash-screen {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background-color: #f9fafb;
+        font-family: sans-serif;
+      }
+      .splash-logo {
+        max-width: 180px;
+        max-height: 180px;
+        object-fit: contain;
+        margin-bottom: 24px;
+        display: none;
+        animation: pulse 2s infinite ease-in-out;
+      }
+      .spinner {
+        width: 40px;
+        height: 40px;
+        border: 4px solid #e5e7eb;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+      @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
+      
+      @media (prefers-color-scheme: dark) {
+        .splash-screen { background-color: #111827; }
+        .spinner { border-color: #374151; border-top-color: #3b82f6; }
+      }
     </style>
     
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <title id="dynamic-title">Φόρτωση...</title>
+    <title>Φόρτωση...</title>
   </head>
 
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     
     <div id="root">
-      <style>
-        .splash-screen {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100vh;
-          background-color: #f9fafb;
-          font-family: sans-serif;
-        }
-        .splash-logo {
-          max-width: 180px;
-          max-height: 180px;
-          object-fit: contain;
-          margin-bottom: 24px;
-          display: none;
-          animation: pulse 2s infinite ease-in-out;
-        }
-        .spinner {
-          width: 40px;
-          height: 40px;
-          border: 4px solid #e5e7eb;
-          border-top: 4px solid #3b82f6;
-          border-radius: 50%;
-          animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
-        
-        @media (prefers-color-scheme: dark) {
-          .splash-screen { background-color: #111827; }
-          .spinner { border-color: #374151; border-top-color: #3b82f6; }
-        }
-      </style>
-      
       <div class="splash-screen">
         <img id="splash-logo" class="splash-logo" alt="Loading..." />
         <div class="spinner"></div>
@@ -88,15 +82,32 @@
 
       <script>
         (function() {
+          // Συνάρτηση για δυναμική δημιουργία εικονιδίου
+          function setFavicons(iconUrl) {
+            let link = document.querySelector("link[rel~='icon']");
+            if (!link) {
+              link = document.createElement('link');
+              link.rel = 'icon';
+              document.head.appendChild(link);
+            }
+            link.href = iconUrl;
+
+            let appleLink = document.querySelector("link[rel~='apple-touch-icon']");
+            if (!appleLink) {
+              appleLink = document.createElement('link');
+              appleLink.rel = 'apple-touch-icon';
+              document.head.appendChild(appleLink);
+            }
+            appleLink.href = iconUrl;
+          }
+
           const urlParams = new URLSearchParams(window.location.search);
           const storeId = urlParams.get('store');
           
-          // Αν ΔΕΝ είμαστε στο /?boss (Super Admin)
           if (storeId && !window.location.search.includes('boss')) {
             const supabaseUrl = '%REACT_APP_SUPABASE_URL%';
             const anonKey = '%REACT_APP_SUPABASE_ANON_KEY%';
             
-            // Τραβάμε πλέον και το logo_url ΚΑΙ το name του μαγαζιού
             fetch(supabaseUrl + '/rest/v1/stores?id=eq.' + storeId + '&select=logo_url,name', {
               headers: {
                 'apikey': anonKey,
@@ -106,18 +117,15 @@
             .then(res => res.json())
             .then(data => {
               if (data && data[0]) {
-                // 1. Αλλαγή Λογότυπου στην οθόνη φόρτωσης
                 if (data[0].logo_url) {
+                  // Αλλάζει την εικόνα της οθόνης
                   const logoEl = document.getElementById('splash-logo');
                   logoEl.src = data[0].logo_url;
                   logoEl.style.display = 'block';
                   
-                  // 2. Αλλαγή του Favicon (εικονίδιο καρτέλας browser)
-                  document.getElementById('dynamic-favicon').href = data[0].logo_url;
-                  document.getElementById('dynamic-apple-icon').href = data[0].logo_url;
+                  // Αλλάζει το εικονίδιο στην καρτέλα του browser!
+                  setFavicons(data[0].logo_url);
                 }
-                
-                // 3. Αλλαγή του Τίτλου της σελίδας
                 if (data[0].name) {
                   document.title = data[0].name;
                 }
@@ -125,7 +133,8 @@
             })
             .catch(err => console.error('Splash error:', err));
           } else {
-            document.title = "Smart POS Admin";
+            document.title = "Smart POS";
+            setFavicons('%PUBLIC_URL%/favicon.ico');
           }
         })();
       </script>
