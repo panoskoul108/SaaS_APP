@@ -17,8 +17,13 @@ export default function SuperAdmin() {
   }, [isAuthenticated]);
 
   const fetchStores = async () => {
-    const { data } = await supabase.from("stores").select("*").order("id", { ascending: true });
-    if (data) setStores(data);
+    const { data, error } = await supabase.from("stores").select("*").order("id", { ascending: true });
+    if (error) {
+      console.error("Error fetching stores:", error);
+      alert("Σφάλμα κατά τη φόρτωση των καταστημάτων.");
+    } else {
+      setStores(data || []);
+    }
   };
 
   const handleLogin = (e) => {
@@ -27,22 +32,66 @@ export default function SuperAdmin() {
     else alert("Λάθος PIN");
   };
 
+  const handleEditClick = (store) => {
+    // Εξασφαλίζουμε ότι όλα τα πεδία περνάνε στη φόρμα ώστε να μην σβηστούν κατά το Save
+    setEditForm({ ...store });
+    setIsEditing(true);
+  };
+
+  const handleNewStoreClick = () => {
+    setEditForm({
+      name: "",
+      admin_pin: "0000",
+      staff_pin: "1111",
+      kitchen_pin: "2222",
+      theme_color: "#2563EB",
+      logo_url: "",
+      is_active: true,
+      enable_ordering: true,
+      enable_call_waiter: true,
+      has_premium_ai: false,
+      backup_mode: false,
+      radius: 100,
+      lat: null,
+      lng: null,
+      tables: ["A1", "A2", "A3", "A4", "ΠΑΚΕΤΟ"],
+      reward_threshold: 40
+    });
+    setIsEditing(true);
+  };
+
   const saveStore = async () => {
-    if (editForm.id) {
-      await supabase.from("stores").update(editForm).eq("id", editForm.id);
-    } else {
-      await supabase.from("stores").insert([editForm]);
+    try {
+      if (editForm.id) {
+        // Ενημέρωση υπάρχοντος καταστήματος
+        const { error } = await supabase.from("stores").update(editForm).eq("id", editForm.id);
+        if (error) throw error;
+        alert("Το κατάστημα ενημερώθηκε επιτυχώς!");
+      } else {
+        // Δημιουργία νέου καταστήματος
+        const { error } = await supabase.from("stores").insert([editForm]);
+        if (error) throw error;
+        alert("Το νέο κατάστημα δημιουργήθηκε επιτυχώς!");
+      }
+      setIsEditing(false);
+      setEditForm(null);
+      fetchStores();
+    } catch (error) {
+      console.error("Save Error:", error);
+      alert("Σφάλμα κατά την αποθήκευση: " + error.message);
     }
-    setIsEditing(false);
-    setEditForm(null);
-    fetchStores();
   };
 
   const toggleLock = async (store) => {
     const newStatus = store.is_active === false ? true : false;
     if (window.confirm(`Θέλετε να ${newStatus ? 'ΞΕΚΛΕΙΔΩΣΕΤΕ' : 'ΚΛΕΙΔΩΣΕΤΕ'} το κατάστημα "${store.name}";`)) {
-      await supabase.from("stores").update({ is_active: newStatus }).eq("id", store.id);
-      fetchStores();
+      try {
+        const { error } = await supabase.from("stores").update({ is_active: newStatus }).eq("id", store.id);
+        if (error) throw error;
+        fetchStores();
+      } catch (error) {
+        alert("Αποτυχία ενημέρωσης: " + error.message);
+      }
     }
   };
 
@@ -63,7 +112,6 @@ export default function SuperAdmin() {
     }
   };
 
-  // Υπολογισμός Συνολικού Μηνιαίου Τζίρου (Μόνο για τα Ενεργά Μαγαζιά)
   const activeStores = stores.filter(s => s.is_active !== false);
   const totalMRR = activeStores.reduce((sum, s) => sum + getTierInfo(s).price, 0);
 
@@ -95,10 +143,8 @@ export default function SuperAdmin() {
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Master Control Panel</p>
             </div>
           </div>
-          <button onClick={() => {
-              setEditForm({ name: "", admin_pin: "0000", staff_pin: "1111", kitchen_pin: "2222", theme_color: "#2563EB", is_active: true, enable_ordering: true, enable_call_waiter: true, has_premium_ai: false });
-              setIsEditing(true);
-            }} 
+          <button 
+            onClick={handleNewStoreClick} 
             className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase shadow-lg shadow-blue-500/20 transition-transform active:scale-95"
           >
             + Νεος Πελατης
@@ -151,8 +197,7 @@ export default function SuperAdmin() {
                     <div className="text-xs font-bold text-gray-400 flex flex-wrap gap-3 mt-2">
                       <span className="bg-gray-900 px-2 py-1 rounded-md">ID: {store.id}</span>
                       <span className="bg-gray-900 px-2 py-1 rounded-md text-red-400">Admin: {store.admin_pin}</span>
-                      <span className="bg-gray-900 px-2 py-1 rounded-md">Staff: {store.staff_pin}</span>
-                      <span className="bg-gray-900 px-2 py-1 rounded-md text-orange-400">Κουζίνα: {store.kitchen_pin}</span>
+                      <span className="bg-gray-900 px-2 py-1 rounded-md text-blue-400">Staff: {store.staff_pin}</span>
                     </div>
                   </div>
                 </div>
@@ -161,7 +206,7 @@ export default function SuperAdmin() {
                   <button onClick={() => toggleLock(store)} className={`flex-1 md:flex-none px-5 py-3 rounded-2xl font-black text-xs uppercase transition-colors shadow-sm ${isLocked ? "bg-green-500 text-white hover:bg-green-400" : "bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white"}`}>
                     {isLocked ? "▶ Ενεργοποιηση" : "⏸ Κλειδωμα"}
                   </button>
-                  <button onClick={() => { setEditForm(store); setIsEditing(true); }} className="flex-1 md:flex-none bg-gray-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase hover:bg-gray-600 transition-colors shadow-sm">
+                  <button onClick={() => handleEditClick(store)} className="flex-1 md:flex-none bg-gray-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase hover:bg-gray-600 transition-colors shadow-sm">
                     Ρυθμισεις
                   </button>
                 </div>
@@ -187,7 +232,6 @@ export default function SuperAdmin() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Πακετο Συνδρομης</label>
-                  {/* ΕΞΥΠΝΟ DROPDOWN ΠΑΚΕΤΩΝ */}
                   <select 
                     className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500" 
                     value={getTierInfo(editForm).name} 
@@ -221,23 +265,53 @@ export default function SuperAdmin() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[10px] font-black text-red-400 mb-1">Admin</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none" value={editForm.admin_pin} onChange={(e) => setEditForm({...editForm, admin_pin: e.target.value})} />
+                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-red-400" value={editForm.admin_pin} onChange={(e) => setEditForm({...editForm, admin_pin: e.target.value})} />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-black text-gray-400 mb-1">Staff</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none" value={editForm.staff_pin} onChange={(e) => setEditForm({...editForm, staff_pin: e.target.value})} />
+                    <label className="block text-[10px] font-black text-blue-400 mb-1">Staff</label>
+                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-blue-400" value={editForm.staff_pin} onChange={(e) => setEditForm({...editForm, staff_pin: e.target.value})} />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-orange-400 mb-1">Κουζίνα</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none" value={editForm.kitchen_pin} onChange={(e) => setEditForm({...editForm, kitchen_pin: e.target.value})} />
+                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-orange-400" value={editForm.kitchen_pin} onChange={(e) => setEditForm({...editForm, kitchen_pin: e.target.value})} />
                   </div>
                 </div>
               </div>
 
+              {/* Ρυθμίσεις Λειτουργίας */}
+              <div className="bg-gray-900 p-5 rounded-3xl border border-gray-700 space-y-4">
+                 <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-800 pb-2">Ρυθμισεις Λειτουργιας</p>
+                 
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Τραπέζια (Κόμμα διαχωρισμός)</label>
+                     <textarea 
+                       className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none text-sm resize-none" 
+                       rows="2"
+                       value={(editForm.tables || []).join(", ")} 
+                       onChange={(e) => setEditForm({...editForm, tables: e.target.value.split(",").map(t => t.trim()).filter(Boolean)})} 
+                     />
+                   </div>
+                   <div>
+                     <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Όριο Πόντων Δώρου (€)</label>
+                     <input type="number" className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none" value={editForm.reward_threshold} onChange={(e) => setEditForm({...editForm, reward_threshold: parseInt(e.target.value)})} />
+                   </div>
+                 </div>
+
+                 <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                    <span className="text-xs font-bold text-gray-300">Backup Mode (Χειροκίνητη Επιλογή)</span>
+                    <input type="checkbox" className="w-5 h-5 accent-blue-500" checked={editForm.backup_mode} onChange={(e) => setEditForm({...editForm, backup_mode: e.target.checked})} />
+                 </div>
+              </div>
+
               {/* Κουμπιά Αποθήκευσης */}
               <div className="flex gap-3 pt-4">
-                <button onClick={saveStore} className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20">Αποθηκευση Πελατη</button>
-                <button onClick={() => setIsEditing(false)} className="flex-1 bg-gray-700 text-white py-5 rounded-2xl font-black text-xs uppercase hover:bg-gray-600 transition-colors">Ακυρωση</button>
+                <button onClick={saveStore} className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20">
+                  Αποθηκευση Πελατη
+                </button>
+                <button onClick={() => setIsEditing(false)} className="flex-1 bg-gray-700 text-white py-5 rounded-2xl font-black text-xs uppercase hover:bg-gray-600 transition-colors">
+                  Ακυρωση
+                </button>
               </div>
             </div>
           </div>
