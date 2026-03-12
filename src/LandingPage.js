@@ -58,7 +58,8 @@ export default function LandingPage() {
               <div className="text-6xl mb-6">📱</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Πελατη</h3>
               <p className="text-gray-400 text-sm mb-8 text-center">Σκανάρετε το QR ή πατήστε το κουμπί για να δείτε πώς παραγγέλνει ο πελάτης από το τραπέζι του.</p>
-              <a href="/?store=4&table=Demo" target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 text-center">
+              
+              <a href="/?store=4&table=Demo" target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 text-center block">
                 Ανοιγμα Μενού
               </a>
             </div>
@@ -67,8 +68,10 @@ export default function LandingPage() {
             <div className="bg-gray-900 p-8 rounded-[3rem] border border-gray-700 shadow-2xl flex flex-col items-center hover:border-purple-500/50 transition-colors">
               <div className="text-6xl mb-6">💻</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Ταμειου</h3>
-              <p className="text-gray-400 text-sm mb-8 text-center">Δείτε πώς εμφανίζονται οι παραγγελίες στο bar/κουζίνα. <br/><span className="text-purple-400 font-bold">PIN Δοκιμής: 1111</span></p>
-              <a href="/?admin&store=4" target="_blank" rel="noreferrer" className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-transform active:scale-95 text-center">
+              <p className="text-gray-400 text-sm mb-8 text-center">Δείτε πώς εμφανίζονται οι παραγγελίες στο bar/κουζίνα. <br/><span className="text-purple-400 font-bold">PIN Δοκιμής: 6666</span></p>
+              
+              {/* ΑΛΛΑΞΑΜΕ ΤΟ PIN ΣΕ 6666 ΣΤΟ LINK */}
+              <a href="/?admin=true&store=4&pin=6666" target="_blank" rel="noreferrer" className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-transform active:scale-95 text-center block">
                 Ανοιγμα Ταμείου
               </a>
             </div>
@@ -157,7 +160,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* FOOTER */}
       <footer className="py-12 border-t border-gray-800 text-center">
         <div className="font-black text-xl tracking-tighter mb-4 opacity-50">
           <span>🍽️ Smart</span>POS
