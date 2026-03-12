@@ -2,31 +2,32 @@ import React from 'react';
 import Menu from './Menu';
 import Dashboard from './Dashboard';
 import SuperAdmin from './SuperAdmin';
-import LandingPage from './LandingPage'; // <-- Φορτώνουμε τη Βιτρίνα
+import LandingPage from './LandingPage'; 
 
 function App() {
-  // Διαβάζουμε το URL
   const params = new URLSearchParams(window.location.search);
   const storeId = params.get('store');
-  const isAdmin = params.get('admin');
-  const isBoss = params.get('boss');
+  
+  // Χρησιμοποιούμε το .has() για να πιάνει και το σκέτο ?admin και το ?boss
+  const isAdmin = params.has('admin'); 
+  const isBoss = params.has('boss');
 
-  // 1. Αν γράψει /?boss=true -> Πάει στο Super Admin σου
+  // 1. Πρόσβαση στο δικό σου Κέντρο Ελέγχου
   if (isBoss) {
     return <SuperAdmin />;
   }
 
-  // 2. Αν γράψει /?admin=true&store=X -> Πάει στο Ταμείο του μαγαζιού
-  if (isAdmin && storeId) {
+  // 2. Πρόσβαση στο Ταμείο (Είτε με σκέτο ?admin είτε με ?admin&store=X)
+  if (isAdmin) {
     return <Dashboard />;
   }
 
-  // 3. Αν γράψει /?store=X&table=Y -> Πάει στο Μενού του πελάτη
+  // 3. Πρόσβαση στον Κατάλογο του πελάτη (Αν υπάρχει κωδικός μαγαζιού)
   if (storeId) {
     return <Menu />;
   }
 
-  // 4. ΑΝ ΤΟ URL ΕΙΝΑΙ ΣΚΕΤΟ (π.χ. smartpos.gr) -> ΔΕΙΞΕ ΤΗ ΒΙΤΡΙΝΑ!
+  // 4. Η Βιτρίνα της Εταιρείας σου (Αν το link είναι σκέτο)
   return <LandingPage />;
 }
 
