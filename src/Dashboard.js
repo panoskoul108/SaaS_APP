@@ -13,6 +13,8 @@ const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const NOTIFICATION_SOUND = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+
+
 const REWARD_THRESHOLD = 40;
 
 const removeAccents = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "") : str;
@@ -34,7 +36,8 @@ export default function Dashboard() {
   const [userRole, setUserRole] = useState(null);
   const [storeId, setStoreId] = useState(null);
   const [storeName, setStoreName] = useState("");
-  const [storeLogo, setStoreLogo] = useState(null);
+  const [storeLogo, setStoreLogo] = useState("");
+  const [storeThemeColor, setStoreThemeColor] = useState("#2563EB"); // ΝΕΟ: Χρώμα Καταστήματος
   const [storeTables, setStoreTables] = useState(DEFAULT_TABLES);
   const [storeCategoryOrder, setStoreCategoryOrder] = useState([]);
   
@@ -63,7 +66,7 @@ export default function Dashboard() {
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
-  const [isPrintingQRs, setIsPrintingQRs] = useState(false); // ΝΕΟ STATE ΓΙΑ ΤΑ QR
+  const [isPrintingQRs, setIsPrintingQRs] = useState(false);
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
@@ -113,12 +116,16 @@ export default function Dashboard() {
     const { data: reviewsData } = await supabase.from("reviews").select("*").eq("store_id", storeId).order("created_at", { ascending: false });
     if (reviewsData) setReviews(reviewsData);
     
-    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium, bell_visibility").eq("id", storeId).single();
+    const { data: storeData } = await supabase.from("stores").select("name, backup_mode, is_accepting_orders, logo_url, tables, category_order, is_premium, bell_visibility, theme_color").eq("id", storeId).single();
     if (storeData) {
       setBackupMode(!!storeData.backup_mode); 
       setIsAcceptingOrders(storeData.is_accepting_orders !== false);
       setStoreName(storeData.name); 
-      setStoreLogo(storeData.logo_url); 
+      setStoreLogo(storeData.logo_url || ""); 
+      
+      // Διαβάζουμε το χρώμα (αν δεν έχει, βάζουμε το default)
+      if (storeData.theme_color) setStoreThemeColor(storeData.theme_color);
+
       setIsPremium(storeData.is_premium || false);
       if (storeData.bell_visibility) setBellVisibility(storeData.bell_visibility);
       if (storeData.tables) setStoreTables(storeData.tables);
@@ -231,6 +238,17 @@ export default function Dashboard() {
     });
   };
 
+  // --- ΝΕΕΣ ΣΥΝΑΡΤΗΣΕΙΣ ΑΠΟΘΗΚΕΥΣΗΣ ΡΥΘΜΙΣΕΩΝ ---
+  const handleColorUpdate = async (newColor) => {
+    setStoreThemeColor(newColor);
+    await supabase.from("stores").update({ theme_color: newColor }).eq("id", storeId);
+  };
+
+  const handleLogoUpdate = async (newLogoUrl) => {
+    setStoreLogo(newLogoUrl);
+    await supabase.from("stores").update({ logo_url: newLogoUrl }).eq("id", storeId);
+  };
+
   const getQrUrl = (table) => {
     const qrData = encodeURIComponent(`${window.location.origin}/?store=${storeId}&table=${table}`);
     const logoParam = storeLogo ? `&centerImageUrl=${encodeURIComponent(storeLogo)}` : "";
@@ -244,10 +262,8 @@ export default function Dashboard() {
     } catch (error) { window.open(getQrUrl(table), "_blank"); }
   };
 
-  // ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΜΑΖΙΚΗ ΕΚΤΥΠΩΣΗ
   const handlePrintAllQRs = () => {
     setIsPrintingQRs(true);
-    // Δίνουμε 1.5 δευτερόλεπτο να φορτώσουν οι εικόνες από το internet πριν ανοίξει το παράθυρο
     setTimeout(() => {
       window.print();
       setIsPrintingQRs(false);
@@ -344,7 +360,6 @@ export default function Dashboard() {
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
 
-  // --- Η ΚΡΥΦΗ ΟΘΟΝΗ ΠΟΥ ΦΟΡΤΩΝΕΙ ΟΤΑΝ ΠΑΤΑΣ ΜΑΖΙΚΗ ΕΚΤΥΠΩΣΗ ---
   if (isPrintingQRs) {
     return (
       <div className="bg-white p-8 font-sans text-black min-h-screen print:p-0">
@@ -381,7 +396,8 @@ export default function Dashboard() {
     { id: "products", label: "ΚΑΤΑΛΟΓΟΣ", icon: "📋" },
     { id: "history", label: "ΙΣΤΟΡΙΚΟ (Z)", icon: "📈" },
     { id: "reviews", label: "ΚΡΙΤΙΚΕΣ", icon: "⭐" },
-    { id: "ai_manager", label: isPremium ? "AI MANAGER" : "AI MANAGER PRO", icon: isPremium ? "✨" : "🔒" }
+    { id: "ai_manager", label: isPremium ? "AI MANAGER" : "AI MANAGER PRO", icon: isPremium ? "✨" : "🔒" },
+    { id: "settings", label: "ΡΥΘΜΙΣΕΙΣ", icon: "⚙️" } // ΝΕΗ ΚΑΡΤΕΛΑ ΡΥΘΜΙΣΕΩΝ
   ];
 
   return (
@@ -398,8 +414,8 @@ export default function Dashboard() {
             <div className="flex flex-col p-4 gap-2 overflow-y-auto flex-1">
               {pagesList.map((page) => {
                 if (userRole === "staff" && page.id !== "orders") return null;
-                if (isKitchen && (page.id === "tables" || page.id === "products" || page.id === "reviews" || page.id === "ai_manager")) return null;
-                if ((page.id === "reviews" || page.id === "ai_manager" || page.id === "products" || page.id === "tables") && userRole !== "admin") return null;
+                if (isKitchen && (page.id === "tables" || page.id === "products" || page.id === "reviews" || page.id === "ai_manager" || page.id === "settings")) return null;
+                if ((page.id === "reviews" || page.id === "ai_manager" || page.id === "products" || page.id === "tables" || page.id === "settings") && userRole !== "admin") return null;
                 
                 const isActive = tab === page.id;
                 return (
@@ -565,7 +581,6 @@ export default function Dashboard() {
         
         {tab === "tables" && userRole === "admin" && (
           <div className="space-y-6">
-            {/* ΝΕΑ ΜΠΑΡΑ ΕΚΤΥΠΩΣΗΣ */}
             <div className={`flex flex-col sm:flex-row justify-between items-center p-4 rounded-2xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
                <h3 className={`font-black uppercase text-lg italic ${isDark ? "text-white" : "text-gray-800"}`}>Διαχειριση QR</h3>
                <button onClick={handlePrintAllQRs} className="mt-3 sm:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs shadow-lg hover:bg-blue-500 transition-colors w-full sm:w-auto">
@@ -588,6 +603,63 @@ export default function Dashboard() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* ΝΕΑ ΚΑΡΤΕΛΑ: ΡΥΘΜΙΣΕΙΣ ΚΑΤΑΣΤΗΜΑΤΟΣ */}
+        {tab === "settings" && userRole === "admin" && (
+          <div className="max-w-4xl mx-auto space-y-6 pb-20">
+             <h2 className={`font-black text-2xl uppercase italic tracking-tighter border-b pb-4 ${isDark ? "text-white border-gray-800" : "text-gray-800 border-gray-200"}`}>
+               Ρυθμίσεις Καταστήματος
+             </h2>
+             
+             {/* Ρύθμιση Χρώματος */}
+             <div className={`p-6 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+               <h3 className={`font-black uppercase text-sm mb-4 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>Χρώμα Μενού (Πελατών)</h3>
+               <div className="flex flex-col md:flex-row md:items-center gap-6">
+                 <input 
+                   type="color" 
+                   value={storeThemeColor} 
+                   onChange={(e) => setStoreThemeColor(e.target.value)}
+                   onBlur={(e) => handleColorUpdate(e.target.value)}
+                   className="w-24 h-24 rounded-2xl cursor-pointer border-0 outline-none p-0 bg-transparent shrink-0"
+                 />
+                 <div className="space-y-3">
+                   <p className={`text-xs font-bold ${isDark ? "text-gray-400" : "text-gray-500"}`}>
+                     Αυτό το χρώμα θα εφαρμοστεί στα κουμπιά "Προσθήκη στο Καλάθι", στις τιμές και στις ενδείξεις του ψηφιακού σας καταλόγου, για να ταιριάζει με το Brand σας.
+                   </p>
+                   <button 
+                     onClick={() => handleColorUpdate(storeThemeColor)} 
+                     className="bg-blue-600 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg transition-transform active:scale-95"
+                   >
+                     Αποθήκευση Χρώματος
+                   </button>
+                 </div>
+               </div>
+             </div>
+
+             {/* Ρύθμιση Λογότυπου */}
+             <div className={`p-6 rounded-[2.5rem] shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+               <h3 className={`font-black uppercase text-sm mb-4 tracking-widest ${isDark ? "text-gray-300" : "text-gray-600"}`}>Λογότυπο Καταστήματος</h3>
+               <div className="space-y-4">
+                  <input 
+                    type="text" 
+                    placeholder="Επικολλήστε εδώ το URL (link) της εικόνας του λογοτύπου σας..." 
+                    value={storeLogo} 
+                    onChange={(e) => setStoreLogo(e.target.value)}
+                    className={`w-full p-4 rounded-xl border font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDark ? "bg-gray-900 border-gray-700 text-white" : "bg-gray-50 border-gray-200 text-gray-900"}`}
+                  />
+                  <div className="flex items-center gap-4">
+                    {storeLogo && <img src={storeLogo} alt="Logo Preview" className="h-16 object-contain bg-white rounded-lg p-1 border shadow-sm" />}
+                    <button 
+                      onClick={() => handleLogoUpdate(storeLogo)} 
+                      className="bg-blue-600 text-white px-5 py-3 rounded-xl font-black text-[10px] uppercase shadow-lg transition-transform active:scale-95"
+                    >
+                      Αποθήκευση Logo
+                    </button>
+                  </div>
+               </div>
+             </div>
           </div>
         )}
         
