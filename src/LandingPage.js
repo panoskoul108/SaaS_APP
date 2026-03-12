@@ -1,6 +1,9 @@
 import React from "react";
 
 export default function LandingPage() {
+  // Βάλε εδώ το πραγματικό σου email!
+  const myEmail = "panoskou108@gmail.com"; 
+
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans selection:bg-blue-500 selection:text-white overflow-x-hidden">
       
@@ -58,7 +61,6 @@ export default function LandingPage() {
               <div className="text-6xl mb-6">📱</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Πελατη</h3>
               <p className="text-gray-400 text-sm mb-8 text-center">Σκανάρετε το QR ή πατήστε το κουμπί για να δείτε πώς παραγγέλνει ο πελάτης από το τραπέζι του.</p>
-              
               <a href="/?store=4&table=Demo" target="_blank" rel="noreferrer" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 text-center block">
                 Ανοιγμα Μενού
               </a>
@@ -69,8 +71,6 @@ export default function LandingPage() {
               <div className="text-6xl mb-6">💻</div>
               <h3 className="text-2xl font-black uppercase italic mb-2">Οθονη Ταμειου</h3>
               <p className="text-gray-400 text-sm mb-8 text-center">Δείτε πώς εμφανίζονται οι παραγγελίες στο bar/κουζίνα. <br/><span className="text-purple-400 font-bold">PIN Δοκιμής: 6666</span></p>
-              
-              {/* ΑΛΛΑΞΑΜΕ ΤΟ PIN ΣΕ 6666 ΣΤΟ LINK */}
               <a href="/?admin=true&store=4&pin=6666" target="_blank" rel="noreferrer" className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-transform active:scale-95 text-center block">
                 Ανοιγμα Ταμείου
               </a>
@@ -114,52 +114,59 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
             
             {/* Basic */}
-            <div className="bg-gray-900 p-8 rounded-[3rem] border border-gray-700 shadow-xl">
+            <div className="bg-gray-900 p-8 rounded-[3rem] border border-gray-700 shadow-xl flex flex-col">
               <h3 className="text-xl font-black uppercase text-gray-400 mb-2">Basic</h3>
-              <div className="text-4xl font-black mb-6">30€<span className="text-base text-gray-500 font-medium">/μήνα</span></div>
-              <ul className="space-y-4 mb-8 text-sm text-gray-300 font-medium">
+              <div className="text-4xl font-black mb-6">20€<span className="text-base text-gray-500 font-medium">/μήνα</span></div>
+              <ul className="space-y-4 mb-8 text-sm text-gray-300 font-medium flex-1">
                 <li>✔️ Ψηφιακό Μενού (QR)</li>
                 <li>✔️ Απεριόριστα Προϊόντα</li>
                 <li>✔️ Πολυγλωσσικό Σύστημα</li>
                 <li className="opacity-40 line-through">Σύστημα Παραγγελιοληψίας</li>
                 <li className="opacity-40 line-through">Smart Bell (Κλήση Σερβιτόρου)</li>
               </ul>
-              <button className="w-full bg-gray-800 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-700 transition-colors">Επικοινωνια</button>
+              <a href={`mailto:${myEmail}?subject=Ενδιαφέρον για το Basic Πακέτο (20€)&body=Γεια σας, ενδιαφέρομαι για το Basic πακέτο. Το όνομα του καταστήματός μου είναι...`} className="w-full bg-gray-800 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-700 transition-colors text-center block">
+                Επικοινωνια
+              </a>
             </div>
 
             {/* Pro */}
-            <div className="bg-blue-600 p-8 rounded-[3rem] shadow-2xl shadow-blue-500/20 transform md:-translate-y-4 relative">
+            <div className="bg-blue-600 p-8 rounded-[3rem] shadow-2xl shadow-blue-500/20 transform md:-translate-y-4 relative flex flex-col">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-yellow-400 text-black px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">Most Popular</div>
               <h3 className="text-xl font-black uppercase text-blue-200 mb-2">Pro</h3>
-              <div className="text-4xl font-black mb-6 text-white">50€<span className="text-base text-blue-300 font-medium">/μήνα</span></div>
-              <ul className="space-y-4 mb-8 text-sm text-white font-medium">
+              <div className="text-4xl font-black mb-6 text-white">40€<span className="text-base text-blue-300 font-medium">/μήνα</span></div>
+              <ul className="space-y-4 mb-8 text-sm text-white font-medium flex-1">
                 <li>✔️ Όλα του Basic</li>
                 <li>✔️ <b>Σύστημα Παραγγελιοληψίας</b></li>
                 <li>✔️ Smart Bell (Κλήση)</li>
                 <li>✔️ Ιστορικό Παραγγελιών</li>
                 <li className="opacity-50 line-through text-blue-200">AI Premium Manager</li>
               </ul>
-              <button className="w-full bg-white text-blue-600 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-100 transition-transform active:scale-95 shadow-lg">Ξεκινηστε Τωρα</button>
+              <a href={`mailto:${myEmail}?subject=Ενδιαφέρον για το Pro Πακέτο (40€)&body=Γεια σας, ενδιαφέρομαι για το Pro πακέτο. Το όνομα του καταστήματός μου είναι...`} className="w-full bg-white text-blue-600 py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-gray-100 transition-transform active:scale-95 shadow-lg text-center block">
+                Ξεκινηστε Τωρα
+              </a>
             </div>
 
             {/* Premium */}
-            <div className="bg-gray-900 p-8 rounded-[3rem] border border-purple-500/30 shadow-xl relative overflow-hidden">
+            <div className="bg-gray-900 p-8 rounded-[3rem] border border-purple-500/30 shadow-xl relative overflow-hidden flex flex-col">
               <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 blur-3xl"></div>
               <h3 className="text-xl font-black uppercase text-purple-400 mb-2">Premium</h3>
-              <div className="text-4xl font-black mb-6">80€<span className="text-base text-gray-500 font-medium">/μήνα</span></div>
-              <ul className="space-y-4 mb-8 text-sm text-gray-300 font-medium">
+              <div className="text-4xl font-black mb-6">70€<span className="text-base text-gray-500 font-medium">/μήνα</span></div>
+              <ul className="space-y-4 mb-8 text-sm text-gray-300 font-medium flex-1">
                 <li>✔️ Όλα του Pro</li>
                 <li>✔️ <b>AI Manager</b></li>
                 <li>✔️ Προβλέψεις Κίνησης (AI)</li>
                 <li>✔️ Προτεραιότητα Υποστήριξης</li>
               </ul>
-              <button className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-colors">Επικοινωνια</button>
+              <a href={`mailto:${myEmail}?subject=Ενδιαφέρον για το Premium Πακέτο (70€)&body=Γεια σας, ενδιαφέρομαι για το Premium πακέτο. Το όνομα του καταστήματός μου είναι...`} className="w-full bg-purple-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-purple-500 transition-colors text-center block relative z-10">
+                Επικοινωνια
+              </a>
             </div>
 
           </div>
         </div>
       </section>
 
+      {/* FOOTER */}
       <footer className="py-12 border-t border-gray-800 text-center">
         <div className="font-black text-xl tracking-tighter mb-4 opacity-50">
           <span>🍽️ Smart</span>POS
