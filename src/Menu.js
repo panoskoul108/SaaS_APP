@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import OrderStatus from "./OrderStatus";
 import CartModal from "./CartModal";
 import ProductModal from "./ProductModal";
+import CustomerHeader from "./CustomerHeader"; // Εισαγωγή του νέου Header
 
 const SUPABASE_URL = process.env.REACT_APP_SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.REACT_APP_SUPABASE_ANON_KEY;
@@ -68,7 +69,7 @@ const normalizeForSearch = (str) => {
 
 const DICT = {
   gr: {
-    requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΑΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
+    requiredTable: "ΕΠΙΛΕΞΤΕ ΤΡΑΠΕΖΙ", table: "ΤΡΑΠΕΖΙ", selectManual: "Λειτουργία Χειροκίνητης Επιλογής", btnSelectTable: "ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ", rec: "ΠΡΟΤΕΙΝΟΜΕΝΑ", outOfStock: "Εξαντλήθηκε", unavail: "ΜΗ ΔΙΑΘΕΣΙΜΟ", add: "ΠΡΟΣΘΗΚΗ", req: "ΥΠΟΧΡΕΩΤΙΚΟ", opt: "ΠΡΟΑΙΡΕΤΙΚΟ", upTo: "ΕΩΣ", select1: "ΕΠΙΛΕΞΤΕ 1", free: "ΧΩΡΙΣ ΧΡΕΩΣΗ", addToCart: "ΠΡΟΣΘΗΚΗ", viewCart: "ΠΡΟΒΟΛΗ ΚΑΛΑΘΙΟΥ", yourOrder: "Η ΠΑΡΑΓΓΕΛΙΑ ΣΑΣ", note: "ΣΗΜΕΙΩΣΗ", itemNotePlaceholder: "Π.χ. Χωρίς ζάχαρη, έξτρα πάγο...", genNoteTitle: "ΓΕΝΙΚΗ ΣΗΜΕΙΩΣΗ (ΠΡΟΑΙΡΕΤΙΚΟ)", payMethod: "ΤΡΟΠΟΣ ΠΛΗΡΩΜΗΣ", cash: "ΜΕΤΡΗΤΑ", card: "ΚΑΡΤΑ", send: "ΑΠΟΣΤΟΛΗ", selPay: "ΕΠΙΛΕΞΤΕ ΠΛΗΡΩΜΗ", history: "ΠΡΟΗΓΟΥΜΕΝΕΣ ΠΑΡΑΓΓΕΛΙΕΣ", noHistory: "Δεν εχετε προηγουμενες παραγγελιες", reorder: "ΕΠΑΝΑΛΗΨΗ", hasOptions: "Επιδεχεται επιλογες", search: "Αναζήτηση προϊόντος...", qty: "ΠΟΣΟΤΗΤΑ", noResults: "Δεν βρέθηκαν προϊόντα.", pausedBanner: "ΠΡΟΣΩΡΙΝΗ ΠΑΥΣΗ ΠΑΡΑΓΓΕΛΙΩΝ ΛΟΓΩ ΦΟΡΤΟΥ", pausedCartMsg: "Δεν μπορούν να σταλούν νέες παραγγελίες αυτή τη στιγμή.", edit: "ΕΠΕΞΕΡΓΑΣΙΑ", save: "ΑΠΟΘΗΚΕΥΣΗ", loyaltyTitle: "ΔΩΡΟ ΜΕ ΠΑΡΑΓΓΕΛΙΑ", loyaltyReward: "ΔΙΚΑΙΟΥΣΑΙ ΔΩΡΕΑΝ ΚΕΡΑΣΜΑ! 🎁", privacyTitle: "Πολιτική Απορρήτου & Ασφάλεια", privacyLink: "Πολιτική Απορρήτου (GDPR)", locErrorSupport: "Η συσκευή σας δεν υποστηρίζει εντοπισμό τοποθεσίας.", locErrorDenied: "Παρακαλώ επιτρέψτε την πρόσβαση στην τοποθεσία (GPS) για να στείλετε παραγγελία.", locErrorFar: "Φαίνεται πως βρίσκεστε εκτός του καταστήματος! Η αποστολή παραγγελιών επιτρέπεται μόνο εντός του χώρου μας.", locFinding: "ΕΛΕΓΧΟΣ ΤΟΠΟΘΕΣΙΑΣ...",
     freqBought: "🔥 ΠΟΛΛΟΙ ΣΥΝΔΥΑΖΟΥΝ ΕΠΙΣΗΣ",
     bellCall: "ΚΛΗΣΗ", bellOrder: "🙋‍♂️ Θέλω να παραγγείλω", bellCard: "💳 Λογαριασμός (Κάρτα)", bellCash: "💵 Λογαριασμός (Μετρητά)", bellClean: "🧽 Καθάρισμα Τραπεζιού", bellSent: "Ο σερβιτόρος ειδοποιήθηκε!"
   },
@@ -545,45 +546,36 @@ export default function Menu() {
 
   return (
     <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
-      <header className={`fixed top-0 left-0 right-0 pt-4 pb-2 px-4 backdrop-blur-md shadow-sm z-40 transition-all duration-300 ${isDark ? "bg-gray-900/95 border-b border-gray-800" : "bg-white/95"}`}>
-        <div className="flex justify-between items-center relative min-h-[3.5rem]">
-          <div className="flex-1 flex justify-start">
-            {canOrder && (
-              <button onClick={() => setIsHistoryOpen(true)} className={`w-10 h-10 rounded-full flex items-center justify-center text-xl transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}>🕒</button>
-            )}
-          </div>
-          <div className="flex-[2] flex flex-col items-center justify-center text-center">
-            {store?.logo_url ? (
-              <img src={store.logo_url} alt={store?.name} className={`h-12 w-auto max-w-[160px] object-contain transition-all duration-300 mb-1 ${isDark ? "drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]" : "drop-shadow-sm"}`} />
-            ) : (
-              <h1 className="text-xl font-black uppercase tracking-widest" style={{ color: isDark ? '#fff' : '#111' }}>{store?.name || "MENU"}</h1>
-            )}
-            <div className={`w-8 h-[2px] rounded-full my-1 ${isDark ? "bg-gray-700" : "bg-gray-200"}`}></div>
-            <div className={`text-[10px] font-bold tracking-widest uppercase ${!tableNum ? 'text-red-500 animate-pulse' : isDark ? 'text-gray-400' : 'text-gray-500'}`}>
-              {tableNum ? `${t.table} ${tableNum}` : t.requiredTable}
-            </div>
-          </div>
-          <div className="flex-1 flex justify-end gap-1">
-            <button onClick={toggleTheme} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-yellow-400 hover:bg-gray-800" : "text-blue-500 hover:bg-gray-100"}`}>
-              {isDark ? "☀️" : "🌙"}
-            </button>
-            <button onClick={() => setLang(lang === "gr" ? "en" : "gr")} className={`w-10 h-10 rounded-full flex items-center justify-center text-lg transition-transform active:scale-90 ${isDark ? "text-gray-300 hover:bg-gray-800" : "text-gray-600 hover:bg-gray-100"}`}>
-              {lang === "gr" ? "🇬🇧" : "🇬🇷"}
-            </button>
-          </div>
-        </div>
-      </header>
+      
+      <div className="sticky top-0 z-50 flex flex-col w-full">
+        {/* ΤΟ ΝΕΟ ΜΑΣ ΕΞΥΠΝΟ HEADER */}
+        <CustomerHeader 
+          storeLogo={store?.logo_url}
+          storeName={store?.name}
+          tableNum={tableNum}
+          isDark={isDark}
+          toggleTheme={toggleTheme}
+          lang={lang}
+          toggleLanguage={() => setLang(lang === "gr" ? "en" : "gr")}
+          storeThemeColor={themeColor}
+          t={t}
+          canOrder={canOrder}
+          setIsHistoryOpen={setIsHistoryOpen}
+        />
 
-      {!isAcceptingOrders && (
-        <div className="fixed top-[88px] left-0 right-0 bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest z-40 shadow-md">
-          ⚠️ {t.pausedBanner}
-        </div>
-      )}
+        {/* BANNER ΓΙΑ ΚΛΕΙΣΤΕΣ ΠΑΡΑΓΓΕΛΙΕΣ */}
+        {!isAcceptingOrders && (
+          <div className="w-full bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest shadow-md">
+            ⚠️ {t.pausedBanner}
+          </div>
+        )}
+      </div>
 
-      <div className={`flex-1 ${!isAcceptingOrders ? "pt-[120px]" : "pt-[88px]"}`}>
+      <main className="flex-1 w-full max-w-5xl mx-auto">
         
+        {/* ΛΕΙΤΟΥΡΓΙΑ ΧΕΙΡΟΚΙΝΗΤΗΣ ΕΠΙΛΟΓΗΣ ΤΡΑΠΕΖΙΟΥ */}
         {(!tableNum || tableNum === "") && backupMode === true && (
-          <div className={`mx-4 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
+          <div className={`mx-4 mt-6 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
             <p className="text-xs font-black uppercase mb-3" style={{ color: themeColor }}>{t.selectManual}</p>
             <button onClick={() => setShowTablePicker(true)} className="w-full text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform" style={{ backgroundColor: themeColor }}>
               {t.btnSelectTable}
@@ -613,7 +605,7 @@ export default function Menu() {
         )}
 
         {canOrder && (
-          <div className={`px-4 py-2 sticky z-30 transition-all ${!isAcceptingOrders ? "top-[120px]" : "top-[88px]"} ${isDark ? "bg-gray-900/90 backdrop-blur-md" : "bg-gray-50/90 backdrop-blur-md"}`}>
+          <div className={`px-4 py-2 sticky z-30 transition-all ${!isAcceptingOrders ? "top-[112px]" : "top-[76px]"} ${isDark ? "bg-gray-900/90 backdrop-blur-md" : "bg-gray-50/90 backdrop-blur-md"}`}>
             <div className={`p-2.5 rounded-xl border shadow-sm transition-colors duration-500 ${isRewardOrder ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-white border-yellow-300" : isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-200"}`}>
               {isRewardOrder ? (
                 <div className="flex justify-center items-center gap-2">
@@ -654,7 +646,7 @@ export default function Menu() {
         )}
 
         {!searchQuery && (
-          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[180px]" : "top-[148px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
+          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[172px]" : "top-[136px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (
               <button 
                 key={cat} 
@@ -684,7 +676,6 @@ export default function Menu() {
                       onClick={() => canOrder && p.is_available && handleProductClick(p)} 
                       className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${canOrder && p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
                     >
-                      {/* ΝΕΟ: Εικόνα με Native Lazy Loading */}
                       <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                         <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
                       </div>
@@ -730,7 +721,6 @@ export default function Menu() {
                             onClick={() => canOrder && p.is_available && handleProductClick(p)} 
                             className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all ${canOrder && p.is_available ? "cursor-pointer hover:shadow-lg hover:-translate-y-1" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
                           >
-                            {/* ΝΕΟ: Εικόνα με Native Lazy Loading */}
                             <div className={`h-44 w-full relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                               <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
                               <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
@@ -766,7 +756,6 @@ export default function Menu() {
                             onClick={() => canOrder && p.is_available && handleProductClick(p)} 
                             className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${canOrder && p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
                           >
-                            {/* ΝΕΟ: Εικόνα με Native Lazy Loading */}
                             <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                               <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
                             </div>
@@ -796,7 +785,7 @@ export default function Menu() {
             })
           )}
         </div>
-      </div>
+      </main>
 
       <ProductModal 
         theme={theme} 
@@ -819,7 +808,7 @@ export default function Menu() {
         <div className={`fixed bottom-0 left-0 right-0 p-4 backdrop-blur-sm z-40 ${isDark ? "bg-gradient-to-t from-gray-900/90 via-gray-900/80 to-transparent" : "bg-gradient-to-t from-white/90 via-white/80 to-transparent"}`}>
           <button 
             onClick={() => setIsCartOpen(true)} 
-            className={`w-full text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300 ${cartBounce ? "scale-105 shadow-blue-500/50" : "hover:scale-[1.02]"}`} 
+            className={`w-full max-w-5xl mx-auto text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300 ${cartBounce ? "scale-105 shadow-blue-500/50" : "hover:scale-[1.02]"}`} 
             style={{ backgroundColor: themeColor }}
           >
             <div className="flex items-center gap-3">
