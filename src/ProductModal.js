@@ -1,9 +1,7 @@
 import React from "react";
 
-const normalizeStr = (str) => 
-  str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toUpperCase() : "";
-
 export default function ProductModal({
+  theme,
   activeProduct,
   lang,
   t,
@@ -16,81 +14,85 @@ export default function ProductModal({
   setQuantity,
   currentProductNote,
   setCurrentProductNote,
-  confirmAddons,
-  theme,
+  confirmAddons
 }) {
   if (!activeProduct) return null;
 
-  const activeDispDesc = lang === "en" && activeProduct.description_en ? activeProduct.description_en : activeProduct.description;
   const isDark = theme === "dark";
+  
+  // Έξυπνη επιλογή Γλώσσας για τον Τίτλο και την Περιγραφή (Ελλάδα, Αγγλία, Τουρκία)
+  const dispName = lang === "tr" && activeProduct.name_tr ? activeProduct.name_tr : (lang === "en" && activeProduct.name_en ? activeProduct.name_en : activeProduct.name);
+  const dispDesc = lang === "tr" && activeProduct.description_tr ? activeProduct.description_tr : (lang === "en" && activeProduct.description_en ? activeProduct.description_en : activeProduct.description);
 
-  // --- ΕΞΥΠΝΟ ΣΥΣΤΗΜΑ: Ελέγχει αν έχει πατηθεί το "ΣΚΕΤΟ" ---
-  let isSketosSelected = false;
-  (activeProduct.addons || []).forEach((group) => {
-    const selections = addonSelections[group.id] || [];
-    selections.forEach((selIndex) => {
-      const optName = normalizeStr(group.options[selIndex]?.name);
-      if (optName.includes("ΣΚΕΤ") || optName.includes("ΧΩΡΙΣ")) { 
-        isSketosSelected = true;
-      }
-    });
+  let extraPrice = 0;
+  (activeProduct.addons || []).forEach((g) => {
+    const sels = addonSelections[g.id] || [];
+    sels.forEach((idx) => { extraPrice += g.options[idx].price; });
   });
-
-  // Μετατρέπει την Ζάχαρη σε "ΠΡΟΑΙΡΕΤΙΚΟ" (αντί να την κρύψει)
-  const displayAddons = (activeProduct.addons || []).map(group => {
-    const groupNameUpper = normalizeStr(group.name);
-    if (isSketosSelected && (groupNameUpper.includes("ΖΑΧΑΡ") || groupNameUpper.includes("ΓΛΥΚΑΝΤΙΚ"))) {
-      return { ...group, isRequired: false };
-    }
-    return group;
-  });
+  const currentTotal = (activeProduct.price + extraPrice) * quantity;
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[200] flex flex-col justify-end animate-fade-in" onClick={closeProductModal}>
-      <div className={`${isDark ? "bg-gray-800" : "bg-white"} w-full rounded-t-[2.5rem] p-6 shadow-2xl animate-slide-up max-h-[90vh] flex flex-col`} onClick={(e) => e.stopPropagation()}>
-        <div className={`flex justify-between items-start mb-4 border-b pb-4 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
-          <div className="flex flex-col pr-4">
-            <h2 className={`font-black text-xl uppercase italic ${isDark ? "text-white" : "text-gray-900"}`}>
-              {lang === "en" && activeProduct.name_en ? activeProduct.name_en : activeProduct.name}
-            </h2>
-            {activeDispDesc && (
-              <p className="text-xs text-gray-500 mt-1 font-medium italic">{activeDispDesc}</p>
-            )}
-            {editingCartId && (
-              <span className="text-[10px] text-blue-500 mt-1 font-black uppercase">{t.edit}</span>
-            )}
-          </div>
-          <button onClick={closeProductModal} className={`w-10 h-10 rounded-full font-black flex items-center justify-center shrink-0 transition-colors ${isDark ? "bg-gray-700 text-gray-300 hover:bg-gray-600" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>✕</button>
+    <div className="fixed inset-0 bg-black/80 z-[300] flex items-end sm:items-center justify-center animate-fade-in" onClick={closeProductModal}>
+      <div 
+        className={`w-full max-w-lg h-[85vh] sm:h-[90vh] sm:rounded-[3rem] rounded-t-[3rem] flex flex-col shadow-2xl relative overflow-hidden transform transition-transform translate-y-0 ${isDark ? 'bg-gray-900 border border-gray-800' : 'bg-white'}`} 
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header Eικόνας */}
+        <div className={`relative h-48 sm:h-64 shrink-0 ${isDark ? 'bg-gray-800' : 'bg-gray-100'}`}>
+          {activeProduct.image_url ? (
+             <img src={activeProduct.image_url} alt={dispName} className="w-full h-full object-cover" />
+          ) : (
+             <div className="w-full h-full flex items-center justify-center text-4xl opacity-50">🍔</div>
+          )}
+          <div className="absolute top-0 inset-x-0 h-24 bg-gradient-to-b from-black/60 to-transparent"></div>
+          <button onClick={closeProductModal} className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full text-white flex items-center justify-center text-xl hover:bg-white/30 transition-colors">✕</button>
         </div>
 
-        <div className="overflow-y-auto flex-1 space-y-6 pb-6 no-scrollbar">
-          {displayAddons.map((group) => {
-            const groupDispName = lang === "en" && group.name_en ? group.name_en : group.name;
+        <div className="flex-1 overflow-y-auto pb-24 p-6 no-scrollbar">
+          <h2 className={`text-2xl font-black uppercase mb-2 leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{dispName}</h2>
+          <p className="text-xl font-black mb-4" style={{ color: themeColor }}>{activeProduct.price.toFixed(2)}€</p>
+          {dispDesc && <p className={`text-sm font-medium mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{dispDesc}</p>}
+
+          {(activeProduct.addons || []).map((group) => {
+            const groupName = lang === "tr" && group.name_tr ? group.name_tr : (lang === "en" && group.name_en ? group.name_en : group.name);
+            const isReq = group.isRequired;
+            const maxSel = group.maxSelections || 1;
+            const selectedCount = (addonSelections[group.id] || []).length;
+            
             return (
-              <div key={group.id} className={`p-4 rounded-3xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50/50 border-gray-100"}`}>
+              <div key={group.id} className="mb-6">
                 <div className="flex justify-between items-end mb-3">
-                  <h3 className={`font-black uppercase text-sm ${isDark ? "text-gray-100" : "text-gray-800"}`}>{groupDispName}</h3>
-                  <span className={`text-[9px] font-bold uppercase tracking-widest px-2 py-1 rounded-lg shadow-sm border ${isDark ? "bg-gray-800 border-gray-700 text-gray-400" : "bg-white border-gray-100 text-gray-400"}`}>
-                    {group.isRequired ? t.req : t.opt} {group.maxSelections > 1 ? `(${t.upTo} ${group.maxSelections})` : `(${t.select1})`}
-                  </span>
+                  <div>
+                    <h3 className={`font-black uppercase text-sm ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{groupName}</h3>
+                    <p className={`text-[10px] font-bold mt-1 uppercase ${isReq ? 'text-red-500' : isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                      {isReq ? `* ${t.req}` : t.opt} {maxSel > 1 ? `(${t.upTo} ${maxSel})` : `(${t.select1})`}
+                    </p>
+                  </div>
+                  {isReq && selectedCount === 0 && <span className="text-[10px] font-black text-red-500 bg-red-100 px-2 py-1 rounded-lg uppercase">!</span>}
                 </div>
+                
                 <div className="space-y-2">
-                  {group.options.map((opt, i) => {
-                    const isSelected = (addonSelections[group.id] || []).includes(i);
-                    const optDispName = lang === "en" && opt.name_en ? opt.name_en : opt.name;
+                  {group.options.map((opt, idx) => {
+                    const optName = lang === "tr" && opt.name_tr ? opt.name_tr : (lang === "en" && opt.name_en ? opt.name_en : opt.name);
+                    const isSelected = (addonSelections[group.id] || []).includes(idx);
                     return (
-                      <div key={i} onClick={() => toggleAddon(group.id, i, group.maxSelections)} className={`flex justify-between items-center p-4 rounded-2xl cursor-pointer transition-all border-2 ${isSelected ? isDark ? "bg-blue-900/30" : "bg-blue-50/50" : isDark ? "border-gray-700 bg-gray-800 hover:border-gray-600" : "border-gray-200/50 bg-white hover:border-gray-300"}`} style={isSelected ? { borderColor: themeColor } : {}}>
-                        <div className="flex items-center gap-3">
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? "" : isDark ? "border-gray-500" : "border-gray-300"}`} style={isSelected ? { borderColor: themeColor, backgroundColor: themeColor } : {}}>
-                            {isSelected && <div className="w-2 h-2 bg-white rounded-full"></div>}
-                          </div>
-                          <span className={`font-bold uppercase text-xs ${isSelected ? isDark ? "text-white" : "text-gray-900" : isDark ? "text-gray-300" : "text-gray-600"}`}>
-                            {optDispName}
-                          </span>
-                        </div>
-                        <span className="font-black text-sm" style={opt.price > 0 ? { color: themeColor } : { color: "#9CA3AF" }}>
-                          {opt.price > 0 ? `+${opt.price.toFixed(2)}€` : t.free}
+                      <div 
+                        key={idx} 
+                        onClick={() => toggleAddon(group.id, idx, maxSel)}
+                        className={`flex justify-between items-center p-4 rounded-2xl border-2 cursor-pointer transition-all active:scale-[0.98] ${isSelected ? 'border-blue-500 bg-blue-50/10' : isDark ? 'border-gray-700 bg-gray-800/50 hover:border-gray-600' : 'border-gray-100 bg-white hover:border-gray-200'}`}
+                        style={isSelected ? { borderColor: themeColor, backgroundColor: isDark ? `${themeColor}20` : `${themeColor}10` } : {}}
+                      >
+                        <span className={`text-sm font-black uppercase ${isSelected ? '' : isDark ? 'text-gray-300' : 'text-gray-700'}`} style={isSelected ? { color: themeColor } : {}}>
+                          {optName}
                         </span>
+                        <div className="flex items-center gap-3">
+                          <span className={`text-xs font-black ${isSelected ? '' : isDark ? 'text-gray-400' : 'text-gray-500'}`} style={isSelected ? { color: themeColor } : {}}>
+                            {opt.price > 0 ? `+${opt.price.toFixed(2)}€` : t.free}
+                          </span>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-blue-500 bg-blue-500' : isDark ? 'border-gray-600' : 'border-gray-300'}`} style={isSelected ? { borderColor: themeColor, backgroundColor: themeColor } : {}}>
+                            {isSelected && <span className="text-white text-[10px]">✓</span>}
+                          </div>
+                        </div>
                       </div>
                     );
                   })}
@@ -99,25 +101,38 @@ export default function ProductModal({
             );
           })}
 
-          <div className={`flex items-center justify-between p-5 rounded-3xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50/50 border-gray-100"}`}>
-            <span className={`font-black uppercase text-sm ${isDark ? "text-gray-100" : "text-gray-800"}`}>{t.qty}</span>
-            <div className={`flex items-center gap-4 px-2 py-1 rounded-2xl border shadow-sm ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`}>
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="w-10 h-10 flex items-center justify-center text-2xl font-bold text-gray-500 hover:text-gray-400 transition-colors">−</button>
-              <span className="font-black text-xl w-6 text-center">{quantity}</span>
-              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 flex items-center justify-center text-2xl font-bold hover:opacity-80 transition-colors" style={{ color: themeColor }}>+</button>
-            </div>
-          </div>
-
-          <div className={`p-4 rounded-3xl border ${isDark ? "bg-gray-900/50 border-gray-700" : "bg-gray-50/50 border-gray-100"}`}>
-            <span className={`font-black uppercase text-sm mb-2 block tracking-tight ${isDark ? "text-gray-100" : "text-gray-800"}`}>{t.note}</span>
-            <textarea rows="2" placeholder={t.itemNotePlaceholder} value={currentProductNote} onChange={(e) => setCurrentProductNote(e.target.value)} className={`w-full border rounded-2xl px-4 py-3 text-sm focus:outline-none font-bold resize-none shadow-sm ${isDark ? "bg-gray-800 border-gray-600 text-white focus:border-blue-400" : "bg-white border-gray-200 focus:border-blue-400"}`}></textarea>
+          <div className="mt-8">
+            <h3 className={`font-black uppercase text-sm mb-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.note}</h3>
+            <textarea
+              className={`w-full border-2 p-4 rounded-2xl text-sm font-bold focus:outline-none transition-colors resize-none ${isDark ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+              style={{ focusRingColor: themeColor }}
+              rows="2"
+              placeholder={t.itemNotePlaceholder}
+              value={currentProductNote}
+              onChange={(e) => setCurrentProductNote(e.target.value)}
+            />
           </div>
         </div>
 
-        <button onClick={confirmAddons} className="w-full text-white py-5 rounded-2xl font-black uppercase text-sm tracking-widest mt-4 shadow-xl active:scale-95 transition-transform flex justify-between px-6" style={{ backgroundColor: themeColor }}>
-          <span>{editingCartId ? t.save : t.addToCart}</span>
-          <span>{!editingCartId && quantity > 1 ? `x${quantity}` : ""}</span>
-        </button>
+        {/* Footer (Ποσότητα & Προσθήκη) */}
+        <div className={`absolute bottom-0 left-0 right-0 p-4 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] bg-opacity-95 backdrop-blur-md ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
+          <div className="flex gap-4">
+            <div className={`flex items-center justify-between px-2 rounded-2xl border-2 w-32 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className={`w-10 h-10 text-xl font-black ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>−</button>
+              <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-black'}`}>{quantity}</span>
+              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 text-xl font-black" style={{ color: themeColor }}>+</button>
+            </div>
+            
+            <button 
+              onClick={confirmAddons}
+              className="flex-1 text-white rounded-2xl font-black uppercase text-sm shadow-xl flex items-center justify-between px-6 transition-transform active:scale-95"
+              style={{ backgroundColor: themeColor }}
+            >
+              <span>{editingCartId ? t.save : t.add}</span>
+              <span>{currentTotal.toFixed(2)}€</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
