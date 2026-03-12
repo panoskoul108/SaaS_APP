@@ -63,6 +63,7 @@ export default function Dashboard() {
   const [prevOrdersCount, setPrevOrdersCount] = useState(0);
   const [activePrintOrder, setActivePrintOrder] = useState(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isPrintingQRs, setIsPrintingQRs] = useState(false); // ΝΕΟ STATE ΓΙΑ ΤΑ QR
   const [viewingOrder, setViewingOrder] = useState(null);
   const [selectedTableForQR, setSelectedTableForQR] = useState(null);
 
@@ -157,7 +158,6 @@ export default function Dashboard() {
     }
   };
 
-  // --- ΕΝΣΩΜΑΤΩΣΗ REALTIME WEBSOCKETS (ΤΕΛΟΣ ΤΟ POLLING) ---
   useEffect(() => {
     if (!isAuthenticated || !storeId) return;
 
@@ -169,7 +169,7 @@ export default function Dashboard() {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'orders', filter: `store_id=eq.${storeId}` },
-        () => { fetchData(); } // Ανανεώνει ακαριαία όταν υπάρχει αλλαγή
+        () => { fetchData(); } 
       )
       .subscribe();
 
@@ -211,26 +211,24 @@ export default function Dashboard() {
     } 
   };
   
-  // --- ΔΙΟΡΘΩΜΕΝΟ OPTIMISTIC UI BACKUP TOGGLE ---
   const toggleBackupMode = async () => {
-    const newState = !backupMode;
-    setBackupMode(newState); // Ακαριαία αλλαγή στο UI
-    const { error } = await supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId);
-    if (error) {
-      alert("Σφάλμα: " + error.message);
-      setBackupMode(!newState); // Επαναφορά αν αποτύχει η βάση
-    }
+    setBackupMode((prev) => {
+      const newState = !prev;
+      supabase.from("stores").update({ backup_mode: newState }).eq("id", storeId).then(({ error }) => {
+        if (error) alert("Σφάλμα: " + error.message);
+      });
+      return newState;
+    });
   };
 
-  // --- ΔΙΟΡΘΩΜΕΝΟ OPTIMISTIC UI ACCEPTING ORDERS TOGGLE ---
   const toggleAcceptingOrders = async () => {
-    const newState = !isAcceptingOrders;
-    setIsAcceptingOrders(newState);
-    const { error } = await supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId);
-    if (error) {
-      alert("Σφάλμα: " + error.message);
-      setIsAcceptingOrders(!newState);
-    }
+    setIsAcceptingOrders((prev) => {
+      const newState = !prev;
+      supabase.from("stores").update({ is_accepting_orders: newState }).eq("id", storeId).then(({ error }) => {
+        if (error) alert("Σφάλμα: " + error.message);
+      });
+      return newState;
+    });
   };
 
   const getQrUrl = (table) => {
@@ -244,6 +242,16 @@ export default function Dashboard() {
       const url = getQrUrl(table); const res = await fetch(url); const blob = await res.blob(); const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a"); a.href = blobUrl; a.download = `QR_Table_${table}.png`; document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(blobUrl);
     } catch (error) { window.open(getQrUrl(table), "_blank"); }
+  };
+
+  // ΝΕΑ ΣΥΝΑΡΤΗΣΗ ΓΙΑ ΜΑΖΙΚΗ ΕΚΤΥΠΩΣΗ
+  const handlePrintAllQRs = () => {
+    setIsPrintingQRs(true);
+    // Δίνουμε 1.5 δευτερόλεπτο να φορτώσουν οι εικόνες από το internet πριν ανοίξει το παράθυρο
+    setTimeout(() => {
+      window.print();
+      setIsPrintingQRs(false);
+    }, 1500); 
   };
 
   const posVisibleProducts = products.filter((p) => { if (p.category === "ΠΡΩΙΝΟ" && !isMorning) return false; return true; });
@@ -335,6 +343,29 @@ export default function Dashboard() {
 
   if (!isAuthenticated) return <Login onLoginSuccess={(r, s) => { setIsAuthenticated(true); setUserRole(r); setStoreId(s); }} />;
   if (isPrinting) return <div className="bg-white"><PrintTicket order={activePrintOrder} /></div>;
+
+  // --- Η ΚΡΥΦΗ ΟΘΟΝΗ ΠΟΥ ΦΟΡΤΩΝΕΙ ΟΤΑΝ ΠΑΤΑΣ ΜΑΖΙΚΗ ΕΚΤΥΠΩΣΗ ---
+  if (isPrintingQRs) {
+    return (
+      <div className="bg-white p-8 font-sans text-black min-h-screen print:p-0">
+        <div className="text-center mb-10 print:hidden">
+          <h1 className="text-3xl font-black mb-2 animate-pulse">Φόρτωση Κωδικών QR...</h1>
+          <p className="text-gray-500">Περιμένετε να ανοίξει το παράθυρο εκτύπωσης.</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-8 print:gap-4">
+          {storeTables.map((t) => (
+            <div key={t} className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-3xl break-inside-avoid" style={{ pageBreakInside: "avoid" }}>
+              <h2 className="text-xl font-black mb-1 uppercase tracking-widest text-center">{storeName || "SMART POS"}</h2>
+              <div className="w-10 h-1 bg-black rounded-full mb-3"></div>
+              <h3 className="text-2xl font-black mb-4 text-gray-800">ΤΡΑΠΕΖΙ {t}</h3>
+              <img src={getQrUrl(t)} alt={`QR ${t}`} className="w-48 h-48 mb-4 shadow-sm rounded-xl" />
+              <p className="text-xs font-bold text-gray-500 uppercase tracking-widest">Σκαναρετε για το μενου</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   let sortedViewingItems = [];
   if (viewingOrder && viewingOrder.items) {
@@ -533,20 +564,30 @@ export default function Dashboard() {
         )}
         
         {tab === "tables" && userRole === "admin" && (
-          <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
-            {storeTables.map((t) => (
-              <div
-                key={t}
-                onClick={() => setSelectedTableForQR(t)}
-                className={`aspect-square rounded-2xl p-3 flex items-center justify-center border-2 cursor-pointer font-black text-2xl transition-transform hover:scale-105 ${
-                  activeTables.includes(t)
-                    ? (isDark ? "bg-red-900/30 border-red-800 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "bg-red-50 border-red-200 text-red-600")
-                    : (isDark ? "bg-gray-800 border-gray-700 text-green-500" : "bg-white border-green-200 text-green-600 shadow-sm")
-                }`}
-              >
-                {t}
-              </div>
-            ))}
+          <div className="space-y-6">
+            {/* ΝΕΑ ΜΠΑΡΑ ΕΚΤΥΠΩΣΗΣ */}
+            <div className={`flex flex-col sm:flex-row justify-between items-center p-4 rounded-2xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
+               <h3 className={`font-black uppercase text-lg italic ${isDark ? "text-white" : "text-gray-800"}`}>Διαχειριση QR</h3>
+               <button onClick={handlePrintAllQRs} className="mt-3 sm:mt-0 bg-blue-600 text-white px-6 py-3 rounded-xl font-black uppercase text-xs shadow-lg hover:bg-blue-500 transition-colors w-full sm:w-auto">
+                  🖨️ ΕΚΤΥΠΩΣΗ ΟΛΩΝ ΣΕ PDF
+               </button>
+            </div>
+            
+            <div className="grid grid-cols-4 sm:grid-cols-8 gap-3">
+              {storeTables.map((t) => (
+                <div
+                  key={t}
+                  onClick={() => setSelectedTableForQR(t)}
+                  className={`aspect-square rounded-2xl p-3 flex items-center justify-center border-2 cursor-pointer font-black text-2xl transition-transform hover:scale-105 ${
+                    activeTables.includes(t)
+                      ? (isDark ? "bg-red-900/30 border-red-800 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.2)]" : "bg-red-50 border-red-200 text-red-600")
+                      : (isDark ? "bg-gray-800 border-gray-700 text-green-500" : "bg-white border-green-200 text-green-600 shadow-sm")
+                  }`}
+                >
+                  {t}
+                </div>
+              ))}
+            </div>
           </div>
         )}
         
