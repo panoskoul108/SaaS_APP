@@ -30,7 +30,7 @@ export default function CookieBanner() {
     <div className="fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] z-[999] text-white flex flex-col md:flex-row items-center justify-between gap-4 animate-fade-in">
       <div className="text-xs font-medium text-gray-400 text-center md:text-left">
         <strong className="text-white text-sm">Πολιτική Απορρήτου & Cookies 🍪</strong><br/>
-        Χρησιμοποιούμε cookies για την ανάλυση της επισκεψιμότητας και τη βελτίωση της εμπειρίας σας. Τα δεδομένα συλλέγονται ανώνυμα και δεν πωλούνται σε τρίτους.
+        Χρησιμοποιούμε cookies για την ανάλυση της επισκεψιμότητας και τη βελτίωση της εμπειρίας σας. Τα δεδομένα συλλέγονται ανώνυμα.
       </div>
       <div className="flex gap-3 w-full md:w-auto shrink-0">
         <button 
