@@ -208,7 +208,7 @@ export default function Menu() {
           ...prod, 
           name: removeAccents(prod.name), 
           name_en: removeAccents(prod.name_en), 
-          name_tr: removeAccents(prod.name_tr), // Διαβάζει και Τουρκικά αν τα βάλεις στη βάση
+          name_tr: removeAccents(prod.name_tr), 
           description: removeAccents(prod.description), 
           description_en: removeAccents(prod.description_en),
           description_tr: removeAccents(prod.description_tr),
@@ -312,16 +312,12 @@ export default function Menu() {
     }
   };
 
-  // ΑΥΤΟΜΑΤΗ ΜΕΤΑΦΡΑΣΗ ΚΑΤΗΓΟΡΙΩΝ
   const getCategoryDisplayName = (cat) => {
     if (cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ") return `⭐ ${t.rec}`;
     if (lang === "gr") return cat;
-    
-    // Αν υπάρχει στο λεξικό, το μεταφράζει αυτόματα!
     if (CATEGORY_TRANSLATIONS[cat] && CATEGORY_TRANSLATIONS[cat][lang]) {
       return CATEGORY_TRANSLATIONS[cat][lang];
     }
-    
     const sampleProduct = visibleProducts.find((p) => p.category === cat);
     if (lang === "tr" && sampleProduct && sampleProduct.category_tr) return sampleProduct.category_tr;
     if (lang === "en" && sampleProduct && sampleProduct.category_en) return sampleProduct.category_en;
@@ -409,7 +405,6 @@ export default function Menu() {
     
     if (!isValid) return alert(lang === "gr" ? "Παρακαλώ συμπληρώστε όλες τις υποχρεωτικές επιλογές!" : "Please fill all required options!");
     
-    // Αποθηκεύει το όνομα στη γλώσσα που το επέλεξε ο χρήστης
     const finalName = addonTexts.length > 0 ? `${activeProduct.name} (${addonTexts.join(" | ")})` : activeProduct.name;
     const finalPrice = activeProduct.price + extraPrice;
     const newItem = { 
@@ -615,7 +610,7 @@ export default function Menu() {
           setIsHistoryOpen={setIsHistoryOpen}
         />
 
-        {!isAcceptingOrders && (
+        {!isAcceptingOrders && canOrder && (
           <div className="w-full bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest shadow-md">
             ⚠️ {t.pausedBanner}
           </div>
@@ -624,7 +619,7 @@ export default function Menu() {
 
       <main className="flex-1 w-full max-w-5xl mx-auto">
         
-        {(!tableNum || tableNum === "") && backupMode === true && (
+        {(!tableNum || tableNum === "") && backupMode === true && canOrder && (
           <div className={`mx-4 mt-6 mb-2 p-6 border-2 rounded-3xl text-center shadow-md animate-fade-in relative z-10 ${isDark ? "bg-gray-800 border-gray-700" : "bg-white"}`} style={{ borderColor: themeColor }}>
             <p className="text-xs font-black uppercase mb-3" style={{ color: themeColor }}>{t.selectManual}</p>
             <button onClick={() => setShowTablePicker(true)} className="w-full text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-lg active:scale-95 transition-transform" style={{ backgroundColor: themeColor }}>
@@ -696,7 +691,7 @@ export default function Menu() {
         )}
 
         {!searchQuery && (
-          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders ? "top-[172px]" : "top-[136px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
+          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders && canOrder ? "top-[172px]" : "top-[136px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (
               <button 
                 key={cat} 
@@ -723,8 +718,8 @@ export default function Menu() {
                   return (
                     <div 
                       key={p.id} 
-                      onClick={() => canOrder && p.is_available && handleProductClick(p)} 
-                      className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${canOrder && p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
+                      onClick={() => p.is_available && handleProductClick(p)} 
+                      className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
                     >
                       <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                         <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
@@ -734,14 +729,14 @@ export default function Menu() {
                         <div>
                           <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
                           {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                          {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+                          {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
                         </div>
                         <div className="flex justify-between items-center mt-2">
                           <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
-                          {canOrder && p.is_available ? (
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
-                          ) : canOrder && !p.is_available ? (
+                          {!p.is_available ? (
                             <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
+                          ) : canOrder ? (
+                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
                           ) : null}
                         </div>
                       </div>
@@ -768,8 +763,8 @@ export default function Menu() {
                         return (
                           <div 
                             key={p.id} 
-                            onClick={() => canOrder && p.is_available && handleProductClick(p)} 
-                            className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all ${canOrder && p.is_available ? "cursor-pointer hover:shadow-lg hover:-translate-y-1" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
+                            onClick={() => p.is_available && handleProductClick(p)} 
+                            className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all ${p.is_available ? "cursor-pointer hover:shadow-lg hover:-translate-y-1" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
                           >
                             <div className={`h-44 w-full relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                               <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
@@ -782,11 +777,13 @@ export default function Menu() {
                               <div>
                                 <h3 className={`font-black text-[14px] uppercase leading-tight line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
                                 {dispDesc && <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed line-clamp-2 font-medium">{dispDesc}</p>}
-                                {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">{t.hasOptions}</p>}
+                                {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">{t.hasOptions}</p>}
                               </div>
                               <div className="flex justify-between items-center mt-4">
                                 <p className="font-black text-xl" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>
-                                {canOrder && p.is_available ? (
+                                {!p.is_available ? (
+                                  <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
+                                ) : canOrder ? (
                                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black shadow-md transition-transform active:scale-95" style={{ backgroundColor: themeColor }}>+</div>
                                 ) : null}
                               </div>
@@ -803,8 +800,8 @@ export default function Menu() {
                         return (
                           <div 
                             key={p.id} 
-                            onClick={() => canOrder && p.is_available && handleProductClick(p)} 
-                            className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${canOrder && p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
+                            onClick={() => p.is_available && handleProductClick(p)} 
+                            className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
                           >
                             <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                               <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
@@ -814,14 +811,14 @@ export default function Menu() {
                               <div>
                                 <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
                                 {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                                {p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+                                {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
                               </div>
                               <div className="flex justify-between items-center mt-2">
                                 <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
-                                {canOrder && p.is_available ? (
-                                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
-                                ) : canOrder && !p.is_available ? (
+                                {!p.is_available ? (
                                   <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
+                                ) : canOrder ? (
+                                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
                                 ) : null}
                               </div>
                             </div>
@@ -852,6 +849,7 @@ export default function Menu() {
         currentProductNote={currentProductNote} 
         setCurrentProductNote={setCurrentProductNote} 
         confirmAddons={confirmAddons} 
+        canOrder={canOrder}
       />
 
       {canOrder && cart.length > 0 && !isCartOpen && !activeProduct && (
