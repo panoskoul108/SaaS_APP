@@ -3,11 +3,12 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import posthog from 'posthog-js';
 
-// Αρχικοποίηση PostHog (Αντικατέστησε το phc_... με το δικό σου Project Token)
-posthog.init('phc_9YTi2wzVND4e7IlCLHkbmHFwDT9pHfI1lTb4R2n4hXT', {
+// Αρχικοποίηση PostHog
+posthog.init('phc_ΒΑΛΕ_ΤΟ_ΔΙΚΟ_ΣΟΥ_TOKEN_ΕΔΩ', {
   api_host: 'https://eu.i.posthog.com',
   autocapture: true, 
   capture_pageview: true, 
+  opt_out_capturing_by_default: true // Η προσθήκη για τον νόμο GDPR
 });
 
 const rootElement = document.getElementById("root");
@@ -19,7 +20,7 @@ root.render(
   </StrictMode>
 );
 
-// Ενεργοποίηση του Service Worker για να γίνει η εφαρμογή εγκαταστάσιμη (PWA)
+// Ενεργοποίηση του Service Worker (PWA)
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js').catch((err) => {
