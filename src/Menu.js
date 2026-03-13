@@ -112,7 +112,6 @@ export default function Menu() {
   const urlTable = new URLSearchParams(window.location.search).get("table");
   const [tableNum, setTableNum] = useState(urlTable === "null" ? null : urlTable);
   
-  // STATE ΓΙΑ GRID / LIST VIEW
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("view_mode") || "list");
   const toggleViewMode = () => {
     const newMode = viewMode === "list" ? "grid" : "list";
@@ -184,7 +183,6 @@ export default function Menu() {
   });
   
   const categoryNavRef = useRef(null);
-  const carouselRef = useRef(null);
   
   const [currentHour, setCurrentHour] = useState(new Date().getHours());
 
@@ -251,21 +249,6 @@ export default function Menu() {
       supabase.removeChannel(channel);
     };
   }, [storeId]);
-
-  useEffect(() => {
-    const autoScrollInterval = setInterval(() => {
-      if (carouselRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = carouselRef.current;
-        const scrollAmount = 260; 
-        if (scrollLeft + clientWidth >= scrollWidth - 10) {
-          carouselRef.current.scrollTo({ left: 0, behavior: "smooth" });
-        } else {
-          carouselRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-        }
-      }
-    }, 3000);
-    return () => clearInterval(autoScrollInterval);
-  }, []);
 
   const visibleProducts = products.filter((p) => p.category === "ΠΡΩΙΝΟ" && !isMorning ? false : true);
   const hasRecommended = visibleProducts.some((p) => p.is_recommended);
@@ -460,7 +443,7 @@ export default function Menu() {
   const progressPercent = Math.min((currentCartTotal / activeThreshold) * 100, 100);
   const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
 
-  // Δυναμικός υπολογισμός ύψους για την καρφιτσωμένη μπάρα κατηγοριών
+  // Δυναμικός υπολογισμός ύψους για να μην αφήνει κενό αν λείπει η μπάρα!
   const categoryNavTopClass = !canOrder 
     ? "top-[76px]" 
     : (!isAcceptingOrders ? "top-[172px]" : "top-[136px]");
@@ -779,34 +762,32 @@ export default function Menu() {
                   <h2 className={`font-black italic text-2xl mb-4 tracking-tighter pl-1 ${isDark ? "text-gray-100" : "text-gray-800"}`}>
                     {getCategoryDisplayName(cat)}
                   </h2>
+                  
+                  {/* ΕΔΩ ΕΙΝΑΙ ΤΑ INSTAGRAM STORIES */}
                   {cat === "ΠΡΟΤΕΙΝΟΜΕΝΑ" ? (
-                    <div ref={carouselRef} className="flex overflow-x-auto gap-4 pb-4 -mx-4 px-4 snap-x snap-mandatory no-scrollbar">
+                    <div className="flex overflow-x-auto gap-4 pb-6 pt-2 -mx-4 px-4 no-scrollbar">
                       {sectionProducts.map((p) => {
                         const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
-                        const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
                         return (
-                          <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all ${p.is_available ? "cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
-                            <div className={`h-44 w-full relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
-                              <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
-                              <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
-                                ⭐ {t.rec}
+                          <div 
+                            key={p.id} 
+                            onClick={() => p.is_available && handleProductClick(p)} 
+                            className={`flex flex-col items-center gap-2 cursor-pointer shrink-0 w-[84px] transition-transform active:scale-95 ${!p.is_available ? "opacity-50 grayscale" : ""}`}
+                          >
+                            <div className="relative w-[84px] h-[84px] rounded-full p-[3px] bg-gradient-to-tr from-yellow-400 via-orange-500 to-pink-500 shadow-md">
+                              <div className={`w-full h-full rounded-full border-[3px] overflow-hidden ${isDark ? "border-gray-900" : "border-gray-50"}`}>
+                                <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
                               </div>
+                              {/* Κουμπάκι Προσθήκης σαν notification badge */}
+                              {canOrder && p.is_available && (
+                                <div className="absolute bottom-0 right-0 w-6 h-6 rounded-full border-2 flex items-center justify-center text-white font-black text-sm shadow-md" style={{ backgroundColor: themeColor, borderColor: isDark ? '#111827' : '#f9fafb' }}>
+                                  +
+                                </div>
+                              )}
                             </div>
-                            
-                            <div className="p-4 flex flex-col flex-1 justify-between">
-                              <div>
-                                <h3 className={`font-black text-[14px] uppercase leading-tight line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                                {dispDesc && <p className="text-[10px] text-gray-500 mt-1.5 leading-relaxed line-clamp-2 font-medium">{dispDesc}</p>}
-                                {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-2 uppercase">{t.hasOptions}</p>}
-                              </div>
-                              <div className="flex justify-between items-center mt-4">
-                                <p className="font-black text-xl" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>
-                                {!p.is_available ? (
-                                  <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
-                                ) : canOrder ? (
-                                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-black shadow-md transition-transform active:scale-95" style={{ backgroundColor: themeColor }}>+</div>
-                                ) : null}
-                              </div>
+                            <div className="text-center w-full">
+                               <h3 className={`font-black text-[10px] uppercase leading-tight line-clamp-2 px-1 ${isDark ? "text-gray-100" : "text-gray-800"}`}>{dispName}</h3>
+                               <p className="font-bold text-[10px] mt-0.5" style={{ color: themeColor }}>{p.price.toFixed(2)}€</p>
                             </div>
                           </div>
                         );
@@ -831,23 +812,28 @@ export default function Menu() {
         setCurrentProductNote={setCurrentProductNote} confirmAddons={confirmAddons} canOrder={canOrder}
       />
 
-      {/* COMPACT FLOATING CART (ΚΥΛΙΝΔΡΟΣ / CAPSULE) */}
+      {/* ΝΕΟ ΞΕΚΑΘΑΡΟ FLOATING CART */}
       {canOrder && cart.length > 0 && !isCartOpen && !activeProduct && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <button 
             onClick={() => setIsCartOpen(true)} 
-            className={`flex items-center gap-2.5 text-white py-2.5 pl-3 pr-2.5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.3)] transition-all duration-300 border border-white/20 ${cartBounce ? "scale-110 shadow-blue-500/50" : "hover:scale-105 active:scale-95"}`} 
+            className={`flex items-center gap-3 text-white py-2.5 pl-3 pr-4 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.3)] transition-all duration-300 border border-white/20 ${cartBounce ? "scale-110 shadow-blue-500/50" : "hover:scale-105 active:scale-95"}`} 
             style={{ backgroundColor: themeColor }}
           >
-            <div className="bg-white text-black w-7 h-7 rounded-full flex items-center justify-center font-black text-[13px] shadow-sm">
+            {/* Κυκλάκι με τον αριθμό των αντικειμένων */}
+            <div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-sm shrink-0">
               {totalItemsCount}
             </div>
-            <span className="font-black text-[15px] whitespace-nowrap pl-0.5">{currentCartTotal.toFixed(2)}€</span>
+            
+            {/* Συνολική Τιμή */}
+            <span className="font-black text-base whitespace-nowrap">{currentCartTotal.toFixed(2)}€</span>
+            
+            {/* Εικονίδιο Καροτσιού & Λέξη */}
             <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-full ml-1 backdrop-blur-sm">
               <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                 <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zm-1.45-5c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45z"/>
               </svg>
-              <span className="text-[10px] font-bold tracking-wider uppercase">{cartWord}</span>
+              <span className="text-[10px] font-black tracking-widest uppercase">{cartWord}</span>
             </div>
           </button>
         </div>
