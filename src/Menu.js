@@ -134,6 +134,7 @@ export default function Menu() {
   };
   
   const t = DICT[lang];
+  const cartWord = lang === "gr" ? "ΚΑΛΑΘΙ" : lang === "tr" ? "SEPET" : "CART";
   
   const [custId] = useState(() => {
     let id = localStorage.getItem("loyalty_id");
@@ -459,6 +460,11 @@ export default function Menu() {
   const progressPercent = Math.min((currentCartTotal / activeThreshold) * 100, 100);
   const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
 
+  // Δυναμικός υπολογισμός ύψους για την καρφιτσωμένη μπάρα κατηγοριών
+  const categoryNavTopClass = !canOrder 
+    ? "top-[76px]" 
+    : (!isAcceptingOrders ? "top-[172px]" : "top-[136px]");
+
   const proceedToGeofencing = () => {
     if (!store?.lat || !store?.lng) {
       sendOrder();
@@ -569,7 +575,6 @@ export default function Menu() {
     return addonTexts.length > 0 ? `${baseName} (${addonTexts.join(" | ")})` : baseName;
   };
 
-  // ΕΝΙΑΙΑ ΣΥΝΑΡΤΗΣΗ ΣΧΕΔΙΑΣΜΟΥ ΠΡΟΪΟΝΤΩΝ
   const renderProductCard = (p) => {
     const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
     const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
@@ -742,7 +747,7 @@ export default function Menu() {
         )}
 
         {!searchQuery && (
-          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders && canOrder ? "top-[172px]" : "top-[136px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
+          <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${categoryNavTopClass} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (
               <button 
                 key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} 
@@ -831,14 +836,19 @@ export default function Menu() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <button 
             onClick={() => setIsCartOpen(true)} 
-            className={`flex items-center gap-3 text-white py-3 px-6 rounded-[2rem] shadow-2xl transition-all duration-300 ${cartBounce ? "scale-110 shadow-blue-500/50" : "hover:scale-105 active:scale-95"}`} 
+            className={`flex items-center gap-2.5 text-white py-2.5 pl-3 pr-2.5 rounded-[2rem] shadow-[0_10px_40px_rgba(0,0,0,0.3)] transition-all duration-300 border border-white/20 ${cartBounce ? "scale-110 shadow-blue-500/50" : "hover:scale-105 active:scale-95"}`} 
             style={{ backgroundColor: themeColor }}
           >
-            <div className="bg-white text-black w-6 h-6 rounded-full flex items-center justify-center font-black text-xs shadow-sm">
+            <div className="bg-white text-black w-7 h-7 rounded-full flex items-center justify-center font-black text-[13px] shadow-sm">
               {totalItemsCount}
             </div>
-            <span className="font-black text-base whitespace-nowrap">{currentCartTotal.toFixed(2)}€</span>
-            <span className="text-lg">🛒</span>
+            <span className="font-black text-[15px] whitespace-nowrap pl-0.5">{currentCartTotal.toFixed(2)}€</span>
+            <div className="flex items-center gap-1.5 bg-black/20 px-3 py-1.5 rounded-full ml-1 backdrop-blur-sm">
+              <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zm10 0c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2zm-1.45-5c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.37-.66-.11-1.48-.87-1.48H5.21l-.94-2H1v2h2l3.6 7.59-1.35 2.44C4.52 15.37 5.48 17 7 17h12v-2H7l1.1-2h7.45z"/>
+              </svg>
+              <span className="text-[10px] font-bold tracking-wider uppercase">{cartWord}</span>
+            </div>
           </button>
         </div>
       )}
