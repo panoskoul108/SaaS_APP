@@ -14,7 +14,6 @@ const CATEGORY_ORDER_FALLBACK = [
   "ΣΥΝΟΔΕΥΤΙΚΑ", "ΣΑΛΑΤΕΣ", "ΖΥΜΑΡΙΚΑ", "ΠΙΤΣΕΣ", "ΑΛΜΥΡΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΕΣ ΚΡΕΠΕΣ", "ΓΛΥΚΑ", "ΠΟΤΑ"
 ];
 
-// ΑΥΤΟΜΑΤΗ ΜΕΤΑΦΡΑΣΗ ΚΑΤΗΓΟΡΙΩΝ!
 const CATEGORY_TRANSLATIONS = {
   "ΠΡΟΤΕΙΝΟΜΕΝΑ": { en: "RECOMMENDED", tr: "ÖNERİLENLER" },
   "ΚΑΦΕΔΕΣ": { en: "COFFEES", tr: "KAHVELER" },
@@ -113,6 +112,14 @@ export default function Menu() {
   const urlTable = new URLSearchParams(window.location.search).get("table");
   const [tableNum, setTableNum] = useState(urlTable === "null" ? null : urlTable);
   
+  // STATE ΓΙΑ GRID / LIST VIEW
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("view_mode") || "list");
+  const toggleViewMode = () => {
+    const newMode = viewMode === "list" ? "grid" : "list";
+    setViewMode(newMode);
+    localStorage.setItem("view_mode", newMode);
+  };
+
   const [lang, setLang] = useState(() => {
     const browserLang = navigator.language || navigator.userLanguage || "el";
     if (browserLang.toLowerCase().startsWith("el")) return "gr";
@@ -441,10 +448,16 @@ export default function Menu() {
     if (newCart.length === 0) setIsCartOpen(false);
   };
 
+  const canOrder = store?.enable_ordering !== false;
+  const canCallWaiter = store?.enable_call_waiter !== false;
+  const themeColor = store?.theme_color || "#2563EB";
+  const tablesList = store?.tables || DEFAULT_TABLES;
+
   const activeThreshold = store?.reward_threshold || REWARD_THRESHOLD;
   const currentCartTotal = cart.reduce((s, i) => s + i.price * (i.quantity || 1), 0);
   const isRewardOrder = currentCartTotal >= activeThreshold;
   const progressPercent = Math.min((currentCartTotal / activeThreshold) * 100, 100);
+  const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
 
   const proceedToGeofencing = () => {
     if (!store?.lat || !store?.lng) {
@@ -556,60 +569,96 @@ export default function Menu() {
     return addonTexts.length > 0 ? `${baseName} (${addonTexts.join(" | ")})` : baseName;
   };
 
+  // ΕΝΙΑΙΑ ΣΥΝΑΡΤΗΣΗ ΣΧΕΔΙΑΣΜΟΥ ΠΡΟΪΟΝΤΩΝ
+  const renderProductCard = (p) => {
+    const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
+    const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
+    
+    if (viewMode === "grid") {
+      return (
+        <div 
+          key={p.id} 
+          onClick={() => p.is_available && handleProductClick(p)} 
+          className={`flex flex-col rounded-[1.25rem] shadow-sm border overflow-hidden transition-all ${p.is_available ? "cursor-pointer hover:shadow-md active:scale-95" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
+        >
+          <div className={`w-full h-32 relative shrink-0 ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
+            <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
+          </div>
+          
+          <div className="p-3 flex flex-col flex-1 justify-between">
+            <div>
+              <h3 className={`font-black text-xs leading-tight uppercase line-clamp-2 ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
+              {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+            </div>
+            <div className="flex justify-between items-center mt-3">
+              <span className="font-black text-sm" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
+              {!p.is_available ? (
+                <span className="text-[9px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
+              ) : canOrder ? (
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white font-black text-sm shadow-md" style={{ backgroundColor: themeColor }}>+</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div 
+        key={p.id} 
+        onClick={() => p.is_available && handleProductClick(p)} 
+        className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${p.is_available ? "cursor-pointer hover:shadow-md active:scale-[0.98]" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
+      >
+        <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
+          <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
+        </div>
+        
+        <div className="flex-1 flex flex-col justify-between py-1">
+          <div>
+            <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
+            {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
+            {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
+          </div>
+          <div className="flex justify-between items-center mt-2">
+            <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
+            {!p.is_available ? (
+              <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
+            ) : canOrder ? (
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   if (lastOrderId && lastOrderId !== "null") {
     return (
       <OrderStatus 
-        orderId={lastOrderId} 
-        lang={lang} 
-        products={products} 
-        theme={theme} 
+        orderId={lastOrderId} lang={lang} products={products} theme={theme} 
         onBack={(clearTable) => { 
           setLastOrderId(null); 
           localStorage.removeItem("lastOrderId"); 
-          if (clearTable) { 
-            setTableNum(null); 
-            if (window.history.replaceState) {
-              window.history.replaceState({}, document.title, window.location.pathname); 
-            }
-          } 
+          if (clearTable) { setTableNum(null); if (window.history.replaceState) window.history.replaceState({}, document.title, window.location.pathname); } 
         }} 
       />
     );
   }
 
-  const canOrder = store?.enable_ordering !== false;
-  const canCallWaiter = store?.enable_call_waiter !== false;
-
-  const totalItemsCount = cart.reduce((s, i) => s + (i.quantity || 1), 0);
-  const themeColor = store?.theme_color || "#2563EB";
-  const tablesList = store?.tables || DEFAULT_TABLES;
-
   const filteredProducts = searchQuery ? visibleProducts.filter((p) => {
     const searchNorm = normalizeForSearch(searchQuery);
-    const matchGr = normalizeForSearch(p.name).includes(searchNorm);
-    const matchEn = p.name_en ? normalizeForSearch(p.name_en).includes(searchNorm) : false;
-    return matchGr || matchEn;
+    return normalizeForSearch(p.name).includes(searchNorm) || (p.name_en && normalizeForSearch(p.name_en).includes(searchNorm));
   }) : [];
 
   return (
     <div className={`min-h-screen flex flex-col pb-32 font-sans relative ${isDark ? "bg-gray-900 text-gray-100" : "bg-gray-50 text-gray-900"}`}>
       
       <div className="sticky top-0 z-50 flex flex-col w-full">
-        {/* HEADER */}
         <CustomerHeader 
-          storeLogo={store?.logo_url}
-          storeName={store?.name}
-          tableNum={tableNum}
-          isDark={isDark}
-          toggleTheme={toggleTheme}
-          lang={lang}
-          toggleLanguage={cycleLanguage}
-          storeThemeColor={themeColor}
-          t={t}
-          canOrder={canOrder}
-          setIsHistoryOpen={setIsHistoryOpen}
+          storeLogo={store?.logo_url} storeName={store?.name} tableNum={tableNum} isDark={isDark} 
+          toggleTheme={toggleTheme} lang={lang} toggleLanguage={cycleLanguage} storeThemeColor={themeColor} 
+          t={t} canOrder={canOrder} setIsHistoryOpen={setIsHistoryOpen}
         />
-
         {!isAcceptingOrders && canOrder && (
           <div className="w-full bg-red-500 text-white p-2 text-center font-black text-[10px] uppercase tracking-widest shadow-md">
             ⚠️ {t.pausedBanner}
@@ -637,11 +686,7 @@ export default function Menu() {
             <p className="text-gray-400 text-xs font-bold mb-4 uppercase w-full max-w-md">ΕΠΙΛΟΓΗ ΤΡΑΠΕΖΙΟΥ / ΠΑΚΕΤΟ:</p>
             <div className="grid grid-cols-4 gap-3 w-full max-w-md pb-20">
               {tablesList.map((table) => (
-                <button 
-                  key={table} 
-                  onClick={() => { setTableNum(table); setShowTablePicker(false); }} 
-                  className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform"
-                >
+                <button key={table} onClick={() => { setTableNum(table); setShowTablePicker(false); }} className="bg-gray-800 text-white py-5 rounded-2xl font-black text-sm hover:bg-gray-700 active:scale-95 transition-transform">
                   {table}
                 </button>
               ))}
@@ -675,18 +720,24 @@ export default function Menu() {
         )}
 
         {!backupMode && (
-          <div className={`px-4 py-2 relative z-20 transition-all ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
-            <div className="relative">
+          <div className={`px-4 py-2 relative z-20 transition-all flex gap-2 ${isDark ? "bg-gray-900" : "bg-gray-50"}`}>
+            <div className="relative flex-1">
               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
               <input 
                 type="text" 
                 placeholder={t.search} 
                 value={searchQuery} 
                 onChange={(e) => setSearchQuery(e.target.value)} 
-                className={`w-full border rounded-2xl pl-12 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} 
+                className={`w-full border rounded-2xl pl-11 pr-4 py-3 text-sm font-bold shadow-sm focus:outline-none focus:ring-2 transition-all ${isDark ? "bg-gray-800 border-gray-700 text-white" : "bg-white border-gray-200 text-gray-900"}`} 
                 style={{ focusRingColor: themeColor }} 
               />
             </div>
+            <button 
+              onClick={toggleViewMode} 
+              className={`w-12 h-[46px] rounded-2xl flex items-center justify-center text-xl shadow-sm border transition-all active:scale-95 ${isDark ? 'bg-gray-800 border-gray-700 text-gray-300' : 'bg-white border-gray-200 text-gray-600'}`}
+            >
+              {viewMode === "list" ? "🔲" : "📄"}
+            </button>
           </div>
         )}
 
@@ -694,9 +745,7 @@ export default function Menu() {
           <div ref={categoryNavRef} className={`flex overflow-x-auto py-3 px-4 gap-3 backdrop-blur-md sticky z-20 no-scrollbar border-b transition-all ${!isAcceptingOrders && canOrder ? "top-[172px]" : "top-[136px]"} ${isDark ? "bg-gray-900/90 border-gray-800" : "bg-gray-50/90 border-gray-200/50"}`}>
             {baseCategories.map((cat) => (
               <button 
-                key={cat} 
-                id={`btn-cat-${cat}`} 
-                onClick={() => scrollToCategory(cat)} 
+                key={cat} id={`btn-cat-${cat}`} onClick={() => scrollToCategory(cat)} 
                 className={`px-5 py-2.5 rounded-2xl text-[11px] font-black uppercase tracking-wide transition-all whitespace-nowrap shadow-sm ${selectedCategory !== cat ? isDark ? "bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700" : "bg-white text-gray-600 border border-gray-200/50 hover:bg-gray-100" : "scale-105"}`} 
                 style={selectedCategory === cat ? { backgroundColor: themeColor, color: "#ffffff" } : {}}
               >
@@ -708,41 +757,11 @@ export default function Menu() {
 
         <div className="p-4 space-y-8 animate-fade-in">
           {searchQuery ? (
-            <div className="space-y-3">
+            <div className={viewMode === "grid" ? "grid grid-cols-2 gap-3" : "space-y-3"}>
               {filteredProducts.length === 0 ? (
-                <p className="text-center text-gray-400 font-bold uppercase mt-10">{t.noResults}</p>
+                <p className="text-center text-gray-400 font-bold uppercase mt-10 col-span-full">{t.noResults}</p>
               ) : (
-                filteredProducts.map((p) => {
-                  const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
-                  const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
-                  return (
-                    <div 
-                      key={p.id} 
-                      onClick={() => p.is_available && handleProductClick(p)} 
-                      className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
-                    >
-                      <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
-                        <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
-                      </div>
-                      
-                      <div className="flex-1 flex flex-col justify-between py-1">
-                        <div>
-                          <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                          {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                          {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
-                        </div>
-                        <div className="flex justify-between items-center mt-2">
-                          <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
-                          {!p.is_available ? (
-                            <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
-                          ) : canOrder ? (
-                            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
+                filteredProducts.map(renderProductCard)
               )}
             </div>
           ) : (
@@ -761,11 +780,7 @@ export default function Menu() {
                         const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
                         const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
                         return (
-                          <div 
-                            key={p.id} 
-                            onClick={() => p.is_available && handleProductClick(p)} 
-                            className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all ${p.is_available ? "cursor-pointer hover:shadow-lg hover:-translate-y-1" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}
-                          >
+                          <div key={p.id} onClick={() => p.is_available && handleProductClick(p)} className={`min-w-[240px] max-w-[260px] snap-center shrink-0 rounded-3xl shadow-sm border overflow-hidden flex flex-col transition-all ${p.is_available ? "cursor-pointer hover:shadow-lg hover:-translate-y-1 active:scale-[0.98]" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100"}`}>
                             <div className={`h-44 w-full relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
                               <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
                               <div className="absolute top-3 left-3 bg-yellow-400 text-yellow-900 text-[9px] font-black px-2 py-1.5 rounded-lg shadow-sm uppercase tracking-widest">
@@ -793,38 +808,8 @@ export default function Menu() {
                       })}
                     </div>
                   ) : (
-                    <div className="space-y-3">
-                      {sectionProducts.map((p) => {
-                        const dispName = lang === "tr" && p.name_tr ? p.name_tr : (lang === "en" && p.name_en ? p.name_en : p.name);
-                        const dispDesc = lang === "tr" && p.description_tr ? p.description_tr : (lang === "en" && p.description_en ? p.description_en : p.description);
-                        return (
-                          <div 
-                            key={p.id} 
-                            onClick={() => p.is_available && handleProductClick(p)} 
-                            className={`flex rounded-2xl shadow-sm border p-3 gap-4 transition-all ${p.is_available ? "cursor-pointer hover:shadow-md" : ""} ${!p.is_available ? "opacity-50 grayscale" : ""} ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}
-                          >
-                            <div className={`w-24 h-24 rounded-xl shrink-0 shadow-inner overflow-hidden relative ${isDark ? "bg-gray-700" : "bg-gray-200"}`}>
-                              <img src={getSmartImage(p)} alt={dispName} loading="lazy" className="w-full h-full object-cover" />
-                            </div>
-                            
-                            <div className="flex-1 flex flex-col justify-between py-1">
-                              <div>
-                                <h3 className={`font-black text-sm leading-tight uppercase ${isDark ? "text-white" : "text-gray-900"}`}>{dispName}</h3>
-                                {dispDesc && <p className="text-[10px] text-gray-500 mt-1 leading-snug line-clamp-2 font-medium">{dispDesc}</p>}
-                                {canOrder && p.addons && p.addons.length > 0 && <p className="text-[9px] font-bold text-gray-400 mt-1 uppercase">{t.hasOptions}</p>}
-                              </div>
-                              <div className="flex justify-between items-center mt-2">
-                                <span className="font-black text-lg" style={{ color: themeColor }}>{p.price.toFixed(2)}€</span>
-                                {!p.is_available ? (
-                                  <span className="text-[10px] font-bold text-red-500 uppercase">{t.outOfStock}</span>
-                                ) : canOrder ? (
-                                  <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-black text-lg shadow-md" style={{ backgroundColor: themeColor }}>+</div>
-                                ) : null}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                    <div className={viewMode === "grid" ? "grid grid-cols-2 gap-3" : "space-y-3"}>
+                      {sectionProducts.map(renderProductCard)}
                     </div>
                   )}
                 </div>
@@ -835,70 +820,39 @@ export default function Menu() {
       </main>
 
       <ProductModal 
-        theme={theme} 
-        activeProduct={activeProduct} 
-        lang={lang} 
-        t={t} 
-        editingCartId={editingCartId} 
-        closeProductModal={closeProductModal} 
-        addonSelections={addonSelections} 
-        toggleAddon={toggleAddon} 
-        themeColor={themeColor} 
-        quantity={quantity} 
-        setQuantity={setQuantity} 
-        currentProductNote={currentProductNote} 
-        setCurrentProductNote={setCurrentProductNote} 
-        confirmAddons={confirmAddons} 
-        canOrder={canOrder}
+        theme={theme} activeProduct={activeProduct} lang={lang} t={t} editingCartId={editingCartId} 
+        closeProductModal={closeProductModal} addonSelections={addonSelections} toggleAddon={toggleAddon} 
+        themeColor={themeColor} quantity={quantity} setQuantity={setQuantity} currentProductNote={currentProductNote} 
+        setCurrentProductNote={setCurrentProductNote} confirmAddons={confirmAddons} canOrder={canOrder}
       />
 
+      {/* COMPACT FLOATING CART (ΚΥΛΙΝΔΡΟΣ / CAPSULE) */}
       {canOrder && cart.length > 0 && !isCartOpen && !activeProduct && (
-        <div className={`fixed bottom-0 left-0 right-0 p-4 backdrop-blur-sm z-40 ${isDark ? "bg-gradient-to-t from-gray-900/90 via-gray-900/80 to-transparent" : "bg-gradient-to-t from-white/90 via-white/80 to-transparent"}`}>
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40">
           <button 
             onClick={() => setIsCartOpen(true)} 
-            className={`w-full max-w-5xl mx-auto text-white py-4 px-6 rounded-[2rem] shadow-2xl flex justify-between items-center transition-all duration-300 ${cartBounce ? "scale-105 shadow-blue-500/50" : "hover:scale-[1.02]"}`} 
+            className={`flex items-center gap-3 text-white py-3 px-6 rounded-[2rem] shadow-2xl transition-all duration-300 ${cartBounce ? "scale-110 shadow-blue-500/50" : "hover:scale-105 active:scale-95"}`} 
             style={{ backgroundColor: themeColor }}
           >
-            <div className="flex items-center gap-3">
-              <div className="bg-white text-black w-8 h-8 rounded-full flex items-center justify-center font-black text-sm shadow-inner">
-                {totalItemsCount}
-              </div>
-              <span className="font-black uppercase text-xs tracking-widest">{t.viewCart}</span>
+            <div className="bg-white text-black w-6 h-6 rounded-full flex items-center justify-center font-black text-xs shadow-sm">
+              {totalItemsCount}
             </div>
-            <span className="font-black text-lg">{currentCartTotal.toFixed(2)}€</span>
+            <span className="font-black text-base whitespace-nowrap">{currentCartTotal.toFixed(2)}€</span>
+            <span className="text-lg">🛒</span>
           </button>
         </div>
       )}
 
       {canOrder && (
         <CartModal 
-          theme={theme} 
-          isCartOpen={isCartOpen} 
-          setIsCartOpen={setIsCartOpen} 
-          cart={cart} 
-          updateCartItemQuantity={updateCartItemQuantity} 
-          handleEditCartItem={handleEditCartItem} 
-          removeFromCart={removeFromCart} 
-          getItemDisplayName={getItemDisplayName} 
-          themeColor={themeColor} 
-          t={t} 
-          lang={lang} 
-          products={products} 
-          handleProductClick={(p) => {
-            setIsCartOpen(false);
-            handleProductClick(p);
-          }}
-          getSmartImage={getSmartImage} 
-          generalNote={generalNote} 
-          setGeneralNote={setGeneralNote} 
-          paymentMethod={paymentMethod} 
-          setPaymentMethod={setPaymentMethod} 
-          isAcceptingOrders={isAcceptingOrders} 
-          tableNum={tableNum} 
-          handleSendOrderClick={proceedToGeofencing} 
-          isLocating={isLocating} 
-          openPrivacy={() => setShowPrivacyModal(true)} 
-          currentCartTotal={currentCartTotal} 
+          theme={theme} isCartOpen={isCartOpen} setIsCartOpen={setIsCartOpen} cart={cart} 
+          updateCartItemQuantity={updateCartItemQuantity} handleEditCartItem={handleEditCartItem} 
+          removeFromCart={removeFromCart} getItemDisplayName={getItemDisplayName} themeColor={themeColor} 
+          t={t} lang={lang} products={products} handleProductClick={(p) => { setIsCartOpen(false); handleProductClick(p); }}
+          getSmartImage={getSmartImage} generalNote={generalNote} setGeneralNote={setGeneralNote} 
+          paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} isAcceptingOrders={isAcceptingOrders} 
+          tableNum={tableNum} handleSendOrderClick={proceedToGeofencing} isLocating={isLocating} 
+          openPrivacy={() => setShowPrivacyModal(true)} currentCartTotal={currentCartTotal} 
         />
       )}
 
@@ -906,7 +860,7 @@ export default function Menu() {
         <>
           <button
             onClick={() => setShowBellMenu(true)}
-            className={`fixed ${canOrder && cart.length > 0 ? "bottom-24" : "bottom-6"} right-6 w-16 h-16 bg-white border-2 border-gray-200 text-3xl rounded-full shadow-2xl flex items-center justify-center z-40 transition-transform hover:scale-105 active:scale-95`}
+            className={`fixed bottom-6 right-6 w-14 h-14 bg-white border-2 border-gray-200 text-2xl rounded-full shadow-2xl flex items-center justify-center z-40 transition-transform hover:scale-105 active:scale-95`}
           >
             🛎️
           </button>
@@ -916,24 +870,13 @@ export default function Menu() {
               <div className={`w-full max-w-md p-6 rounded-t-[2.5rem] shadow-2xl flex flex-col gap-3 transform transition-transform translate-y-0 ${isDark ? "bg-gray-900 border-t border-gray-800" : "bg-white"}`} onClick={(e) => e.stopPropagation()}>
                 <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4"></div>
                 <h3 className={`text-center font-black uppercase tracking-widest text-sm mb-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}>{t.bellCall}</h3>
-                
-                <button onClick={() => sendBellRequest(t.bellOrder)} className={`py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>
-                  {t.bellOrder}
-                </button>
+                <button onClick={() => sendBellRequest(t.bellOrder)} className={`py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>{t.bellOrder}</button>
                 <div className="flex gap-3">
-                  <button onClick={() => sendBellRequest(t.bellCard)} className={`flex-1 py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>
-                    {t.bellCard}
-                  </button>
-                  <button onClick={() => sendBellRequest(t.bellCash)} className={`flex-1 py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>
-                    {t.bellCash}
-                  </button>
+                  <button onClick={() => sendBellRequest(t.bellCard)} className={`flex-1 py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>{t.bellCard}</button>
+                  <button onClick={() => sendBellRequest(t.bellCash)} className={`flex-1 py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>{t.bellCash}</button>
                 </div>
-                <button onClick={() => sendBellRequest(t.bellClean)} className={`py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>
-                  {t.bellClean}
-                </button>
-                <button onClick={() => setShowBellMenu(false)} className="mt-2 py-4 text-red-500 font-black uppercase text-sm">
-                  ΑΚΥΡΟ
-                </button>
+                <button onClick={() => sendBellRequest(t.bellClean)} className={`py-4 rounded-2xl font-black text-sm uppercase shadow-sm border ${isDark ? "bg-gray-800 text-white border-gray-700" : "bg-gray-50 text-gray-900 border-gray-200"}`}>{t.bellClean}</button>
+                <button onClick={() => setShowBellMenu(false)} className="mt-2 py-4 text-red-500 font-black uppercase text-sm">ΑΚΥΡΟ</button>
               </div>
             </div>
           )}
@@ -949,13 +892,7 @@ export default function Menu() {
                <p>🛡️ <b>Δεδομένα:</b> Η διεύθυνση IP και οι συντεταγμένες καταγράφονται προσωρινά για την αποφυγή κακόβουλων παραγγελιών.</p>
                <p>🔒 <b>Προστασία:</b> Τα στοιχεία αυτά δεν κοινοποιούνται σε τρίτους και χρησιμοποιούνται αποκλειστικά για την ασφάλεια των συναλλαγών βάσει GDPR.</p>
              </div>
-             <button 
-               onClick={() => setShowPrivacyModal(false)} 
-               className="mt-6 w-full py-3 text-white rounded-xl font-black uppercase text-sm" 
-               style={{ backgroundColor: themeColor }}
-             >
-               ΚΛΕΙΣΙΜΟ
-             </button>
+             <button onClick={() => setShowPrivacyModal(false)} className="mt-6 w-full py-3 text-white rounded-xl font-black uppercase text-sm" style={{ backgroundColor: themeColor }}>ΚΛΕΙΣΙΜΟ</button>
           </div>
         </div>
       )}
@@ -973,12 +910,8 @@ export default function Menu() {
               orderHistory.map((order) => (
                 <div key={order.id} className={`p-5 rounded-3xl shadow-sm border ${isDark ? "bg-gray-800 border-gray-700" : "bg-white border-gray-100/50"}`}>
                   <div className={`flex justify-between items-center mb-3 border-b pb-3 ${isDark ? "border-gray-700" : "border-gray-100"}`}>
-                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                      {new Date(order.date).toLocaleString("el-GR")}
-                    </span>
-                    <span className="font-black text-lg" style={{ color: themeColor }}>
-                      {order.total.toFixed(2)}€
-                    </span>
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{new Date(order.date).toLocaleString("el-GR")}</span>
+                    <span className="font-black text-lg" style={{ color: themeColor }}>{order.total.toFixed(2)}€</span>
                   </div>
                   <ul className="mb-4 space-y-1">
                     {order.items.map((it, i) => (
@@ -989,13 +922,7 @@ export default function Menu() {
                       </li>
                     ))}
                   </ul>
-                  <button 
-                    onClick={() => handleReorder(order)} 
-                    className="w-full text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-colors opacity-90 hover:opacity-100 active:scale-95" 
-                    style={{ backgroundColor: themeColor }}
-                  >
-                    {t.reorder}
-                  </button>
+                  <button onClick={() => handleReorder(order)} className="w-full text-white py-3 rounded-xl font-black uppercase text-xs tracking-widest transition-colors opacity-90 hover:opacity-100 active:scale-95" style={{ backgroundColor: themeColor }}>{t.reorder}</button>
                 </div>
               ))
             )}
