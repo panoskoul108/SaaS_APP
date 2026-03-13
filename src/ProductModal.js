@@ -14,13 +14,14 @@ export default function ProductModal({
   setQuantity,
   currentProductNote,
   setCurrentProductNote,
-  confirmAddons
+  confirmAddons,
+  canOrder // Προσθέσαμε αυτό το prop!
 }) {
   if (!activeProduct) return null;
 
   const isDark = theme === "dark";
   
-  // Έξυπνη επιλογή Γλώσσας για τον Τίτλο και την Περιγραφή (Ελλάδα, Αγγλία, Τουρκία)
+  // Έξυπνη επιλογή Γλώσσας για τον Τίτλο και την Περιγραφή
   const dispName = lang === "tr" && activeProduct.name_tr ? activeProduct.name_tr : (lang === "en" && activeProduct.name_en ? activeProduct.name_en : activeProduct.name);
   const dispDesc = lang === "tr" && activeProduct.description_tr ? activeProduct.description_tr : (lang === "en" && activeProduct.description_en ? activeProduct.description_en : activeProduct.description);
 
@@ -48,12 +49,12 @@ export default function ProductModal({
           <button onClick={closeProductModal} className="absolute top-4 right-4 w-10 h-10 bg-white/20 backdrop-blur-md rounded-full text-white flex items-center justify-center text-xl hover:bg-white/30 transition-colors">✕</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto pb-24 p-6 no-scrollbar">
+        <div className={`flex-1 overflow-y-auto p-6 no-scrollbar ${canOrder ? 'pb-24' : 'pb-6'}`}>
           <h2 className={`text-2xl font-black uppercase mb-2 leading-tight ${isDark ? 'text-white' : 'text-gray-900'}`}>{dispName}</h2>
           <p className="text-xl font-black mb-4" style={{ color: themeColor }}>{activeProduct.price.toFixed(2)}€</p>
           {dispDesc && <p className={`text-sm font-medium mb-6 leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>{dispDesc}</p>}
 
-          {(activeProduct.addons || []).map((group) => {
+          {canOrder && (activeProduct.addons || []).map((group) => {
             const groupName = lang === "tr" && group.name_tr ? group.name_tr : (lang === "en" && group.name_en ? group.name_en : group.name);
             const isReq = group.isRequired;
             const maxSel = group.maxSelections || 1;
@@ -101,38 +102,42 @@ export default function ProductModal({
             );
           })}
 
-          <div className="mt-8">
-            <h3 className={`font-black uppercase text-sm mb-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.note}</h3>
-            <textarea
-              className={`w-full border-2 p-4 rounded-2xl text-sm font-bold focus:outline-none transition-colors resize-none ${isDark ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
-              style={{ focusRingColor: themeColor }}
-              rows="2"
-              placeholder={t.itemNotePlaceholder}
-              value={currentProductNote}
-              onChange={(e) => setCurrentProductNote(e.target.value)}
-            />
-          </div>
+          {canOrder && (
+            <div className="mt-8">
+              <h3 className={`font-black uppercase text-sm mb-3 ${isDark ? 'text-gray-200' : 'text-gray-800'}`}>{t.note}</h3>
+              <textarea
+                className={`w-full border-2 p-4 rounded-2xl text-sm font-bold focus:outline-none transition-colors resize-none ${isDark ? 'bg-gray-800 border-gray-700 text-white focus:border-blue-500' : 'bg-gray-50 border-gray-200 text-gray-900 focus:border-blue-500'}`}
+                style={{ focusRingColor: themeColor }}
+                rows="2"
+                placeholder={t.itemNotePlaceholder}
+                value={currentProductNote}
+                onChange={(e) => setCurrentProductNote(e.target.value)}
+              />
+            </div>
+          )}
         </div>
 
-        {/* Footer (Ποσότητα & Προσθήκη) */}
-        <div className={`absolute bottom-0 left-0 right-0 p-4 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] bg-opacity-95 backdrop-blur-md ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
-          <div className="flex gap-4">
-            <div className={`flex items-center justify-between px-2 rounded-2xl border-2 w-32 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className={`w-10 h-10 text-xl font-black ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>−</button>
-              <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-black'}`}>{quantity}</span>
-              <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 text-xl font-black" style={{ color: themeColor }}>+</button>
+        {/* Footer (Ποσότητα & Προσθήκη) εμφανίζεται μόνο αν canOrder είναι true */}
+        {canOrder && (
+          <div className={`absolute bottom-0 left-0 right-0 p-4 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.05)] bg-opacity-95 backdrop-blur-md ${isDark ? 'bg-gray-900 border-gray-800' : 'bg-white border-gray-100'}`}>
+            <div className="flex gap-4">
+              <div className={`flex items-center justify-between px-2 rounded-2xl border-2 w-32 ${isDark ? 'border-gray-700 bg-gray-800' : 'border-gray-200 bg-gray-50'}`}>
+                <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className={`w-10 h-10 text-xl font-black ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>−</button>
+                <span className={`text-lg font-black ${isDark ? 'text-white' : 'text-black'}`}>{quantity}</span>
+                <button onClick={() => setQuantity(quantity + 1)} className="w-10 h-10 text-xl font-black" style={{ color: themeColor }}>+</button>
+              </div>
+              
+              <button 
+                onClick={confirmAddons}
+                className="flex-1 text-white rounded-2xl font-black uppercase text-sm shadow-xl flex items-center justify-between px-6 transition-transform active:scale-95"
+                style={{ backgroundColor: themeColor }}
+              >
+                <span>{editingCartId ? t.save : t.add}</span>
+                <span>{currentTotal.toFixed(2)}€</span>
+              </button>
             </div>
-            
-            <button 
-              onClick={confirmAddons}
-              className="flex-1 text-white rounded-2xl font-black uppercase text-sm shadow-xl flex items-center justify-between px-6 transition-transform active:scale-95"
-              style={{ backgroundColor: themeColor }}
-            >
-              <span>{editingCartId ? t.save : t.add}</span>
-              <span>{currentTotal.toFixed(2)}€</span>
-            </button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
