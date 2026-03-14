@@ -42,7 +42,7 @@ export default function LandingPage() {
         <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[400px] bg-blue-600/20 blur-[120px] rounded-full pointer-events-none"></div>
         <div className="max-w-4xl mx-auto text-center relative z-10">
           <div className="inline-block bg-blue-900/50 border border-blue-500/30 text-blue-400 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-6">
-            🚀 Ψηφιακος Μετασχηματισμος
+            💫 Η Απολυτη Εμπειρια Πελατη
           </div>
           <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight tracking-tighter">
             Ψηφιακή παραγγελιοληψία με QR <br/>
