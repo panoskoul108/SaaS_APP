@@ -343,3 +343,70 @@ export default function SuperAdmin() {
                    <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
                       <span className="text-xs font-bold text-gray-300">Κλήση Σερβιτόρου</span>
                       <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_call_waiter} onChange={(e) => setEditForm
+                      onChange={(e) => setEditForm({ ...editForm, reward_threshold: parseInt(e.target.value) })}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                  <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                    <span className="text-xs font-bold text-gray-300">Παραγγελιοληψία</span>
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 accent-blue-500 cursor-pointer"
+                      checked={editForm.enable_ordering}
+                      onChange={(e) => setEditForm({ ...editForm, enable_ordering: e.target.checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                    <span className="text-xs font-bold text-gray-300">Κλήση Σερβιτόρου</span>
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 accent-blue-500 cursor-pointer"
+                      checked={editForm.enable_call_waiter}
+                      onChange={(e) => setEditForm({ ...editForm, enable_call_waiter: e.target.checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
+                    <span className="text-xs font-bold text-gray-300">Ενεργό Κατάστημα</span>
+                    <input
+                      type="checkbox"
+                      className="w-5 h-5 accent-green-500 cursor-pointer"
+                      checked={editForm.is_active !== false}
+                      onChange={(e) => setEditForm({ ...editForm, is_active: e.target.checked })}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700 mt-2">
+                  <span className="text-xs font-bold text-gray-300">Backup Mode (Χειροκίνητη Επιλογή)</span>
+                  <input
+                    type="checkbox"
+                    className="w-5 h-5 accent-blue-500 cursor-pointer"
+                    checked={editForm.backup_mode}
+                    onChange={(e) => setEditForm({ ...editForm, backup_mode: e.target.checked })}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={saveStore}
+                  className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20"
+                >
+                  Αποθηκευση Πελατη
+                </button>
+                <button
+                  onClick={() => setIsEditing(false)}
+                  className="flex-1 bg-gray-700 text-white py-5 rounded-2xl font-black text-xs uppercase hover:bg-gray-600 transition-colors"
+                >
+                  Ακυρωση
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
