@@ -1,6 +1,6 @@
 {
-  "short_name": "Menu",
-  "name": "Digital Menu",
+  "short_name": "SmartMenu",
+  "name": "SmartMenu by SmartPOS",
   "icons": [
     {
       "src": "favicon.ico",
