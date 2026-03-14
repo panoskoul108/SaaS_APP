@@ -378,7 +378,7 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 md:grid-cols-3 gap-8 print:gap-4">
           {storeTables.map((t) => (
             <div key={t} className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-gray-300 rounded-3xl break-inside-avoid" style={{ pageBreakInside: "avoid" }}>
-              <h2 className="text-xl font-black mb-1 uppercase tracking-widest text-center">{storeName || "SMART POS"}</h2>
+              <h2 className="text-xl font-black mb-1 uppercase tracking-widest text-center">{storeName || "SMART MENU"}</h2>
               <div className="w-10 h-1 bg-black rounded-full mb-3"></div>
               <h3 className="text-2xl font-black mb-4 text-gray-800">ΤΡΑΠΕΖΙ {t}</h3>
               <img src={getQrUrl(t)} alt={`QR ${t}`} className="w-48 h-48 mb-4 shadow-sm rounded-xl" />
@@ -443,7 +443,7 @@ export default function Dashboard() {
               })}
             </div>
             <div className={`p-6 border-t ${isDark ? "border-gray-800" : "border-gray-100"}`}>
-               <p className="text-[10px] text-gray-500 text-center font-bold uppercase">Smart POS System v2.0</p>
+               <p className="text-[10px] text-gray-500 text-center font-bold uppercase">SmartMenu System v2.0</p>
             </div>
           </div>
         </div>
