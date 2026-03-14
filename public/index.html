@@ -5,27 +5,29 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0, viewport-fit=cover" />
     <meta name="theme-color" content="#111827" />
-    
+
+    <meta name="description" content="Ψηφιακή παραγγελιοληψία με QR για καφέ & εστιατόρια — χωρίς εγκατάσταση εφαρμογής." />
+
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Menu" />
-    
+
     <link id="dynamic-favicon" rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>" />
     <link id="dynamic-apple-icon" rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍽️</text></svg>" />
 
     <script>
       var manifestLink = document.createElement('link');
       manifestLink.rel = 'manifest';
-      
+
       if (window.location.search.includes('admin') || window.location.search.includes('boss')) {
         manifestLink.href = '%PUBLIC_URL%/manifest-admin.json?v=3';
       } else {
         manifestLink.href = '%PUBLIC_URL%/manifest.json?v=3';
       }
-      
+
       document.head.appendChild(manifestLink);
     </script>
-    
+
     <style>
       * {
         -webkit-tap-highlight-color: transparent;
@@ -62,21 +64,21 @@
       }
       @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(0.95); } }
-      
+
       @media (prefers-color-scheme: dark) {
         .splash-screen { background-color: #111827; }
         .spinner { border-color: #374151; border-top-color: #3b82f6; }
       }
     </style>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
 
-    <title id="dynamic-title">Φόρτωση...</title>
+    <title id="dynamic-title">SmartMenu by SmartPOS</title>
   </head>
 
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
-    
+
     <div id="root">
       <div class="splash-screen">
         <img id="splash-logo" class="splash-logo" alt="Loading..." />
@@ -95,11 +97,11 @@
 
           const urlParams = new URLSearchParams(window.location.search);
           const storeId = urlParams.get('store');
-          
+
           if (storeId && !window.location.search.includes('boss')) {
             const supabaseUrl = '%REACT_APP_SUPABASE_URL%';
             const anonKey = '%REACT_APP_SUPABASE_ANON_KEY%';
-            
+
             fetch(supabaseUrl + '/rest/v1/stores?id=eq.' + storeId + '&select=logo_url,name', {
               headers: {
                 'apikey': anonKey,
@@ -122,7 +124,8 @@
             })
             .catch(err => console.error('Splash error:', err));
           } else {
-            document.getElementById('dynamic-title').innerText = "Smart POS";
+            // Αλλαγή και εδώ για όταν δεν υπάρχει storeId
+            document.getElementById('dynamic-title').innerText = "SmartMenu by SmartPOS";
           }
         })();
       </script>
