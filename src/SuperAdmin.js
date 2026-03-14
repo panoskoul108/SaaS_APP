@@ -91,7 +91,7 @@ export default function SuperAdmin() {
 
       // 2. Έξυπνη διαχείριση των PINs
       const { data: existingPins } = await supabase.from("staff_pins").select("id, role").eq("store_id", currentStoreId);
-      
+
       const getPinId = (roleName) => {
         const found = existingPins?.find(p => p.role === roleName);
         return found ? found.id : undefined;
@@ -154,10 +154,11 @@ export default function SuperAdmin() {
     }
   };
 
+  // ΕΝΗΜΕΡΩΜΕΝΕΣ ΤΙΜΕΣ ΓΙΑ ΤΑ ΠΑΚΕΤΑ (Για τον υπολογισμό του MRR)
   const getTierInfo = (store) => {
-    if (store.has_premium_ai) return { name: "PREMIUM", price: 70, color: "bg-purple-500", text: "text-purple-900" };
-    if (store.enable_ordering !== false) return { name: "PRO", price: 40, color: "bg-blue-500", text: "text-blue-900" };
-    return { name: "BASIC", price: 20, color: "bg-gray-400", text: "text-gray-900" };
+    if (store.has_premium_ai) return { name: "PREMIUM", price: 55, color: "bg-purple-500", text: "text-purple-900" };
+    if (store.enable_ordering !== false) return { name: "PRO", price: 35, color: "bg-blue-500", text: "text-blue-900" };
+    return { name: "BASIC", price: 15, color: "bg-gray-400", text: "text-gray-900" };
   };
 
   const handleTierChange = (tier) => {
@@ -270,7 +271,7 @@ export default function SuperAdmin() {
           <div className="bg-gray-800 p-8 rounded-[3rem] max-w-2xl w-full border border-gray-700 shadow-2xl relative max-h-[90vh] overflow-y-auto no-scrollbar" onClick={(e) => e.stopPropagation()}>
             <button onClick={() => setIsEditing(false)} className="absolute top-6 right-6 text-gray-400 hover:text-white font-black text-2xl">✕</button>
             <h2 className="text-2xl font-black uppercase text-white mb-6 italic">{editForm.id ? "Επεξεργασια Πελατη" : "Νεος Πελατης"}</h2>
-            
+
             <div className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -279,10 +280,11 @@ export default function SuperAdmin() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Πακετο Συνδρομης</label>
+                  {/* ΕΝΗΜΕΡΩΜΕΝΑ ΟΝΟΜΑΤΑ ΚΑΙ ΤΙΜΕΣ ΣΤΟ DROPDOWN */}
                   <select className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500" value={getTierInfo(editForm).name} onChange={(e) => handleTierChange(e.target.value)}>
-                    <option value="BASIC">Basic (20€) - Μόνο Κατάλογος</option>
-                    <option value="PRO">Pro (40€) - Παραγγελιοληψία</option>
-                    <option value="PREMIUM">Premium (70€) - AI Manager</option>
+                    <option value="BASIC">Basic (15€) - Μόνο Κατάλογος</option>
+                    <option value="PRO">Pro (35€) - Παραγγελιοληψία</option>
+                    <option value="PREMIUM">Premium (55€) - AI Manager</option>
                   </select>
                 </div>
               </div>
@@ -321,7 +323,7 @@ export default function SuperAdmin() {
 
               <div className="bg-gray-900 p-5 rounded-3xl border border-gray-700 space-y-4">
                  <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-800 pb-2">Ρυθμισεις Λειτουργιας & Overrides</p>
-                 
+
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                    <div>
                      <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Τραπέζια (Κόμμα διαχωρισμός)</label>
@@ -340,36 +342,4 @@ export default function SuperAdmin() {
                    </div>
                    <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
                       <span className="text-xs font-bold text-gray-300">Κλήση Σερβιτόρου</span>
-                      <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_call_waiter} onChange={(e) => setEditForm({...editForm, enable_call_waiter: e.target.checked})} />
-                   </div>
-                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
-                      <span className="text-xs font-bold text-gray-300">Premium AI Manager</span>
-                      <input type="checkbox" className="w-5 h-5 accent-purple-500 cursor-pointer" checked={editForm.has_premium_ai} onChange={(e) => setEditForm({...editForm, has_premium_ai: e.target.checked})} />
-                   </div>
-                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
-                      <span className="text-xs font-bold text-gray-300">Ενεργό Κατάστημα</span>
-                      <input type="checkbox" className="w-5 h-5 accent-green-500 cursor-pointer" checked={editForm.is_active !== false} onChange={(e) => setEditForm({...editForm, is_active: e.target.checked})} />
-                   </div>
-                 </div>
-
-                 <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700 mt-2">
-                    <span className="text-xs font-bold text-gray-300">Backup Mode (Χειροκίνητη Επιλογή)</span>
-                    <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.backup_mode} onChange={(e) => setEditForm({...editForm, backup_mode: e.target.checked})} />
-                 </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <button onClick={saveStore} className="flex-[2] bg-blue-600 text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20">
-                  Αποθηκευση Πελατη
-                </button>
-                <button onClick={() => setIsEditing(false)} className="flex-1 bg-gray-700 text-white py-5 rounded-2xl font-black text-xs uppercase hover:bg-gray-600 transition-colors">
-                  Ακυρωση
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+                      <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_call_waiter} onChange={(e) => setEditForm
