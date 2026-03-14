@@ -18,8 +18,13 @@ export default function SuperAdmin() {
   const REWARD_THRESHOLD = 40;
 
   const fetchStores = async () => {
-    const { data: storesData, error: storesError } = await supabase.from("stores").select("*").order("id", { ascending: true });
-    const { data: pinsData, error: pinsError } = await supabase.from("staff_pins").select("*");
+    const { data: storesData, error: storesError } = await supabase
+      .from("stores")
+      .select("*")
+      .order("id", { ascending: true });
+    const { data: pinsData, error: pinsError } = await supabase
+      .from("staff_pins")
+      .select("*");
 
     if (storesError || pinsError) {
       console.error("Fetch error:", storesError || pinsError);
@@ -27,14 +32,13 @@ export default function SuperAdmin() {
       return;
     }
 
-    const mergedStores = storesData.map(store => {
-      const storePins = pinsData.filter(p => p.store_id === store.id);
+    const mergedStores = storesData.map((store) => {
+      const storePins = pinsData.filter((p) => p.store_id === store.id);
       return {
         ...store,
-        // Αν δεν υπάρχει PIN, το αφήνουμε ΚΕΝΟ ("") αντί να βάζουμε προεπιλογές
-        admin_pin: storePins.find(p => p.role === 'admin')?.pin || "",
-        staff_pin: storePins.find(p => p.role === 'staff')?.pin || "",
-        kitchen_pin: storePins.find(p => p.role === 'kitchen')?.pin || "",
+        admin_pin: storePins.find((p) => p.role === "admin")?.pin || "",
+        staff_pin: storePins.find((p) => p.role === "staff")?.pin || "",
+        kitchen_pin: storePins.find((p) => p.role === "kitchen")?.pin || "",
       };
     });
 
@@ -57,7 +61,7 @@ export default function SuperAdmin() {
       name: "",
       admin_pin: "0000",
       staff_pin: "1111",
-      kitchen_pin: "", // Στα νέα μαγαζιά η κουζίνα ξεκινάει χωρίς PIN
+      kitchen_pin: "",
       theme_color: "#2563EB",
       logo_url: "",
       is_active: true,
@@ -69,7 +73,7 @@ export default function SuperAdmin() {
       lat: null,
       lng: null,
       tables: ["A1", "A2", "A3", "A4", "ΠΑΚΕΤΟ"],
-      reward_threshold: REWARD_THRESHOLD
+      reward_threshold: REWARD_THRESHOLD,
     });
     setIsEditing(true);
   };
@@ -79,40 +83,44 @@ export default function SuperAdmin() {
       const { admin_pin, staff_pin, kitchen_pin, ...storeDataToSave } = editForm;
       let currentStoreId = editForm.id;
 
-      // 1. Αποθήκευση στοιχείων καταστήματος
       if (currentStoreId) {
-        const { error } = await supabase.from("stores").update(storeDataToSave).eq("id", currentStoreId);
+        const { error } = await supabase
+          .from("stores")
+          .update(storeDataToSave)
+          .eq("id", currentStoreId);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from("stores").insert([storeDataToSave]).select();
+        const { data, error } = await supabase
+          .from("stores")
+          .insert([storeDataToSave])
+          .select();
         if (error) throw error;
-        currentStoreId = data[0].id; 
+        currentStoreId = data[0].id;
       }
 
-      // 2. Έξυπνη διαχείριση των PINs
-      const { data: existingPins } = await supabase.from("staff_pins").select("id, role").eq("store_id", currentStoreId);
+      const { data: existingPins } = await supabase
+        .from("staff_pins")
+        .select("id, role")
+        .eq("store_id", currentStoreId);
 
       const getPinId = (roleName) => {
-        const found = existingPins?.find(p => p.role === roleName);
+        const found = existingPins?.find((p) => p.role === roleName);
         return found ? found.id : undefined;
       };
 
       const pinsToUpsert = [];
       const pinIdsToDelete = [];
 
-      // Συνάρτηση που ελέγχει αν το πεδίο είναι άδειο
       const processPin = (role, pinValue) => {
         const existingId = getPinId(role);
         if (pinValue && pinValue.trim() !== "") {
-          // Αν έχει συμπληρωθεί PIN, το ετοιμάζουμε για αποθήκευση/ενημέρωση
           pinsToUpsert.push({
             ...(existingId && { id: existingId }),
             store_id: currentStoreId,
             role: role,
-            pin: pinValue.trim()
+            pin: pinValue.trim(),
           });
         } else if (existingId) {
-          // Αν το πεδίο είναι άδειο ΑΛΛΑ υπήρχε κωδικός πριν, τον βάζουμε για διαγραφή
           pinIdsToDelete.push(existingId);
         }
       };
@@ -122,12 +130,17 @@ export default function SuperAdmin() {
       processPin("kitchen", kitchen_pin);
 
       if (pinsToUpsert.length > 0) {
-        const { error: upsertError } = await supabase.from("staff_pins").upsert(pinsToUpsert);
+        const { error: upsertError } = await supabase
+          .from("staff_pins")
+          .upsert(pinsToUpsert);
         if (upsertError) throw upsertError;
       }
 
       if (pinIdsToDelete.length > 0) {
-        const { error: deleteError } = await supabase.from("staff_pins").delete().in("id", pinIdsToDelete);
+        const { error: deleteError } = await supabase
+          .from("staff_pins")
+          .delete()
+          .in("id", pinIdsToDelete);
         if (deleteError) throw deleteError;
       }
 
@@ -143,9 +156,16 @@ export default function SuperAdmin() {
 
   const toggleLock = async (store) => {
     const newStatus = store.is_active === false ? true : false;
-    if (window.confirm(`Θέλετε να ${newStatus ? 'ΞΕΚΛΕΙΔΩΣΕΤΕ' : 'ΚΛΕΙΔΩΣΕΤΕ'} το κατάστημα "${store.name}";`)) {
+    if (
+      window.confirm(
+        `Θέλετε να ${newStatus ? "ΞΕΚΛΕΙΔΩΣΕΤΕ" : "ΚΛΕΙΔΩΣΕΤΕ"} το κατάστημα "${store.name}";`
+      )
+    ) {
       try {
-        const { error } = await supabase.from("stores").update({ is_active: newStatus }).eq("id", store.id);
+        const { error } = await supabase
+          .from("stores")
+          .update({ is_active: newStatus })
+          .eq("id", store.id);
         if (error) throw error;
         fetchStores();
       } catch (error) {
@@ -154,10 +174,11 @@ export default function SuperAdmin() {
     }
   };
 
-  // ΕΝΗΜΕΡΩΜΕΝΕΣ ΤΙΜΕΣ ΓΙΑ ΤΑ ΠΑΚΕΤΑ (Για τον υπολογισμό του MRR)
   const getTierInfo = (store) => {
-    if (store.has_premium_ai) return { name: "PREMIUM", price: 55, color: "bg-purple-500", text: "text-purple-900" };
-    if (store.enable_ordering !== false) return { name: "PRO", price: 35, color: "bg-blue-500", text: "text-blue-900" };
+    if (store.has_premium_ai)
+      return { name: "PREMIUM", price: 55, color: "bg-purple-500", text: "text-purple-900" };
+    if (store.enable_ordering !== false)
+      return { name: "PRO", price: 35, color: "bg-blue-500", text: "text-blue-900" };
     return { name: "BASIC", price: 15, color: "bg-gray-400", text: "text-gray-900" };
   };
 
@@ -171,7 +192,7 @@ export default function SuperAdmin() {
     }
   };
 
-  const activeStores = stores.filter(s => s.is_active !== false);
+  const activeStores = stores.filter((s) => s.is_active !== false);
   const totalMRR = activeStores.reduce((sum, s) => sum + getTierInfo(s).price, 0);
 
   if (!isAuthenticated) {
@@ -181,7 +202,14 @@ export default function SuperAdmin() {
           <div className="text-5xl mb-6">👑</div>
           <h2 className="text-2xl font-black uppercase text-white mb-2 tracking-widest">Super Admin</h2>
           <p className="text-gray-400 text-xs font-bold uppercase mb-8">Κεντρο Ελεγχου SaaS</p>
-          <input type="password" placeholder="Master PIN" className="w-full p-4 text-center text-2xl font-black rounded-2xl bg-gray-900 text-white border border-gray-700 outline-none focus:border-blue-500 transition-colors mb-6 tracking-[0.5em]" value={pin} onChange={(e) => setPin(e.target.value)} autoFocus />
+          <input
+            type="password"
+            placeholder="Master PIN"
+            className="w-full p-4 text-center text-2xl font-black rounded-2xl bg-gray-900 text-white border border-gray-700 outline-none focus:border-blue-500 transition-colors mb-6 tracking-[0.5em]"
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            autoFocus
+          />
           <button type="submit" className="w-full bg-blue-600 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-blue-500 transition-transform active:scale-95 shadow-lg shadow-blue-500/20">
             Εισοδος
           </button>
@@ -276,12 +304,20 @@ export default function SuperAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Ονομα Καταστηματος</label>
-                  <input type="text" className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500" value={editForm.name} onChange={(e) => setEditForm({...editForm, name: e.target.value})} />
+                  <input
+                    type="text"
+                    className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500"
+                    value={editForm.name}
+                    onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Πακετο Συνδρομης</label>
-                  {/* ΕΝΗΜΕΡΩΜΕΝΑ ΟΝΟΜΑΤΑ ΚΑΙ ΤΙΜΕΣ ΣΤΟ DROPDOWN */}
-                  <select className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500" value={getTierInfo(editForm).name} onChange={(e) => handleTierChange(e.target.value)}>
+                  <select
+                    className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none focus:border-blue-500"
+                    value={getTierInfo(editForm).name}
+                    onChange={(e) => handleTierChange(e.target.value)}
+                  >
                     <option value="BASIC">Basic (15€) - Μόνο Κατάλογος</option>
                     <option value="PRO">Pro (35€) - Παραγγελιοληψία</option>
                     <option value="PREMIUM">Premium (55€) - AI Manager</option>
@@ -292,13 +328,28 @@ export default function SuperAdmin() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Λογοτυπο (URL Εικονας)</label>
-                  <input type="text" className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none text-sm" value={editForm.logo_url || ""} onChange={(e) => setEditForm({...editForm, logo_url: e.target.value})} />
+                  <input
+                    type="text"
+                    className="w-full bg-gray-900 border border-gray-700 text-white p-4 rounded-2xl font-bold outline-none text-sm"
+                    value={editForm.logo_url || ""}
+                    onChange={(e) => setEditForm({ ...editForm, logo_url: e.target.value })}
+                  />
                 </div>
                 <div>
                   <label className="block text-[10px] font-black uppercase text-gray-500 mb-2">Χρωμα (Hex)</label>
                   <div className="flex gap-3 h-[54px]">
-                    <input type="color" className="h-full w-16 rounded-xl cursor-pointer bg-gray-900 border border-gray-700" value={editForm.theme_color} onChange={(e) => setEditForm({...editForm, theme_color: e.target.value})} />
-                    <input type="text" className="flex-1 bg-gray-900 border border-gray-700 text-white p-3 rounded-xl font-bold outline-none uppercase" value={editForm.theme_color} onChange={(e) => setEditForm({...editForm, theme_color: e.target.value})} />
+                    <input
+                      type="color"
+                      className="h-full w-16 rounded-xl cursor-pointer bg-gray-900 border border-gray-700"
+                      value={editForm.theme_color}
+                      onChange={(e) => setEditForm({ ...editForm, theme_color: e.target.value })}
+                    />
+                    <input
+                      type="text"
+                      className="flex-1 bg-gray-900 border border-gray-700 text-white p-3 rounded-xl font-bold outline-none uppercase"
+                      value={editForm.theme_color}
+                      onChange={(e) => setEditForm({ ...editForm, theme_color: e.target.value })}
+                    />
                   </div>
                 </div>
               </div>
@@ -308,41 +359,64 @@ export default function SuperAdmin() {
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-[10px] font-black text-red-400 mb-1">Admin</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-red-400" value={editForm.admin_pin || ""} onChange={(e) => setEditForm({...editForm, admin_pin: e.target.value})} placeholder="π.χ. 0000" />
+                    <input
+                      type="text"
+                      maxLength="4"
+                      className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-red-400"
+                      value={editForm.admin_pin || ""}
+                      onChange={(e) => setEditForm({ ...editForm, admin_pin: e.target.value })}
+                      placeholder="π.χ. 0000"
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-blue-400 mb-1">Staff</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-blue-400" value={editForm.staff_pin || ""} onChange={(e) => setEditForm({...editForm, staff_pin: e.target.value})} placeholder="π.χ. 1111" />
+                    <input
+                      type="text"
+                      maxLength="4"
+                      className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-blue-400"
+                      value={editForm.staff_pin || ""}
+                      onChange={(e) => setEditForm({ ...editForm, staff_pin: e.target.value })}
+                      placeholder="π.χ. 1111"
+                    />
                   </div>
                   <div>
                     <label className="block text-[10px] font-black text-orange-400 mb-1">Κουζίνα (Προαιρετικό)</label>
-                    <input type="text" maxLength="4" className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-orange-400" value={editForm.kitchen_pin || ""} onChange={(e) => setEditForm({...editForm, kitchen_pin: e.target.value})} placeholder="Κενό" />
+                    <input
+                      type="text"
+                      maxLength="4"
+                      className="w-full bg-gray-800 text-white p-3 rounded-xl font-black text-center tracking-widest border border-gray-700 outline-none focus:border-orange-400"
+                      value={editForm.kitchen_pin || ""}
+                      onChange={(e) => setEditForm({ ...editForm, kitchen_pin: e.target.value })}
+                      placeholder="Κενό"
+                    />
                   </div>
                 </div>
               </div>
 
               <div className="bg-gray-900 p-5 rounded-3xl border border-gray-700 space-y-4">
-                 <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-800 pb-2">Ρυθμισεις Λειτουργιας & Overrides</p>
+                <p className="text-[10px] font-black uppercase text-gray-500 tracking-widest border-b border-gray-800 pb-2">Ρυθμισεις Λειτουργιας & Overrides</p>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   <div>
-                     <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Τραπέζια (Κόμμα διαχωρισμός)</label>
-                     <textarea className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none text-sm resize-none" rows="2" value={(editForm.tables || []).join(", ")} onChange={(e) => setEditForm({...editForm, tables: e.target.value.split(",").map(t => t.trim()).filter(Boolean)})} />
-                   </div>
-                   <div>
-                     <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Όριο Πόντων Δώρου (€)</label>
-                     <input type="number" className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none" value={editForm.reward_threshold} onChange={(e) => setEditForm({...editForm, reward_threshold: parseInt(e.target.value)})} />
-                   </div>
-                 </div>
-
-                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
-                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
-                      <span className="text-xs font-bold text-gray-300">Παραγγελιοληψία</span>
-                      <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_ordering} onChange={(e) => setEditForm({...editForm, enable_ordering: e.target.checked})} />
-                   </div>
-                   <div className="flex items-center justify-between bg-gray-800 p-3 rounded-xl border border-gray-700">
-                      <span className="text-xs font-bold text-gray-300">Κλήση Σερβιτόρου</span>
-                      <input type="checkbox" className="w-5 h-5 accent-blue-500 cursor-pointer" checked={editForm.enable_call_waiter} onChange={(e) => setEditForm
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Τραπέζια (Κόμμα διαχωρισμός)</label>
+                    <textarea
+                      className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none text-sm resize-none"
+                      rows="2"
+                      value={(editForm.tables || []).join(", ")}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          tables: e.target.value.split(",").map((t) => t.trim()).filter(Boolean),
+                        })
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 mb-1 uppercase">Όριο Πόντων Δώρου (€)</label>
+                    <input
+                      type="number"
+                      className="w-full bg-gray-800 text-white p-3 rounded-xl font-bold border border-gray-700 outline-none"
+                      value={editForm.reward_threshold}
                       onChange={(e) => setEditForm({ ...editForm, reward_threshold: parseInt(e.target.value) })}
                     />
                   </div>
